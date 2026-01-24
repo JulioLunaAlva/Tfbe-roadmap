@@ -1,0 +1,14 @@
+{
+    "name": "tfbe-roadmap",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "cd client && npm run dev",
+        "build": "cd client && npm run build",
+        "lint": "cd client && npm run lint"
+    },
+    "workspaces": [
+        "client",
+        "api"
+    ]
+}

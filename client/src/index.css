@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /* --- BRAND IDENTITY --- */
+  --brand-red: #E10600;
+  --brand-black: #0F0F10;
+  --brand-white: #FFFFFF;
+
+  /* --- LIGHT THEME (Default) --- */
+  /* Main Background: Light Gray */
+  --bg-primary: #F4F5F7;
+  /* Cards / Table Container: White */
+  --bg-secondary: #FFFFFF;
+  /* Hover / Inputs: Very Light Gray */
+  --bg-tertiary: #F9FAFB;
+
+  /* Sidebar: ALWAYS BRAND BLACK */
+  --bg-sidebar: #0F0F10;
+  --text-sidebar-primary: #FFFFFF;
+  --text-sidebar-secondary: #9CA3AF;
+  --bg-sidebar-hover: #27272A;
+
+  /* Text Colors */
+  --text-primary: #111827;
+  /* Gray 900 */
+  --text-secondary: #4B5563;
+  /* Gray 600 */
+  --text-tertiary: #6B7280;
+  /* Gray 500 */
+
+  /* Borders / Grid Lines */
+  --border-color: #E1E3E6;
+  /* Precise User Spec */
+  --grid-line: #E1E3E6;
+  --item-hover: #F3F4F6;
+}
+
+/* --- DARK THEME (Premium Executive - Deep Blue/Grey) --- */
+.dark {
+  /* Main Background: Almost Black / Deep Blueish */
+  --bg-primary: #0E1114;
+
+  /* Container: Dark Blue-Grey */
+  --bg-secondary: #1C232B;
+
+  /* Hover / Inputs / Phase Rows: Slightly lighter */
+  --bg-tertiary: #24303B;
+
+  /* Sidebar: Keeps Identity Black, or matches Main BG? 
+     User said "Fondo general: casi negro". Sidebar is usually BRAND BLACK #0F0F10. 
+     Keeping Sidebar as Brand Black for contrast against the blue-grey content, 
+     or matching purely? User didn't explicitly change Sidebar from #0F0F10, 
+     but said "Fondo general...". I will keep sidebar as #0F0F10 to anchor the brand.
+  */
+  --bg-sidebar: #0F0F10;
+
+  /* Text Colors (High Contrast) */
+  --text-primary: #F9FAFB;
+  /* Gray 50 */
+  --text-secondary: #9CA3AF;
+  /* Gray 400 */
+  --text-tertiary: #6B7280;
+  /* Gray 500 */
+
+  /* Borders / Grid Lines */
+  --border-color: rgba(255, 255, 255, 0.04);
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --item-hover: #24303B;
+}
+
+body {
+  @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-200;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-400/50 rounded hover:bg-zinc-400;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-zinc-600 rounded hover:bg-zinc-500;
+}

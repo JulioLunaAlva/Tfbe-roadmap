@@ -1,0 +1,40 @@
+{
+    "name": "tfbe-roadmap-api",
+    "version": "1.0.0",
+    "description": "Serverless API for TFBE Roadmap",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "dev": "ts-node -r dotenv/config src/server.ts",
+        "migrate": "ts-node scripts/migrate.ts",
+        "migrate:v2": "ts-node scripts/migrate_v2.ts",
+        "migrate:v3": "ts-node scripts/migrate_v3.ts",
+        "repair": "ts-node scripts/repair_db.ts",
+        "migrate:columns": "ts-node scripts/add_columns.ts",
+        "migrate:phase-progress": "ts-node scripts/add_phase_progress.ts"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "cookie": "^0.6.0",
+        "cors": "^2.8.6",
+        "dotenv": "^17.2.3",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.2",
+        "multer": "^2.0.2",
+        "pg": "^8.11.3",
+        "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "@types/cookie": "^0.6.0",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/multer": "^2.0.0",
+        "@types/node": "^20.10.0",
+        "@types/pg": "^8.10.9",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    }
+}
