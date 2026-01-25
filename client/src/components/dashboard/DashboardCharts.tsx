@@ -1,7 +1,6 @@
 
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-    PieChart, Pie
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 
 interface ChartProps {
@@ -11,7 +10,6 @@ interface ChartProps {
 }
 
 const COLORS_TECH = ['#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B'];
-const COLORS_COMPLEXITY = ['#10B981', '#F59E0B', '#EF4444']; // Low, Medium, High
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -52,7 +50,7 @@ export const DashboardCharts = ({ techData, phaseData, complexityData }: ChartPr
                             />
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }} />
                             <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-                                {phaseData.map((entry, index) => (
+                                {phaseData.map((_entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS_TECH[index % COLORS_TECH.length]} />
                                 ))}
                             </Bar>
@@ -81,7 +79,7 @@ export const DashboardCharts = ({ techData, phaseData, complexityData }: ChartPr
                             <YAxis hide />
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }} />
                             <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
-                                {techData.map((entry, index) => (
+                                {techData.map((_entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS_TECH[index % COLORS_TECH.length]} />
                                 ))}
                             </Bar>
@@ -97,10 +95,10 @@ export const DashboardCharts = ({ techData, phaseData, complexityData }: ChartPr
                     Complejidad del Portafolio
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {complexityData.map((item, idx) => (
+                    {complexityData.map((item) => (
                         <div key={item.name} className="flex items-center p-4 bg-gray-50 dark:bg-[#252D38] rounded-lg">
                             <div className={`w-3 h-12 rounded-full mr-4 ${item.name === 'Alta' ? 'bg-red-500' :
-                                    item.name === 'Media' ? 'bg-amber-500' : 'bg-green-500'
+                                item.name === 'Media' ? 'bg-amber-500' : 'bg-green-500'
                                 }`}></div>
                             <div>
                                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{item.value}</div>

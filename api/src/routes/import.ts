@@ -39,12 +39,42 @@ router.post('/', authenticateToken, requireRole('editor'), upload.single('file')
             const year = row['Año'] || row['Year'] || new Date().getFullYear();
             const notes = row['Notas'] || '';
 
-            await query(
-                `INSERT INTO initiatives (name, area, champion, complexity, is_top_priority, year, notes) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT DO NOTHING`,
-                [name, area, champion, complexity, is_top_priority, year, notes]
+            const transformation_lead = row['Transformation Lead'] || row['Responsable Transformación'] || row['Transf. Lead'] || '';
+            const techString = row['Technologies'] || row['Tecnologías'] || row['Tecnologia'] || '';
+
+            // Insert Initiative
+            const resInit = await query(
+                `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 ON CONFLICT DO NOTHING RETURNING id`,
+                [name, area, champion, transformation_lead, complexity, is_top_priority, year, notes]
             );
+
+            // If inserted successfully (and returned an ID), process technologies
+            if (resInit.rows.length > 0) {
+                const initId = resInit.rows[0].id;
+
+                if (techString) {
+                    const techNames = techString.split(';').map((t: string) => t.trim()).filter((t: string) => t);
+
+                    for (const tName of techNames) {
+                        // Find or Insert Technology
+                        let tId;
+                        const techRes = await query('SELECT id FROM technologies WHERE name = $1', [tName]);
+                        if (techRes.rows.length > 0) {
+                            tId = techRes.rows[0].id;
+                        } else {
+                            const newTech = await query('INSERT INTO technologies (name) VALUES ($1) RETURNING id', [tName]);
+                            tId = newTech.rows[0].id;
+                        }
+
+                        await query(
+                            'INSERT INTO initiative_technologies (initiative_id, technology_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                            [initId, tId]
+                        );
+                    }
+                }
+            }
             processed++;
         }
 

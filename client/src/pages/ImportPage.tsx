@@ -48,8 +48,18 @@ export const ImportPage = () => {
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <div>
-                <h2 className="text-2xl font-bold text-gray-800">Importar Iniciativas</h2>
-                <p className="text-gray-500">Sube el archivo Excel para actualizar o crear iniciativas masivamente.</p>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Importar Iniciativas</h2>
+                <p className="text-gray-500 dark:text-gray-400">Sube el archivo CSV/Excel para actualizar o crear iniciativas masivamente.</p>
+                <div className="mt-4">
+                    <a
+                        href="/plantilla_carga_masiva.csv"
+                        download
+                        className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium underline flex items-center"
+                    >
+                        <FileSpreadsheet size={16} className="mr-1" />
+                        Descargar Plantilla de Ejemplo (.csv)
+                    </a>
+                </div>
             </div>
 
             <div className="bg-white p-8 rounded-lg shadow border border-gray-200 text-center">

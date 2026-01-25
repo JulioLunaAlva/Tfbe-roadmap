@@ -17,8 +17,7 @@ interface KPIProps {
 export const DashboardKPIs = ({ total, completed, delayed, inProgress, completionRate }: KPIProps) => {
 
     // Status Logic
-    const healthStatus = delayed > 0 ? 'Attention Needed' : 'Healthy';
-    const healthColor = delayed > 0 ? 'text-red-500' : 'text-green-500';
+
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

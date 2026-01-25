@@ -14,3 +14,4 @@ CREATE TABLE IF NOT EXISTS initiative_milestones (
 -- Index for fast lookup by initiative
 -- Index for fast lookup by initiative
 CREATE INDEX IF NOT EXISTS idx_milestones_initiative ON initiative_milestones(initiative_id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;

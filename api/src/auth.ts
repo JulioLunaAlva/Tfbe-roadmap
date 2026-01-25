@@ -10,37 +10,37 @@ const generateToken = (email: string, role: string, id: string) => {
     return jwt.sign({ email, role, id }, JWT_SECRET, { expiresIn: '7d' });
 };
 
+import bcrypt from 'bcryptjs';
+
 export const loginCall = async (req: Request, res: Response) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email required' });
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     try {
         // Check if user exists
         const userResult = await query('SELECT * FROM users WHERE email = $1', [email]);
-        let user = userResult.rows[0];
-
-        // MVP: Auto-create user if not differs. OR restrict. 
-        // Requirement says "Editor -> TFBE Team", "Viewer -> Others".
-        // For MVP, if it's the first user, make admin? 
-        // Or just allow login and default to 'viewer'.
+        const user = userResult.rows[0];
 
         if (!user) {
-            // Auto-register as viewer for now
-            const result = await query(
-                'INSERT INTO users (email, role) VALUES ($1, $2) RETURNING *',
-                [email, 'viewer']
-            );
-            user = result.rows[0];
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Verify Password
+        if (!user.password_hash) {
+            return res.status(401).json({ error: 'User has no password set. Please contact admin.' });
+        }
+
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         // Generate Token
-        const token = generateToken(user.email, user.role, user.id);
-
-        // "Send" email. For MVP development:
-        console.log(`[MAGIC LINK] Login link for ${email}: /auth/callback?token=${token}`);
+        // Ensure user.role is valid
+        const token = generateToken(user.email, user.role || 'viewer', user.id);
 
         // Respond success
-        res.json({ message: 'Magic link sent (check console)', token }); // Returning token in body for convenient testing
+        res.json({ message: 'Login successful', token, user: { email: user.email, role: user.role } });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
