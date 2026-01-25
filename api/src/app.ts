@@ -13,28 +13,23 @@ app.use(cors());
 app.use(express.json());
 
 // Routes - Auth
-// Routes - Auth (Handle both with and without /api prefix for Vercel compatibility)
-app.post('/api/auth/login', loginCall);
 app.post('/auth/login', loginCall);
-
-app.get('/api/auth/me', verifyToken);
 app.get('/auth/me', verifyToken);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
 // Simple Test Route
-app.get('/api/test', (req, res) => {
+app.get('/test', (req, res) => {
     res.send('API is working');
 });
 
-// We will add more routes here dynamically or import them
-// app.use('/api/initiatives', initiativesRouter);
-app.use('/api/initiatives', initiativesRouter);
-app.use('/api/progress', progressRouter);
-app.use('/api/import', importRouter);
+// Feature routes
+app.use('/initiatives', initiativesRouter);
+app.use('/progress', progressRouter);
+app.use('/import', importRouter);
 
 // Debug: Log all requests
 app.use((req, res, next) => {
