@@ -139,7 +139,7 @@ export const LoginPage = () => {
                     </button>
 
                     <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
-                        Acceso seguro vía Magic Link. No requiere contraseña.
+                        Ingresa tu usuario y contraseña para acceder
                     </p>
                 </form>
             </div>
