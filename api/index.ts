@@ -48,9 +48,5 @@ app.use('*', (req, res) => {
 
 // Vercel serverless function handler
 export default async (req: VercelRequest, res: VercelResponse) => {
-    // Strip /api prefix if present since Vercel routes /api/* to this function
-    const path = req.url?.replace(/^\/api/, '') || '/';
-    req.url = path;
-
     return app(req, res);
 };
