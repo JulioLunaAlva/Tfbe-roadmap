@@ -6,8 +6,8 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "ts-node -r dotenv/config src/server.ts",
-        "build": "tsc",
-        "start": "node dist/server.js",
+        "build": "echo 'No build needed'",
+        "start": "ts-node -r dotenv/config src/server.ts",
         "migrate": "ts-node scripts/migrate.ts",
         "migrate:v2": "ts-node scripts/migrate_v2.ts",
         "migrate:v3": "ts-node scripts/migrate_v3.ts",
