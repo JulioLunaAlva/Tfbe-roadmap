@@ -107,7 +107,7 @@ export const RoadmapTable = () => {
 
     const fetchInitiatives = async () => {
         try {
-            const res = await fetch(`/api/initiatives?year=${year}`, {
+            const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
