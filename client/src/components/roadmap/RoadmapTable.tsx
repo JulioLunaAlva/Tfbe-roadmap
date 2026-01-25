@@ -8,6 +8,7 @@ import { ProgressEditPopover } from './ProgressEditPopover';
 import { CreateInitiativeModal } from '../initiatives/CreateInitiativeModal';
 import { EditInitiativeModal } from '../initiatives/EditInitiativeModal';
 import { MilestoneContextMenu } from './MilestoneContextMenu';
+import API_URL from '../../config/api';
 import { RoadmapFilters } from './RoadmapFilters';
 
 interface Initiative {
