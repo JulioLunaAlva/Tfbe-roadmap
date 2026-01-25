@@ -135,7 +135,7 @@ export const RoadmapTable = () => {
                 const msMap: Record<string, Milestone[]> = {};
                 await Promise.all(initiatives.map(async (init) => {
                     try {
-                        const res = await fetch(`/api/milestones/${init.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                        const res = await fetch(`${API_URL}/api/milestones/${init.id}`, { headers: { Authorization: `Bearer ${token}` } });
                         const data = await res.json();
                         if (Array.isArray(data)) msMap[init.id] = data;
                     } catch (e) { console.error(e); }
@@ -152,7 +152,7 @@ export const RoadmapTable = () => {
             const fetchAllProgress = async () => {
                 const allP: Record<string, Progress> = {};
                 await Promise.all(initiatives.map(async (init) => {
-                    const res = await fetch(`/api/progress/${init.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                    const res = await fetch(`${API_URL}/api/progress/${init.id}`, { headers: { Authorization: `Bearer ${token}` } });
                     const data: Progress[] = await res.json();
                     if (Array.isArray(data)) {
                         data.forEach(p => {
