@@ -6,6 +6,7 @@ import initiativesRouter from './routes/initiatives';
 import progressRouter from './routes/progress';
 import importRouter from './routes/import';
 import milestonesRouter from './routes/milestones';
+import adminRouter from './routes/admin';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -26,3 +27,4 @@ app.use('/api/initiatives', initiativesRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/import', importRouter);
 app.use('/api/milestones', milestonesRouter);
+app.use('/api/admin', adminRouter);
