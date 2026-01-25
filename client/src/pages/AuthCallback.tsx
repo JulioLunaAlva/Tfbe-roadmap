@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config/api';
 
 export const AuthCallback = () => {
     const [searchParams] = useSearchParams();
@@ -14,7 +15,7 @@ export const AuthCallback = () => {
             // We will verify in App mount or AuthContext init, but here we just set it to unblock UI.
             // Better: Call /api/auth/me immediately to get user details.
 
-            fetch('/api/auth/me', {
+            fetch(`${API_URL}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => res.json())
