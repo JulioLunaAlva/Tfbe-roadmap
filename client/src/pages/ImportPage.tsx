@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-react';
+import API_URL from '../config/api';
 
 export const ImportPage = () => {
     const { token } = useAuth();
@@ -26,7 +27,7 @@ export const ImportPage = () => {
         formData.append('file', file);
 
         try {
-            const res = await fetch('/api/import', {
+            const res = await fetch(`${API_URL}/api/import`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData

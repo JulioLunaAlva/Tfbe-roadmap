@@ -169,7 +169,7 @@ export const RoadmapTable = () => {
 
     const handleReorder = async (id: string, direction: 'up' | 'down') => {
         try {
-            await fetch(`/api/initiatives/${id}/reorder`, {
+            await fetch(`${API_URL}/api/initiatives/${id}/reorder`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ direction })
@@ -196,7 +196,7 @@ export const RoadmapTable = () => {
         if (!contextMenu) return;
         const { initiativeId, week } = contextMenu;
         try {
-            const res = await fetch('/api/milestones', {
+            const res = await fetch(`${API_URL}/api/milestones`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
@@ -221,7 +221,7 @@ export const RoadmapTable = () => {
     const handleDeleteInitiative = async (id: string) => {
         if (!confirm('¿Estás seguro de eliminar esta iniciativa?')) return;
         try {
-            await fetch(`/api/initiatives/${id}`, {
+            await fetch(`${API_URL}/api/initiatives/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -233,7 +233,7 @@ export const RoadmapTable = () => {
     const handleDeleteMilestone = async () => {
         if (!contextMenu?.existingId) return;
         try {
-            await fetch(`/api/milestones/${contextMenu.existingId}`, {
+            await fetch(`${API_URL}/api/milestones/${contextMenu.existingId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -358,7 +358,7 @@ export const RoadmapTable = () => {
             if (val !== undefined) payload.progress = val;
             if (note !== undefined) payload.notes = note;
 
-            const res = await fetch(`/api/initiatives/${initId}/phases/${phaseId}/progress`, {
+            const res = await fetch(`${API_URL}/api/initiatives/${initId}/phases/${phaseId}/progress`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify(payload)
@@ -374,7 +374,7 @@ export const RoadmapTable = () => {
         const { initiativeId, phaseId, week } = editingCell;
 
         try {
-            const res = await fetch('/api/progress', {
+            const res = await fetch(`${API_URL}/api/progress`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

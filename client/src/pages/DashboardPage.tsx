@@ -6,6 +6,7 @@ import { Zap } from 'lucide-react';
 import { DashboardKPIs } from '../components/dashboard/DashboardKPIs';
 import { DashboardCharts } from '../components/dashboard/DashboardCharts';
 import { DashboardActivity } from '../components/dashboard/DashboardActivity';
+import API_URL from '../config/api';
 
 export const DashboardPage = () => {
     const { token } = useAuth();
@@ -15,7 +16,7 @@ export const DashboardPage = () => {
 
     useEffect(() => {
         setLoading(true);
-        fetch(`/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => {
                 setInitiatives(Array.isArray(data) ? data : []);

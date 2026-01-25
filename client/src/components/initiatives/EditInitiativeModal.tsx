@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_URL from '../../config/api';
 
 interface Props {
     initiative: any;
@@ -78,7 +79,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch(`/api/initiatives/${initiative.id}`, {
+            const res = await fetch(`${API_URL}/api/initiatives/${initiative.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

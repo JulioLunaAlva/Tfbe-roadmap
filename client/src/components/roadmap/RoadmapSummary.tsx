@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import API_URL from '../../config/api';
 
 export const RoadmapSummary = () => {
     const { token } = useAuth();
@@ -7,7 +8,7 @@ export const RoadmapSummary = () => {
 
     useEffect(() => {
         if (!token) return;
-        fetch('/api/initiatives', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/initiatives`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => Array.isArray(data) ? setInitiatives(data) : setInitiatives([]))
             .catch(console.error);

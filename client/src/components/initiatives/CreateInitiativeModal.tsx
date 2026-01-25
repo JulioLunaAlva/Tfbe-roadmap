@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_URL from '../../config/api';
 
 interface Props {
     onClose: () => void;
@@ -82,7 +83,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch('/api/initiatives', {
+            const res = await fetch(`${API_URL}/api/initiatives`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
