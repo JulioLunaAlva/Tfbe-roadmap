@@ -770,7 +770,7 @@ export const RoadmapTable = () => {
                                                 <input type="number" min="0" max="100" className="w-12 text-center border-[var(--border-color)] rounded text-[10px] p-0.5 focus:ring-1 focus:ring-indigo-500 bg-transparent text-[var(--text-primary)]" value={phase.progress || 0} onChange={(e) => handlePhaseProgressUpdate(initiative.id, phase.id, phase.phase_id, parseInt(e.target.value))} />
                                                 <span className="ml-0.5">%</span>
                                             </td>
-                                            <td colSpan={2} className="bg-[var(--bg-tertiary)] dark:bg-[#111827] border-r border-[var(--border-color)]"></td>
+                                            <td colSpan={4} className="bg-[var(--bg-tertiary)] dark:bg-[#111827] border-r border-[var(--border-color)]"></td>
                                             {flatWeeks.map(w => {
                                                 const key = `${initiative.id}-${phase.phase_id}-${w}`;
                                                 const prog = progressMap[key];
