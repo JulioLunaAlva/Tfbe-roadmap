@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import API_URL from '../config/api';
 
 interface User {
     email: string;
@@ -26,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 try {
                     // Verify token with backend or just decode if we trust local (we shouldn't trust local only)
                     // For MVP, simplistic validation:
-                    const res = await fetch('/api/auth/me', {
+                    const res = await fetch(`${API_URL}/api/auth/me`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (res.ok) {
