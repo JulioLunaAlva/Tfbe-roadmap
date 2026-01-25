@@ -1,19 +1,25 @@
 {
     "version": 2,
+    "builds": [
+        {
+            "src": "api/**/*.ts",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "/api/index.ts"
+        },
+        {
+            "handle": "filesystem"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ],
     "buildCommand": "npm run build",
     "outputDirectory": "dist",
-    "installCommand": "npm install",
-    "framework": null,
-    "devCommand": "npm run dev",
-    "functions": {
-        "api/**/*.ts": {
-            "runtime": "@vercel/node@3"
-        }
-    },
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ]
+    "installCommand": "npm install"
 }
