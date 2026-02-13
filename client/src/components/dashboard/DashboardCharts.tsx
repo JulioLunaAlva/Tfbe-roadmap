@@ -31,10 +31,15 @@ export const DashboardCharts = ({ techData, phaseData, complexityData }: ChartPr
 
             {/* Phase Distribution Chart */}
             <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
-                    <span className="w-1 h-6 bg-indigo-500 rounded-full mr-3"></span>
-                    Distribución por Fase
-                </h3>
+                <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                        <span className="w-1 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                        Distribución por Fase
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-7">
+                        Muestra en qué fase del ciclo de vida se encuentra cada iniciativa actualmente
+                    </p>
+                </div>
                 <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={phaseData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
@@ -61,10 +66,15 @@ export const DashboardCharts = ({ techData, phaseData, complexityData }: ChartPr
 
             {/* Tech Radar (Top Technologies) */}
             <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
-                    <span className="w-1 h-6 bg-emerald-500 rounded-full mr-3"></span>
-                    Top Tecnologías
-                </h3>
+                <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                        <span className="w-1 h-6 bg-emerald-500 rounded-full mr-3"></span>
+                        Top Tecnologías
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-7">
+                        Las 6 tecnologías más utilizadas en el portafolio de iniciativas
+                    </p>
+                </div>
                 <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={techData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>

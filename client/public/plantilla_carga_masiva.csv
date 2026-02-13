@@ -1,3 +1,4 @@
-Iniciativa,Area,Responsable,Responsable Transformación,Complejidad,Prioridad,Año,Notas,Tecnologías
-Ejemplo Proyecto 1,Finanzas,Juan Perez,Maria Lopez,Alta,TRUE,2026,Notas del proyecto...,Python; React; SQL
-Ejemplo Proyecto 2,Contraloría,Ana Gomez,Carlos Ruiz,Media,FALSE,2026,,Excel; VBA
+Iniciativa,Valor,Area,Responsable,Responsable Transformación,Complejidad,Prioridad,Año,Notas,Tecnologías,Estatus,Fecha Inicio,Fecha Fin,Progreso
+Ejemplo Proyecto 1,Estrategico Alto Valor,Finanzas,Juan Perez,Maria Lopez,Alta,TRUE,2026,Notas del proyecto...,Python; React; SQL,En curso,2026-01-15,2026-12-31,25
+Ejemplo Proyecto 2,Operational Value,Contraloría,Ana Gomez,Carlos Ruiz,Media,FALSE,2026,,Excel; VBA,En espera,2026-02-01,2026-06-30,0
+Ejemplo Proyecto 3,Mandatorio/Compliance,KFS,Pedro Martinez,Laura Sanchez,Baja,FALSE,2026,Cumplimiento normativo,SAP; Power BI,En curso,2026-01-10,2026-08-15,50

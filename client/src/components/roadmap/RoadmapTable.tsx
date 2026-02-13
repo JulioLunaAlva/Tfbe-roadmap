@@ -27,6 +27,7 @@ interface Initiative {
     end_date?: string;
     progress?: number;
     technologies?: string[];
+    value?: string;
 }
 interface InitiativePhase {
     id: string;
@@ -423,6 +424,7 @@ export const RoadmapTable = () => {
     // Column Resizing State
     const [colWidths, setColWidths] = useState({
         initiative: 400,
+        value: 140,
         champion: 128,
         tech: 128,
         complexity: 80,
@@ -519,6 +521,9 @@ export const RoadmapTable = () => {
                             <th rowSpan={3} style={{ width: colWidths.initiative, minWidth: colWidths.initiative }} className="group px-6 py-3 text-left text-xs font-bold uppercase tracking-wider sticky left-0 bg-[#E10600] z-20 border-r border-[#B90500] border-b border-[#B90500] shadow-[4px_0_8px_-2px_rgba(0,0,0,0.2)] relative">
                                 Iniciativa <ResizeHandle col="initiative" />
                             </th>
+                            <th rowSpan={3} style={{ width: colWidths.value, minWidth: colWidths.value }} className="group px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wider bg-[#E10600] text-white border-r border-b border-[#B90500] relative">
+                                Valor <ResizeHandle col="value" />
+                            </th>
                             <th rowSpan={3} style={{ width: colWidths.champion, minWidth: colWidths.champion }} className="group px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wider bg-[#E10600] text-white border-r border-b border-[#B90500] relative">
                                 Champion <ResizeHandle col="champion" />
                             </th>
@@ -570,21 +575,31 @@ export const RoadmapTable = () => {
                         </tr>
                         <tr>
                             {flatWeeks.map(w => {
-                                // Logic for Relative Week Number (1-4 per month)
-                                let relativeWeek = w;
+                                // Calculate Relative Week Number (1-4 or 1-5 per month)
+                                let relativeWeek = 1;
                                 let isMonthEnd = false;
-                                let accumulateWeeks = 0;
+                                let accumulatedWeeks = 0;
+                                let found = false;
 
+                                // Find which month this week belongs to
                                 for (const q of CALENDAR_SCHEMA) {
                                     for (const m of q.months) {
-                                        if (w > accumulateWeeks && w <= accumulateWeeks + m.weeks.length) {
-                                            relativeWeek = w - accumulateWeeks;
-                                            if (w === accumulateWeeks + m.weeks.length) isMonthEnd = true;
+                                        const monthWeekCount = m.weeks.length;
+                                        // Check if current week (w) falls within this month's range
+                                        if (w > accumulatedWeeks && w <= accumulatedWeeks + monthWeekCount) {
+                                            // Calculate position within the month (1-based)
+                                            relativeWeek = w - accumulatedWeeks;
+                                            // Check if this is the last week of the month
+                                            if (w === accumulatedWeeks + monthWeekCount) {
+                                                isMonthEnd = true;
+                                            }
+                                            found = true;
                                             break;
                                         }
-                                        accumulateWeeks += m.weeks.length;
+                                        accumulatedWeeks += monthWeekCount;
                                     }
-                                    if (relativeWeek !== w) break;
+                                    // Exit outer loop if we found the month
+                                    if (found) break;
                                 }
 
                                 const isQuarterEnd = [13, 26, 39, 52].includes(w);
@@ -657,6 +672,22 @@ export const RoadmapTable = () => {
                                                 </div>
                                             )}
                                         </div>
+                                    </td>
+                                    {/* Value Cell - NEW */}
+                                    <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center">
+                                        <span className={clsx(
+                                            "inline-block px-2 py-1 rounded-md text-[9px] font-semibold whitespace-nowrap",
+                                            (() => {
+                                                const v = initiative.value;
+                                                if (v === 'Estrategico Alto Valor') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+                                                if (v === 'Operational Value') return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+                                                if (v === 'Mandatorio/Compliance') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
+                                                if (v === 'Deferred/Not prioritized') return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                                                return 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+                                            })()
+                                        )}>
+                                            {initiative.value || 'N/A'}
+                                        </span>
                                     </td>
                                     <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center truncate text-[var(--text-secondary)] dark:text-gray-200 font-medium" title={initiative.champion}>{initiative.champion}</td>
                                     <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center text-[var(--text-secondary)] dark:text-gray-200">
@@ -761,13 +792,26 @@ export const RoadmapTable = () => {
                                                         id={`note-${phase.id}`}
                                                         rows={1}
                                                         onInput={(e) => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px'; }}
+                                                        disabled={user?.role === 'viewer'}
+                                                        readOnly={user?.role === 'viewer'}
                                                     />
-                                                    <button onClick={() => { const input = document.getElementById(`note-${phase.id}`) as HTMLTextAreaElement; if (input) handlePhaseProgressUpdate(initiative.id, phase.id, phase.phase_id, undefined, input.value); }} className="ml-1 text-indigo-600 hover:text-indigo-800 p-1 rounded hover:bg-indigo-50 mt-0.5" title="Guardar Nota"><Pencil size={10} /></button>
+                                                    {user?.role !== 'viewer' && (
+                                                        <button onClick={() => { const input = document.getElementById(`note-${phase.id}`) as HTMLTextAreaElement; if (input) handlePhaseProgressUpdate(initiative.id, phase.id, phase.phase_id, undefined, input.value); }} className="ml-1 text-indigo-600 hover:text-indigo-800 p-1 rounded hover:bg-indigo-50 mt-0.5" title="Guardar Nota"><Pencil size={10} /></button>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="bg-[var(--bg-tertiary)] dark:bg-[#111827] border-r border-[var(--border-color)]"></td>
                                             <td className="px-2 py-1 text-[10px] border-r border-[var(--border-color)] text-center font-bold bg-[var(--bg-tertiary)] dark:bg-[#111827]">
-                                                <input type="number" min="0" max="100" className="w-12 text-center border-[var(--border-color)] rounded text-[10px] p-0.5 focus:ring-1 focus:ring-indigo-500 bg-transparent text-[var(--text-primary)]" value={phase.progress || 0} onChange={(e) => handlePhaseProgressUpdate(initiative.id, phase.id, phase.phase_id, parseInt(e.target.value))} />
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    className="w-12 text-center border-[var(--border-color)] rounded text-[10px] p-0.5 focus:ring-1 focus:ring-indigo-500 bg-transparent text-[var(--text-primary)]"
+                                                    value={phase.progress || 0}
+                                                    onChange={(e) => handlePhaseProgressUpdate(initiative.id, phase.id, phase.phase_id, parseInt(e.target.value))}
+                                                    disabled={user?.role === 'viewer'}
+                                                    readOnly={user?.role === 'viewer'}
+                                                />
                                                 <span className="ml-0.5">%</span>
                                             </td>
                                             <td colSpan={3} className="bg-[var(--bg-tertiary)] dark:bg-[#111827] border-r border-[var(--border-color)]"></td>

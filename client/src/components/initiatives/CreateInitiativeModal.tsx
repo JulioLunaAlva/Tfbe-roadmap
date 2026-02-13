@@ -22,6 +22,7 @@ interface InitiativeForm {
     start_date: Date | null;
     end_date: Date | null;
     progress: number;
+    value: string;
 }
 
 export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
@@ -43,6 +44,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         start_date: null,
         end_date: null,
         progress: 0,
+        value: '',
     });
 
     const [techInput, setTechInput] = useState('');
@@ -82,6 +84,11 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        // Debug: Log what we're sending
+        console.log('CreateInitiativeModal - Submitting formData:', formData);
+        console.log('CreateInitiativeModal - Value field specifically:', formData.value);
+
         try {
             const res = await fetch(`${API_URL}/api/initiatives`, {
                 method: 'POST',
@@ -130,6 +137,25 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 placeholder="Ej. Automatización de Cuentas por Pagar"
                             />
+                        </div>
+
+                        {/* Value - NEW FIELD */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Valor <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                required
+                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white dark:bg-[#2A3441] text-gray-900 dark:text-white"
+                                value={formData.value}
+                                onChange={e => setFormData({ ...formData, value: e.target.value })}
+                            >
+                                <option value="">Seleccione un valor...</option>
+                                <option value="Estrategico Alto Valor">Estratégico Alto Valor</option>
+                                <option value="Operational Value">Operational Value</option>
+                                <option value="Mandatorio/Compliance">Mandatorio/Compliance</option>
+                                <option value="Deferred/Not prioritized">Deferred/Not prioritized</option>
+                            </select>
                         </div>
 
                         {/* Champion */}

@@ -20,8 +20,7 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
 
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Initiatives Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">{/* Total Initiatives Card */}
             <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-md transition-all">
                 <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Zap size={64} className="text-blue-500" />
@@ -98,6 +97,28 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-full", delayed > 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-gray-100 text-gray-600")}>
                         {delayed > 0 ? 'Requiere Atención' : 'Todo en Orden'}
                     </span>
+                </div>
+            </div>
+
+            {/* Completed Initiatives Card */}
+            <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-md transition-all">
+                <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <CheckCircle size={64} className="text-green-500" />
+                </div>
+                <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400">
+                        <CheckCircle size={20} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Concluidas</span>
+                </div>
+                <div className="flex items-baseline space-x-2">
+                    <span className="text-3xl font-bold text-gray-900 dark:text-white">{completed}</span>
+                    <span className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full font-medium">
+                        Entregadas
+                    </span>
+                </div>
+                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    {total > 0 ? `${Math.round((completed / total) * 100)}% del total` : '0% del total'}
                 </div>
             </div>
         </div>

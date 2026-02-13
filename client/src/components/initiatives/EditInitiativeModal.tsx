@@ -27,7 +27,8 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         start_date: null as Date | null,
         end_date: null as Date | null,
         progress: 0,
-        technologies: [] as string[]
+        technologies: [] as string[],
+        value: ''
     });
 
     useEffect(() => {
@@ -45,7 +46,8 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                 start_date: initiative.start_date ? new Date(initiative.start_date) : null,
                 end_date: initiative.end_date ? new Date(initiative.end_date) : null,
                 progress: initiative.progress || 0,
-                technologies: initiative.technologies || []
+                technologies: initiative.technologies || [],
+                value: initiative.value || ''
             });
         }
     }, [initiative]);
@@ -78,6 +80,10 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        // Debug: Log what we're sending
+        console.log('EditInitiativeModal - Submitting formData:', formData);
+
         try {
             const res = await fetch(`${API_URL}/api/initiatives/${initiative.id}`, {
                 method: 'PUT',
@@ -125,6 +131,25 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
+                        </div>
+
+                        {/* Value - NEW FIELD */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Valor <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                required
+                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white dark:bg-[#2A3441] text-gray-900 dark:text-white"
+                                value={formData.value}
+                                onChange={e => setFormData({ ...formData, value: e.target.value })}
+                            >
+                                <option value="">Seleccione un valor...</option>
+                                <option value="Estrategico Alto Valor">Estratégico Alto Valor</option>
+                                <option value="Operational Value">Operational Value</option>
+                                <option value="Mandatorio/Compliance">Mandatorio/Compliance</option>
+                                <option value="Deferred/Not prioritized">Deferred/Not prioritized</option>
+                            </select>
                         </div>
 
                         {/* Area */}

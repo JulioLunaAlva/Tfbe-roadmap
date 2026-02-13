@@ -49,16 +49,22 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 // POST /api/initiatives - Create
 router.post('/', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     console.log('POST /initiatives body:', req.body);
-    const { name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, technologies, status, start_date, end_date, progress } = req.body;
+    const { name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, technologies, status, start_date, end_date, progress, value } = req.body;
+
+    // Validate value field (required)
+    const allowedValues = ['Estrategico Alto Valor', 'Operational Value', 'Mandatorio/Compliance', 'Deferred/Not prioritized'];
+    if (!value || !allowedValues.includes(value)) {
+        return res.status(400).json({ error: 'Value is required and must be one of: ' + allowedValues.join(', ') });
+    }
 
     try {
         await query('BEGIN');
 
         // Insert Initiative
         const resInit = await query(
-            `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, status, start_date, end_date, progress) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-            [name, area, champion, transformation_lead, complexity, is_top_priority || false, year, notes, status, start_date, end_date, progress || 0]
+            `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, status, start_date, end_date, progress, value) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+            [name, area, champion, transformation_lead, complexity, is_top_priority || false, year, notes, status, start_date, end_date, progress || 0, value]
         );
         const initiative = resInit.rows[0];
 
@@ -104,14 +110,24 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     const { id } = req.params;
     console.log(`PUT /initiatives/${id} body:`, req.body);
-    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, year } = req.body;
+    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, year, value } = req.body;
+
+    // Validate and normalize value field
+    let normalizedValue = value || null;
+    if (value && value.trim() !== '') {
+        const allowedValues = ['Estrategico Alto Valor', 'Operational Value', 'Mandatorio/Compliance', 'Deferred/Not prioritized'];
+        if (!allowedValues.includes(value)) {
+            return res.status(400).json({ error: 'Value must be one of: ' + allowedValues.join(', ') });
+        }
+        normalizedValue = value;
+    }
 
     try {
         await query('BEGIN');
 
         const result = await query(
-            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, complexity = $5, status = $6, start_date = $7, end_date = $8, progress = $9, notes = $10, is_top_priority = $11, year = $12 WHERE id = $13 RETURNING *',
-            [name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, is_top_priority, year, id]
+            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, complexity = $5, status = $6, start_date = $7, end_date = $8, progress = $9, notes = $10, is_top_priority = $11, year = $12, value = $13 WHERE id = $14 RETURNING *',
+            [name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, is_top_priority, year, normalizedValue, id]
         );
 
         if (technologies && Array.isArray(technologies)) {

@@ -42,12 +42,23 @@ router.post('/', authenticateToken, requireRole('editor'), upload.single('file')
             const transformation_lead = row['Transformation Lead'] || row['Responsable Transformación'] || row['Transf. Lead'] || '';
             const techString = row['Technologies'] || row['Tecnologías'] || row['Tecnologia'] || '';
 
-            // Insert Initiative
+            // NEW FIELDS
+            const value = row['Valor'] || row['Value'] || '';
+            const status = row['Estatus'] || row['Status'] || 'En espera';
+            const start_date = row['Fecha Inicio'] || row['Start Date'] || null;
+            const end_date = row['Fecha Fin'] || row['End Date'] || null;
+            const progress = parseInt(row['Progreso'] || row['Progress'] || '0', 10);
+
+            // Validate value if provided
+            const allowedValues = ['Estrategico Alto Valor', 'Operational Value', 'Mandatorio/Compliance', 'Deferred/Not prioritized'];
+            const validValue = value && allowedValues.includes(value) ? value : null;
+
+            // Insert Initiative with all fields
             const resInit = await query(
-                `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, value, status, start_date, end_date, progress) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                  ON CONFLICT DO NOTHING RETURNING id`,
-                [name, area, champion, transformation_lead, complexity, is_top_priority, year, notes]
+                [name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, validValue, status, start_date, end_date, progress]
             );
 
             // If inserted successfully (and returned an ID), process technologies
