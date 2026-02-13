@@ -421,20 +421,38 @@ export const RoadmapTable = () => {
 
 
 
-    // Column Resizing State
-    const [colWidths, setColWidths] = useState({
-        initiative: 400,
-        value: 140,
-        champion: 128,
-        tech: 128,
-        complexity: 80,
-        status: 96,
-        comment: 192,
-        transformation_lead: 128,
-        progress: 64,
-        start: 80,
-        end: 80
-    });
+    // Column Resizing State with localStorage persistence
+    const getInitialColWidths = () => {
+        const saved = localStorage.getItem('roadmap-column-widths');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Failed to parse saved column widths:', e);
+            }
+        }
+        // Default widths
+        return {
+            initiative: 400,
+            value: 140,
+            champion: 128,
+            tech: 128,
+            complexity: 80,
+            status: 96,
+            comment: 192,
+            transformation_lead: 128,
+            progress: 64,
+            start: 80,
+            end: 80
+        };
+    };
+
+    const [colWidths, setColWidths] = useState(getInitialColWidths());
+
+    // Save column widths to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('roadmap-column-widths', JSON.stringify(colWidths));
+    }, [colWidths]);
 
     const resizingRef = React.useRef<{ col: string; startX: number; startWidth: number } | null>(null);
 
