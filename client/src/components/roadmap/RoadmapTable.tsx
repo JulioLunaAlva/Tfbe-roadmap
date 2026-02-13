@@ -511,7 +511,7 @@ export const RoadmapTable = () => {
             if (!resizingRef.current) return;
             const { col, startX, startWidth } = resizingRef.current;
             const diff = e.clientX - startX;
-            setColWidths(prev => ({ ...prev, [col]: Math.max(50, startWidth + diff) }));
+            setColWidths((prev: typeof colWidths) => ({ ...prev, [col]: Math.max(50, startWidth + diff) }));
         };
 
         const handleMouseUp = () => {
