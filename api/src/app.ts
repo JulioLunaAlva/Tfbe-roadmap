@@ -5,6 +5,7 @@ import { authenticateToken } from './middleware';
 import initiativesRouter from './routes/initiatives';
 import progressRouter from './routes/progress';
 import importRouter from './routes/import';
+import preferencesRouter from './routes/preferences';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.get('/test', (req, res) => {
 app.use('/initiatives', initiativesRouter);
 app.use('/progress', progressRouter);
 app.use('/import', importRouter);
+app.use('/preferences', preferencesRouter);
 
 // Debug: Log all requests
 app.use((req, res, next) => {

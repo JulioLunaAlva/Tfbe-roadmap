@@ -421,7 +421,7 @@ export const RoadmapTable = () => {
 
 
 
-    // Column Resizing State with localStorage persistence
+    // Column Resizing State with database persistence
     const getInitialColWidths = () => {
         const saved = localStorage.getItem('roadmap-column-widths');
         if (saved) {
@@ -448,11 +448,61 @@ export const RoadmapTable = () => {
     };
 
     const [colWidths, setColWidths] = useState(getInitialColWidths());
+    const saveTimeoutRef = React.useRef<number | null>(null);
 
-    // Save column widths to localStorage whenever they change
+    // Fetch column widths from database on mount
+    useEffect(() => {
+        const fetchPreferences = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/preferences/roadmap_column_widths`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const dbWidths = await res.json();
+                    setColWidths(dbWidths);
+                    // Also update localStorage as cache
+                    localStorage.setItem('roadmap-column-widths', JSON.stringify(dbWidths));
+                }
+            } catch (error) {
+                console.log('Using localStorage/default widths (DB fetch failed)');
+            }
+        };
+
+        if (token) {
+            fetchPreferences();
+        }
+    }, [token]);
+
+    // Debounced save to database
+    const saveColumnWidthsToDb = React.useCallback((widths: any) => {
+        // Clear existing timeout
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        // Set new timeout to save after 500ms of no changes
+        saveTimeoutRef.current = setTimeout(async () => {
+            try {
+                await fetch(`${API_URL}/api/preferences/roadmap_column_widths`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify(widths)
+                });
+            } catch (error) {
+                console.error('Failed to save column widths to database:', error);
+            }
+        }, 500);
+    }, [token]);
+
+    // Save column widths to localStorage and database whenever they change
     useEffect(() => {
         localStorage.setItem('roadmap-column-widths', JSON.stringify(colWidths));
-    }, [colWidths]);
+        saveColumnWidthsToDb(colWidths);
+    }, [colWidths, saveColumnWidthsToDb]);
 
     const resizingRef = React.useRef<{ col: string; startX: number; startWidth: number } | null>(null);
 
