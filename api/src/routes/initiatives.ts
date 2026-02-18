@@ -49,7 +49,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 // POST /api/initiatives - Create
 router.post('/', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     console.log('POST /initiatives body:', req.body);
-    const { name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, technologies, status, start_date, end_date, progress, value } = req.body;
+    const { name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, technologies, status, start_date, end_date, progress, value, methodology_type } = req.body;
+
+    const methodology = methodology_type || 'Hibrida';
 
     // Validate value field (required)
     const allowedValues = ['Estrategico Alto Valor', 'Operational Value', 'Mandatorio/Compliance', 'Deferred/Not prioritized'];
@@ -62,14 +64,20 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 
         // Insert Initiative
         const resInit = await query(
-            `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, status, start_date, end_date, progress, value) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
-            [name, area, champion, transformation_lead, complexity, is_top_priority || false, year, notes, status, start_date, end_date, progress || 0, value]
+            `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, status, start_date, end_date, progress, value, methodology_type) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+            [name, area, champion, transformation_lead, complexity, is_top_priority || false, year, notes, status, start_date, end_date, progress || 0, value, methodology]
         );
         const initiative = resInit.rows[0];
 
-        // Insert Default Phases
-        const phasesRes = await query('SELECT id, default_order FROM phases');
+        // Insert Default Phases based on Methodology
+        const phasesRes = await query('SELECT id, default_order FROM phases WHERE methodology = $1 ORDER BY default_order', [methodology]);
+
+        // Fallback if no phases found for methodology (should not happen with correct migration)
+        if (phasesRes.rows.length === 0) {
+            console.warn(`No phases found for methodology: ${methodology}`);
+        }
+
         for (const phase of phasesRes.rows) {
             await query(
                 `INSERT INTO initiative_phases (initiative_id, phase_id, is_active, custom_order)
@@ -110,7 +118,7 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     const { id } = req.params;
     console.log(`PUT /initiatives/${id} body:`, req.body);
-    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, year, value } = req.body;
+    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, year, value, methodology_type } = req.body;
 
     // Validate and normalize value field
     let normalizedValue = value || null;
@@ -125,10 +133,33 @@ router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request
     try {
         await query('BEGIN');
 
+        // Check current methodology to detect change
+        const currentInitRes = await query('SELECT methodology_type FROM initiatives WHERE id = $1', [id]);
+        const currentMethodology = currentInitRes.rows[0]?.methodology_type || 'Hibrida';
+        const newMethodology = methodology_type || currentMethodology;
+
         const result = await query(
-            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, complexity = $5, status = $6, start_date = $7, end_date = $8, progress = $9, notes = $10, is_top_priority = $11, year = $12, value = $13 WHERE id = $14 RETURNING *',
-            [name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, is_top_priority, year, normalizedValue, id]
+            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, complexity = $5, status = $6, start_date = $7, end_date = $8, progress = $9, notes = $10, is_top_priority = $11, year = $12, value = $13, methodology_type = $14 WHERE id = $15 RETURNING *',
+            [name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, is_top_priority, year, normalizedValue, newMethodology, id]
         );
+
+        // If methodology changed, replace phases
+        if (newMethodology !== currentMethodology) {
+            console.log(`Methodology changed from ${currentMethodology} to ${newMethodology}. Resetting phases.`);
+
+            // Delete existing phases
+            await query('DELETE FROM initiative_phases WHERE initiative_id = $1', [id]);
+
+            // Insert new phases
+            const phasesRes = await query('SELECT id, default_order FROM phases WHERE methodology = $1 ORDER BY default_order', [newMethodology]);
+            for (const phase of phasesRes.rows) {
+                await query(
+                    `INSERT INTO initiative_phases (initiative_id, phase_id, is_active, custom_order)
+                     VALUES ($1, $2, true, $3)`,
+                    [id, phase.id, phase.default_order]
+                );
+            }
+        }
 
         if (technologies && Array.isArray(technologies)) {
             // Delete existing
