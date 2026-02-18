@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { pool } from '../db';
+import { query } from '../db';
 
 const router = Router();
 
@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        const result = await pool.query(
+        const result = await query(
             `SELECT * FROM one_pagers 
        WHERE initiative_id = $1 AND year = $2 AND week_number = $3`,
             [initiative_id, year, week_number]
@@ -38,8 +38,9 @@ router.get('/', async (req, res) => {
 // Create or Update One Pager (Upsert)
 router.post('/', async (req, res) => {
     const { initiative_id, year, week_number, main_progress, next_steps, stoppers_risks } = req.body;
-    // @ts-ignore
-    const userId = req.user?.userId || null; // Ensure null if undefined to avoid PG driver error
+
+    // Type assertion for user instead of ignore
+    const userId = (req as any).user?.userId || null;
 
     console.log(`[POST OnePager] Saving: init=${initiative_id}, year=${year}, week=${week_number}, user=${userId}`);
 
@@ -50,7 +51,7 @@ router.post('/', async (req, res) => {
 
     try {
         // Upsert logic using ON CONFLICT since we have a unique constraint
-        const result = await pool.query(
+        const result = await query(
             `INSERT INTO one_pagers (
          initiative_id, year, week_number, 
          main_progress, next_steps, stoppers_risks,
