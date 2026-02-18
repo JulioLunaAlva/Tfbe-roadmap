@@ -28,7 +28,8 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         end_date: null as Date | null,
         progress: 0,
         technologies: [] as string[],
-        value: ''
+        value: '',
+        methodology_type: 'Hibrida'
     });
 
     useEffect(() => {
@@ -47,7 +48,8 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                 end_date: initiative.end_date ? new Date(initiative.end_date) : null,
                 progress: initiative.progress || 0,
                 technologies: initiative.technologies || [],
-                value: initiative.value || ''
+                value: initiative.value || '',
+                methodology_type: initiative.methodology_type || 'Hibrida'
             });
         }
     }, [initiative]);
@@ -56,12 +58,24 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
     const areas: string[] = [];
     const complexities = ['Alta', 'Media', 'Baja'];
     const statuses = ['En espera', 'En curso', 'Entregado', 'Cancelado', 'Retrasado'];
+    const methodologies = ['Hibrida', 'Analiticos', 'Reporting'];
 
     const [techInput, setTechInput] = useState('');
     const suggestedTechs = [
         'Python', 'Power App', 'Power Query', 'Power Automate', 'Sharepoint',
         'Flujo Automatizado VB', 'VB Scripting', 'Agente', 'SAP', 'Excel'
     ];
+
+    const handleMethodologyChange = (newValue: string) => {
+        if (newValue !== formData.methodology_type) {
+            const confirmed = window.confirm(
+                '⚠️ ADVERTENCIA: Al cambiar el tipo de metodología, se reiniciarán las fases y el progreso de las fases actuales se perderá.\n\n¿Desea continuar?'
+            );
+            if (confirmed) {
+                setFormData({ ...formData, methodology_type: newValue });
+            }
+        }
+    };
 
     const handleAddTech = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && techInput.trim()) {
@@ -131,6 +145,24 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
+                        </div>
+
+                        {/* Methodology - NEW FIELD */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Tipo de Metodología <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                required
+                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white dark:bg-[#2A3441] text-gray-900 dark:text-white"
+                                value={formData.methodology_type}
+                                onChange={e => handleMethodologyChange(e.target.value)}
+                            >
+                                {methodologies.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                            <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                                ⚠️ Cambiar esto reiniciará las fases de la iniciativa.
+                            </p>
                         </div>
 
                         {/* Value - NEW FIELD */}

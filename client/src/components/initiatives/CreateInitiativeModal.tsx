@@ -23,6 +23,7 @@ interface InitiativeForm {
     end_date: Date | null;
     progress: number;
     value: string;
+    methodology_type: string;
 }
 
 export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
@@ -45,6 +46,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         end_date: null,
         progress: 0,
         value: '',
+        methodology_type: 'Hibrida'
     });
 
     const [techInput, setTechInput] = useState('');
@@ -53,6 +55,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
     const areas: string[] = [];
     const complexities = ['Alta', 'Media', 'Baja'];
     const statuses = ['En espera', 'En curso', 'Entregado', 'Cancelado', 'Retrasado'];
+    const methodologies = ['Hibrida', 'Analiticos', 'Reporting'];
     const suggestedTechs = [
 
         'Python',
@@ -137,6 +140,24 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 placeholder="Ej. Automatización de Cuentas por Pagar"
                             />
+                        </div>
+
+                        {/* Methodology - NEW FIELD */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Tipo de Metodología <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                required
+                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white dark:bg-[#2A3441] text-gray-900 dark:text-white"
+                                value={formData.methodology_type}
+                                onChange={e => setFormData({ ...formData, methodology_type: e.target.value })}
+                            >
+                                {methodologies.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                Define las fases que tendrá la iniciativa (Ej. Híbrida: Entendimiento → Implementación)
+                            </p>
                         </div>
 
                         {/* Value - NEW FIELD */}
