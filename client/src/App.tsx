@@ -7,6 +7,7 @@ import { LoginPage } from './pages/Login';
 import { AuthCallback } from './pages/AuthCallback';
 import { RoadmapPage } from './pages/RoadmapPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { OnePagerPage } from './pages/OnePagerPage';
 import { ImportPage } from './pages/ImportPage';
 
 // Proteced Route Wrapper
@@ -37,6 +38,7 @@ const AppRoutes = () => {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<RoadmapPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="one-pager" element={<OnePagerPage />} />
         <Route path="import" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <ImportPage />

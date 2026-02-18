@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Layout = () => {
@@ -14,6 +14,7 @@ export const Layout = () => {
     const navItems = [
         { label: 'Roadmap', path: '/', icon: ListTodo },
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'One Pager', path: '/one-pager', icon: FileText },
     ];
 
     if (user?.role === 'admin') {
