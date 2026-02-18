@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, AlertCircle, CheckCircle, Lock } from 'lucide-react';
+import { Mail, ArrowRight, AlertCircle, CheckCircle, Lock, Bot, LineChart } from 'lucide-react';
 import API_URL from '../config/api';
 
 export const LoginPage = () => {
@@ -72,9 +72,11 @@ export const LoginPage = () => {
 
             <div className="w-full max-w-md bg-white dark:bg-[#1E2630] rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 p-8 z-10 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-50 dark:bg-white rounded-2xl mb-4 shadow-sm">
-                        {/* Use the new icon if available, generic fallback if not */}
-                        <img src="/favicon.png" alt="Logo" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                    <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-[#E10600] to-red-900 rounded-3xl mb-6 shadow-lg shadow-red-900/30 relative group">
+                        <Bot size={48} className="text-white drop-shadow-md" />
+                        <div className="absolute -bottom-2 -right-2 bg-blue-600 rounded-full p-1.5 border-4 border-white dark:border-[#1E2630] shadow-md">
+                            <LineChart size={20} className="text-white" />
+                        </div>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Bienvenido</h1>
                     <p className="text-gray-500 dark:text-gray-400">Transformación Finanzas - BE / D&A</p>
