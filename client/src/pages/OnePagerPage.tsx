@@ -30,6 +30,18 @@ export const OnePagerPage = () => {
     const [selectedInitiativeId, setSelectedInitiativeId] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<string>('');
     const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(0);
+    const [selectedArea, setSelectedArea] = useState<string>('');
+
+    // Derived Data
+    const uniqueAreas = useMemo(() => {
+        const areas = initiatives.map(i => i.area).filter(Boolean);
+        return Array.from(new Set(areas)).sort();
+    }, [initiatives]);
+
+    const filteredInitiatives = useMemo(() => {
+        if (!selectedArea) return initiatives;
+        return initiatives.filter(i => i.area === selectedArea);
+    }, [initiatives, selectedArea]);
 
     // Find selected initiative object
     const selectedInitiative = useMemo(() =>
@@ -56,9 +68,7 @@ export const OnePagerPage = () => {
                 const data = await res.json();
                 const sorted = Array.isArray(data) ? data.sort((a: any, b: any) => a.name.localeCompare(b.name)) : [];
                 setInitiatives(sorted);
-                if (sorted.length > 0 && !selectedInitiativeId) {
-                    setSelectedInitiativeId(sorted[0].id);
-                }
+                // Default selection REMOVED as requested
             } catch (e) {
                 console.error(e);
             }
@@ -187,18 +197,46 @@ export const OnePagerPage = () => {
                 {/* Row 1: Selectors & Actions */}
                 <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
                     <div className="flex flex-col md:flex-row gap-4 w-full">
+
+                        {/* Area Selector */}
+                        <div className="w-48">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Área</label>
+                            <select
+                                value={selectedArea}
+                                onChange={(e) => {
+                                    setSelectedArea(e.target.value);
+                                    setSelectedInitiativeId(''); // Reset initiative on area change
+                                }}
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="">Todas las Áreas</option>
+                                {uniqueAreas.map(area => (
+                                    <option key={area} value={area}>{area}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* Initiative Selector */}
                         <div className="flex-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Iniciativa</label>
-                            <select
-                                value={selectedInitiativeId}
-                                onChange={(e) => setSelectedInitiativeId(e.target.value)}
-                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                            >
-                                {initiatives.map(i => (
-                                    <option key={i.id} value={i.id}>{i.name}</option>
-                                ))}
-                            </select>
+                            <div className="relative group">
+                                <select
+                                    value={selectedInitiativeId}
+                                    onChange={(e) => setSelectedInitiativeId(e.target.value)}
+                                    className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                                    disabled={loading}
+                                >
+                                    <option value="">Seleccionar Iniciativa...</option>
+                                    {filteredInitiatives.map(i => (
+                                        <option key={i.id} value={i.id}>{i.name}</option>
+                                    ))}
+                                </select>
+                                {!selectedInitiativeId && (
+                                    <div className="absolute top-10 left-0 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-nowrap">
+                                        Selecciona una iniciativa para ver el reporte
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Week Selector */}
@@ -247,12 +285,12 @@ export const OnePagerPage = () => {
                         </div>
                     </div>
 
-                    {/* Save Button */}
+                    {/* RED Save Button */}
                     {canEdit && (
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center space-x-2 px-6 py-2.5 bg-[#005490] hover:bg-[#004270] text-white rounded-lg shadow-md transition-all disabled:opacity-50 h-fit whitespace-nowrap"
+                            className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-[#E10600] to-red-800 hover:from-red-600 hover:to-red-900 text-white rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 h-fit whitespace-nowrap transform hover:-translate-y-0.5 active:translate-y-0"
                         >
                             <Save size={18} />
                             <span>{saving ? 'Guardando...' : 'Guardar'}</span>
