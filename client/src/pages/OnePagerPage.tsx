@@ -252,60 +252,69 @@ export const OnePagerPage = () => {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                 </div>
             ) : (
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
-                    {/* Left Column: Progress */}
-                    <div className="bg-[#005490] rounded-xl overflow-hidden shadow-lg flex flex-col">
-                        <div className="p-3 bg-[#004270] text-center border-b border-white/10">
-                            <h3 className="text-white font-bold text-lg flex items-center justify-center gap-2">
-                                <CheckCircle2 size={20} className="text-green-400" />
-                                Detalle principales avances
-                            </h3>
+                <div className="flex-1 flex flex-col gap-4 min-h-0">
+                    {/* Top Row: Progress & Next Steps (Takes most space) */}
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
+                        {/* Progress */}
+                        <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-md">
+                            <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-white dark:from-[#064E3B] dark:to-[#1E2630] border-b border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2">
+                                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg text-emerald-600 dark:text-emerald-400">
+                                    <CheckCircle2 size={18} />
+                                </div>
+                                <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">
+                                    Principales Avances
+                                </h3>
+                            </div>
+                            <div className="flex-1 p-0">
+                                <textarea
+                                    value={report.main_progress}
+                                    onChange={(e) => setReport({ ...report, main_progress: e.target.value })}
+                                    readOnly={!canEdit}
+                                    placeholder={canEdit ? "• Logro clave alcanzado...\n• Hito completado..." : "Sin información disponible"}
+                                    className="w-full h-full p-4 bg-transparent text-gray-700 dark:text-gray-300 resize-none border-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 text-sm leading-relaxed"
+                                />
+                            </div>
                         </div>
-                        <div className="flex-1 p-1 bg-[#005490]">
-                            <textarea
-                                value={report.main_progress}
-                                onChange={(e) => setReport({ ...report, main_progress: e.target.value })}
-                                readOnly={!canEdit}
-                                placeholder={canEdit ? "Describe los avances de la semana..." : "Sin información disponible"}
-                                className="w-full h-full bg-[#005490] text-white p-4 resize-none border-none focus:ring-0 placeholder-white/30 text-base leading-relaxed"
-                            />
+
+                        {/* Next Steps */}
+                        <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-md">
+                            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-white dark:from-[#1E3A8A] dark:to-[#1E2630] border-b border-blue-100 dark:border-blue-900/50 flex items-center gap-2">
+                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-600 dark:text-blue-400">
+                                    <ArrowRight size={18} />
+                                </div>
+                                <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">
+                                    Siguientes Pasos / Compromisos
+                                </h3>
+                            </div>
+                            <div className="flex-1 p-0">
+                                <textarea
+                                    value={report.next_steps}
+                                    onChange={(e) => setReport({ ...report, next_steps: e.target.value })}
+                                    readOnly={!canEdit}
+                                    placeholder={canEdit ? "• Próxima reunión de seguimiento...\n• Entregable pendiente..." : "Sin información disponible"}
+                                    className="w-full h-full p-4 bg-transparent text-gray-700 dark:text-gray-300 resize-none border-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 text-sm leading-relaxed"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Right Column: Next Steps */}
-                    <div className="bg-[#005490] rounded-xl overflow-hidden shadow-lg flex flex-col">
-                        <div className="p-3 bg-[#004270] text-center border-b border-white/10">
-                            <h3 className="text-white font-bold text-lg flex items-center justify-center gap-2">
-                                <ArrowRight size={20} className="text-blue-300" />
-                                Detalle siguientes pasos / Compromisos
+                    {/* Bottom Row: Stoppers/Risks (Fixed smaller height) */}
+                    <div className="h-48 flex-shrink-0 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-md ring-1 ring-red-50 dark:ring-red-900/20">
+                        <div className="px-4 py-2 bg-gradient-to-r from-red-50 to-white dark:from-[#451a1a] dark:to-[#1E2630] border-b border-red-100 dark:border-red-900/50 flex items-center gap-2">
+                            <div className="p-1.5 bg-red-100 dark:bg-red-900/50 rounded-lg text-red-600 dark:text-red-400">
+                                <AlertTriangle size={18} />
+                            </div>
+                            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">
+                                Stoppers / Riesgos
                             </h3>
                         </div>
-                        <div className="flex-1 p-1 bg-[#005490]">
-                            <textarea
-                                value={report.next_steps}
-                                onChange={(e) => setReport({ ...report, next_steps: e.target.value })}
-                                readOnly={!canEdit}
-                                placeholder={canEdit ? "Describe los siguientes pasos..." : "Sin información disponible"}
-                                className="w-full h-full bg-[#005490] text-white p-4 resize-none border-none focus:ring-0 placeholder-white/30 text-base leading-relaxed"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Bottom: Stoppers/Risks (Full Width) */}
-                    <div className="md:col-span-2 bg-[#005490] rounded-xl overflow-hidden shadow-lg flex flex-col min-h-[200px]">
-                        <div className="p-3 bg-[#004270] text-center border-b border-white/10">
-                            <h3 className="text-white font-bold text-lg flex items-center justify-center gap-2">
-                                <AlertTriangle size={20} className="text-amber-400" />
-                                Detalle Stoppers / Riesgo
-                            </h3>
-                        </div>
-                        <div className="flex-1 p-1 bg-[#005490]">
+                        <div className="flex-1 p-0">
                             <textarea
                                 value={report.stoppers_risks}
                                 onChange={(e) => setReport({ ...report, stoppers_risks: e.target.value })}
                                 readOnly={!canEdit}
-                                placeholder={canEdit ? "Describe los riesgos o bloqueos..." : "Sin información disponible"}
-                                className="w-full h-full bg-[#005490] text-white p-4 resize-none border-none focus:ring-0 placeholder-white/30 text-base leading-relaxed"
+                                placeholder={canEdit ? "• Riesgo de retraso debido a...\n• Bloqueo en..." : "Sin información disponible"}
+                                className="w-full h-full p-4 bg-transparent text-gray-700 dark:text-gray-300 resize-none border-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 text-sm leading-relaxed"
                             />
                         </div>
                     </div>
