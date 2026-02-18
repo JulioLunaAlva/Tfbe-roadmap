@@ -1,7 +1,27 @@
+
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import { Zap } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy,
+} from '@dnd-kit/sortable';
+
+import { SortableWidget } from '../components/dashboard/SortableWidget';
+
+// Components
 import { DashboardKPIs } from '../components/dashboard/DashboardKPIs';
 import { DashboardActivity } from '../components/dashboard/DashboardActivity';
 import { DashboardAreaChart } from '../components/dashboard/DashboardAreaChart';
@@ -23,6 +43,37 @@ export const DashboardPage = () => {
     const { year } = useYear();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // --- Widgets Configuration ---
+    // Defined inside component to access data, or outside if static
+    // We need a map of components to render dynamically
+
+    // Default Order of Widget IDs
+    const defaultOrder = [
+        'kpis',
+        'value', 'complexity',
+        'timeline', 'health',
+        'trends', 'active-support',
+        'transf-lead', 'area', 'leaderboard',
+        'activity', 'phase', 'tech'
+    ];
+
+    const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard_widget_order');
+        return saved ? JSON.parse(saved) : defaultOrder;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('dashboard_widget_order', JSON.stringify(widgetOrder));
+    }, [widgetOrder]);
+
+    // DnD Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     useEffect(() => {
         setLoading(true);
@@ -147,12 +198,81 @@ export const DashboardPage = () => {
         };
     }, [initiatives]);
 
+    // Handle Drag End
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            setWidgetOrder((items) => {
+                const oldIndex = items.indexOf(active.id as string);
+                const newIndex = items.indexOf(over?.id as string);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+    };
+
     if (loading) return (
         <div className="flex items-center justify-center h-96 text-[var(--text-tertiary)]">
             <div className="animate-spin mr-2"><Zap size={20} /></div>
             Cargando inteligencia de negocio...
         </div>
     );
+
+    // Config Mapping
+    const widgetsConfig: Record<string, { component: React.ReactNode, span: string }> = {
+        'kpis': {
+            component: <DashboardKPIs total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} completionRate={metrics.completionRate} />,
+            span: 'col-span-12'
+        },
+        'value': {
+            component: <DashboardValue valueData={metrics.valueData} total={metrics.total} />,
+            span: 'col-span-12 lg:col-span-8'
+        },
+        'complexity': {
+            component: <DashboardComplexity complexityData={metrics.complexityData} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'timeline': {
+            component: <DashboardTimeline initiatives={initiatives} />,
+            span: 'col-span-12 lg:col-span-8'
+        },
+        'health': {
+            component: <DashboardHealth total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'trends': {
+            component: <DashboardTrends initiatives={initiatives} />,
+            span: 'col-span-12 lg:col-span-8'
+        },
+        'active-support': {
+            component: <DashboardActiveSupport />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'transf-lead': {
+            component: <DashboardTransfLead transfLeadData={metrics.transfLeadData} total={metrics.total} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'area': {
+            component: <DashboardAreaChart areaData={metrics.areaData} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'leaderboard': {
+            component: <DashboardLeaderboard initiatives={initiatives} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'activity': {
+            component: <DashboardActivity initiatives={initiatives} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'phase': {
+            component: <DashboardPhase phaseData={metrics.phaseData} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'tech': {
+            component: <DashboardTech techData={metrics.techData} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+    };
 
     return (
         <div className="p-2 md:p-6 max-w-[1800px] mx-auto animate-in fade-in duration-500 space-y-6">
@@ -161,78 +281,31 @@ export const DashboardPage = () => {
                 <p className="text-gray-500 dark:text-gray-400 mt-1">Visión general del portafolio del año {year}</p>
             </div>
 
-            {/* Row 1: KPIs - 5 Cards */}
-            <DashboardKPIs
-                total={metrics.total}
-                completed={metrics.completed}
-                delayed={metrics.delayed}
-                inProgress={metrics.inProgress}
-                completionRate={metrics.completionRate}
-            />
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext
+                    items={widgetOrder}
+                    strategy={rectSortingStrategy}
+                >
+                    <div className="grid grid-cols-12 gap-6">
+                        {widgetOrder.map((widgetId) => {
+                            const widget = widgetsConfig[widgetId];
+                            if (!widget) return null;
 
-            {/* Row 2: Value Distribution & Complexity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <DashboardValue valueData={metrics.valueData} total={metrics.total} />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardComplexity complexityData={metrics.complexityData} />
-                </div>
-            </div>
-
-            {/* Row 3: Timeline & Portfolio Health */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <DashboardTimeline initiatives={initiatives} />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardHealth
-                        total={metrics.total}
-                        completed={metrics.completed}
-                        delayed={metrics.delayed}
-                        inProgress={metrics.inProgress}
-                    />
-                </div>
-            </div>
-
-            {/* Row 4: Trends & Active Support Placeholder */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <DashboardTrends initiatives={initiatives} />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardActiveSupport />
-                </div>
-            </div>
-
-            {/* Row 5: Transformation Leads, Area, Leaderboard */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                    <DashboardTransfLead
-                        transfLeadData={metrics.transfLeadData}
-                        total={metrics.total}
-                    />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardAreaChart areaData={metrics.areaData} />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardLeaderboard initiatives={initiatives} />
-                </div>
-            </div>
-
-            {/* Row 6: Priority Initiatives, Phase, Tech */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                    <DashboardActivity initiatives={initiatives} />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardPhase phaseData={metrics.phaseData} />
-                </div>
-                <div className="lg:col-span-1">
-                    <DashboardTech techData={metrics.techData} />
-                </div>
-            </div>
+                            return (
+                                <div key={widgetId} className={widget.span}>
+                                    <SortableWidget id={widgetId}>
+                                        {widget.component}
+                                    </SortableWidget>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </SortableContext>
+            </DndContext>
         </div>
     );
 };
