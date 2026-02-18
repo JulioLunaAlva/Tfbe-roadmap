@@ -39,10 +39,9 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     const { initiative_id, year, week_number, main_progress, next_steps, stoppers_risks } = req.body;
     // @ts-ignore
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || null; // Ensure null if undefined to avoid PG driver error
 
     console.log(`[POST OnePager] Saving: init=${initiative_id}, year=${year}, week=${week_number}, user=${userId}`);
-    // console.log('Body:', req.body); 
 
     if (!initiative_id || !year || !week_number) {
         console.error('[POST OnePager] Missing parameters');
