@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import { CALENDAR_SCHEMA, getCurrentWeekNumber } from '../utils/calendarConstants';
