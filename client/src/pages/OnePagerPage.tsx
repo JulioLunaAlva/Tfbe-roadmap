@@ -19,6 +19,8 @@ interface Initiative {
     area: string;
     status?: string;
     champion?: string;
+    technologies?: string[];
+    progress?: number;
 }
 
 export const OnePagerPage = () => {
@@ -334,6 +336,30 @@ export const OnePagerPage = () => {
                             <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
                                 {selectedInitiative.area}
                             </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-bold">Tecnología:</span>
+                            <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                                {selectedInitiative.technologies && selectedInitiative.technologies.length > 0
+                                    ? selectedInitiative.technologies.join(', ')
+                                    : 'N/A'}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-bold">Progreso:</span>
+                            <div className="flex items-center gap-1">
+                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-blue-600 rounded-full"
+                                        style={{ width: `${selectedInitiative.progress || 0}%` }}
+                                    ></div>
+                                </div>
+                                <span className="text-gray-700 dark:text-gray-200 font-medium">
+                                    {selectedInitiative.progress || 0}%
+                                </span>
+                            </div>
                         </div>
                     </div>
                 )}

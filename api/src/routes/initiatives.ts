@@ -24,7 +24,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         FROM initiative_phases ip 
         JOIN phases p ON ip.phase_id = p.id
         WHERE ip.initiative_id = i.id
-      ) as phases
+    ) as phases
     FROM initiatives i
     WHERE 1=1
   `;
