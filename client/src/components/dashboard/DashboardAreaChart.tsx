@@ -33,8 +33,8 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
             {/* Content Container - Vertical Layout */}
             <div className="flex-1 flex flex-col min-h-0">
 
-                {/* 1. Chart Section - Top (Flexible height, but min space reserved) */}
-                <div className="flex-1 min-h-[220px] flex items-center justify-center relative -mt-4">
+                {/* 1. Chart Section - Top (Fixed height for consistent big donut) */}
+                <div className="h-[280px] shrink-0 flex items-center justify-center relative -mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -42,8 +42,8 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                outerRadius={100}
-                                innerRadius={70}
+                                outerRadius={120}
+                                innerRadius={85}
                                 fill="#8884d8"
                                 dataKey="value"
                                 label={false}
@@ -64,9 +64,9 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
                     </div>
                 </div>
 
-                {/* 2. Legend Section - Bottom (Grid Layout) */}
-                <div className="mt-2 shrink-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                {/* 2. Legend Section - Bottom (Grid Layout, Fills remaining space) */}
+                <div className="mt-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                         {areaData.map((item) => (
                             <div key={item.name} className="flex items-center justify-between group">
                                 <div className="flex items-center space-x-2.5 flex-1 min-w-0">
