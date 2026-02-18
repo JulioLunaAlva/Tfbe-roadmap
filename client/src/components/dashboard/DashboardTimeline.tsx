@@ -67,7 +67,7 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
     };
 
     return (
-        <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full">
             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
                 <span className="w-1 h-6 bg-indigo-500 rounded-full mr-3"></span>
                 Timeline de Iniciativas
