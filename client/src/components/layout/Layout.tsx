@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Layout = () => {
@@ -42,18 +42,30 @@ export const Layout = () => {
                     {/* Header Logo */}
                     <div className={clsx(
                         "border-b border-[var(--border-color)] flex items-center justify-center transition-all duration-300",
-                        isSidebarOpen ? "h-24 p-6" : "h-20 p-6",
-                        (theme === 'dark' && isSidebarOpen) && "bg-white"
+                        isSidebarOpen ? "h-24 p-4" : "h-20 p-4"
                     )}>
                         {isSidebarOpen ? (
-                            <img
-                                src={theme === 'dark' ? '/assets/logo-light.png' : '/assets/logo-dark.png'}
-                                alt="Coca-Cola FEMSA"
-                                className="h-auto max-h-16 w-auto object-contain transition-opacity duration-300"
-                            />
+                            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                                <div className="flex items-center space-x-2 mb-1">
+                                    <div className="relative">
+                                        <Bot size={24} className="text-[#E10600] dark:text-[#FF3B30]" />
+                                        <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border-2 border-[var(--bg-sidebar)]">
+                                            <LineChart size={8} className="text-white" />
+                                        </div>
+                                    </div>
+                                    <h1 className="text-sm font-extrabold tracking-tight text-[var(--text-sidebar-primary)] leading-tight">
+                                        TRANSFORMACIÓN <br />
+                                        <span className="text-[#E10600] dark:text-[#FF3B30]">FINANZAS</span>
+                                    </h1>
+                                </div>
+                                <div className="text-[10px] font-bold text-[var(--text-sidebar-secondary)] bg-[var(--bg-sidebar-hover)] px-2 py-0.5 rounded-full border border-[var(--border-color)]">
+                                    BE / D&A
+                                </div>
+                            </div>
                         ) : (
-                            <div className="w-10 h-10 bg-[#E10600] rounded-full flex items-center justify-center font-bold text-white shadow-lg shadow-red-900/20 flex-shrink-0 text-sm">
-                                TF
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#E10600] to-red-800 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-red-900/20 flex-shrink-0 text-sm group relative">
+                                <Bot size={20} />
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-[var(--bg-sidebar)]"></div>
                             </div>
                         )}
                     </div>
