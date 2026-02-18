@@ -1,3 +1,4 @@
+
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface AreaChartProps {
@@ -24,14 +25,16 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
 
     return (
         <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center shrink-0">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center shrink-0">
                 <span className="w-1 h-6 bg-purple-500 rounded-full mr-3"></span>
                 Iniciativas por Área
             </h3>
 
-            <div className="flex-1 flex flex-col lg:flex-row items-center gap-6 min-h-0">
-                {/* Pie Chart - Take max available space */}
-                <div className="flex-1 w-full h-full min-h-[250px] flex items-center justify-center relative">
+            {/* Content Container - Vertical Layout */}
+            <div className="flex-1 flex flex-col min-h-0">
+
+                {/* 1. Chart Section - Top (Flexible height, but min space reserved) */}
+                <div className="flex-1 min-h-[220px] flex items-center justify-center relative -mt-4">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -39,8 +42,8 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                outerRadius="90%"
-                                innerRadius="60%"
+                                outerRadius={100}
+                                innerRadius={70}
                                 fill="#8884d8"
                                 dataKey="value"
                                 label={false}
@@ -53,30 +56,32 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
                             <Tooltip content={<CustomTooltip />} />
                         </PieChart>
                     </ResponsiveContainer>
+
                     {/* Centered Total */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-3xl font-bold text-gray-900 dark:text-white">{total}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Total</span>
+                        <span className="text-4xl font-bold text-gray-900 dark:text-white">{total}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total</span>
                     </div>
                 </div>
 
-                {/* Legend with Stats - Enhanced */}
-                <div className="w-full lg:w-1/3 shrink-0 flex flex-col justify-center">
-                    <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                {/* 2. Legend Section - Bottom (Grid Layout) */}
+                <div className="mt-2 shrink-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                         {areaData.map((item) => (
-                            <div key={item.name} className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-[#252D38] transition-colors group cursor-default">
-                                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                            <div key={item.name} className="flex items-center justify-between group">
+                                <div className="flex items-center space-x-2.5 flex-1 min-w-0">
                                     <div
                                         className="w-3 h-3 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: item.color }}
                                     ></div>
-                                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate" title={item.name}>
+                                    {/* Text auto-sized, giving priority to full name */}
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium truncate" title={item.name}>
                                         {item.name}
                                     </span>
                                 </div>
-                                <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                                <div className="flex items-center space-x-3 flex-shrink-0 ml-2">
                                     <span className="text-sm font-bold text-gray-900 dark:text-white">{item.value}</span>
-                                    <span className="text-[10px] text-gray-400 min-w-[30px] text-right">
+                                    <span className="text-xs text-gray-400 w-[32px] text-right">
                                         {total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%
                                     </span>
                                 </div>
@@ -88,3 +93,4 @@ export const DashboardAreaChart = ({ areaData }: AreaChartProps) => {
         </div>
     );
 };
+
