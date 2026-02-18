@@ -8,6 +8,7 @@ import importRouter from './routes/import';
 import milestonesRouter from './routes/milestones';
 import adminRouter from './routes/admin';
 import dbStatusRouter from './routes/db-status';
+import onePagerRouter from './routes/onepagers';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,3 +31,4 @@ app.use('/api/import', importRouter);
 app.use('/api/milestones', milestonesRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/db', dbStatusRouter);
+app.use('/api/one-pagers', onePagerRouter);
