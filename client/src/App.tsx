@@ -13,7 +13,14 @@ import { ImportPage } from './pages/ImportPage';
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactElement, allowedRoles?: string[] }) => {
   const { user, isLoading, token } = useAuth();
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-[#111827]">
+      <div className="flex flex-col items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Cargando...</p>
+      </div>
+    </div>
+  );
   if (!token) return <Navigate to="/login" />;
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" />; // or 403 page

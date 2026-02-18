@@ -25,21 +25,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const initAuth = async () => {
             if (token) {
                 try {
-                    // Verify token with backend or just decode if we trust local (we shouldn't trust local only)
-                    // For MVP, simplistic validation:
-                    const res = await fetch(`${API_URL}/api/auth/me`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    // Create a timeout promise that rejects after 5 seconds
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Request timed out')), 5000)
+                    );
+
+                    // Race between fetch and timeout
+                    const res = await Promise.race([
+                        fetch(`${API_URL}/api/auth/me`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        }),
+                        timeoutPromise
+                    ]) as Response;
+
                     if (res.ok) {
                         const data = await res.json();
                         setUser(data.user);
                     } else {
+                        // Token invalid or expired
                         logout();
                     }
-                } catch {
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                    // On timeout or network error, logout to prevent hanging
                     logout();
                 }
             }
+            // Always finish loading
             setIsLoading(false);
         };
         initAuth();
