@@ -111,12 +111,24 @@ export const OnePagerPage = () => {
     // Fetch Report content when selection changes
     useEffect(() => {
         const fetchReport = async () => {
-            if (!selectedInitiativeId || !currentIsoWeek) return;
+            if (!selectedInitiativeId || !currentIsoWeek) {
+                // Clear report if no selection
+                setReport({ main_progress: '', next_steps: '', stoppers_risks: '' });
+                return;
+            }
+
             setLoading(true);
+            setReport({ main_progress: '', next_steps: '', stoppers_risks: '' }); // Reset immediately to avoid stale data
+
             try {
                 const res = await fetch(`${API_URL}/api/one-pagers?initiative_id=${selectedInitiativeId}&year=${year}&week_number=${currentIsoWeek}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
+
+                if (!res.ok) {
+                    throw new Error(`API Error: ${res.status}`);
+                }
+
                 const data = await res.json();
                 if (data) {
                     setReport({
@@ -125,10 +137,12 @@ export const OnePagerPage = () => {
                         stoppers_risks: data.stoppers_risks || ''
                     });
                 } else {
+                    // Already reset, but good to be explicit
                     setReport({ main_progress: '', next_steps: '', stoppers_risks: '' });
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Error fetching report:", e);
+                // Report is already reset, so user sees empty fields instead of old data
             } finally {
                 setLoading(false);
             }

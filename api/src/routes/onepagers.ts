@@ -8,7 +8,10 @@ const router = Router();
 router.get('/', async (req, res) => {
     const { initiative_id, year, week_number } = req.query;
 
+    console.log(`[GET OnePager] Request for: initiative=${initiative_id}, year=${year}, week=${week_number}`);
+
     if (!initiative_id || !year || !week_number) {
+        console.error('[GET OnePager] Missing parameters');
         return res.status(400).json({ error: 'Missing required parameters: initiative_id, year, week_number' });
     }
 
@@ -20,12 +23,14 @@ router.get('/', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
+            console.log('[GET OnePager] No report found');
             return res.json(null); // No report found for this week
         }
 
+        console.log('[GET OnePager] Report found');
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error fetching One Pager:', error);
+        console.error('[GET OnePager] Error fetching One Pager:', error);
         res.status(500).json({ error: 'Failed to fetch One Pager' });
     }
 });
@@ -36,7 +41,11 @@ router.post('/', async (req, res) => {
     // @ts-ignore
     const userId = req.user?.userId;
 
+    console.log(`[POST OnePager] Saving: init=${initiative_id}, year=${year}, week=${week_number}, user=${userId}`);
+    // console.log('Body:', req.body); 
+
     if (!initiative_id || !year || !week_number) {
+        console.error('[POST OnePager] Missing parameters');
         return res.status(400).json({ error: 'Missing required parameters' });
     }
 
@@ -60,10 +69,11 @@ router.post('/', async (req, res) => {
             [initiative_id, year, week_number, main_progress, next_steps, stoppers_risks, userId]
         );
 
+        console.log('[POST OnePager] Save successful:', result.rows[0].id);
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error saving One Pager:', error);
-        res.status(500).json({ error: 'Failed to save One Pager' });
+        console.error('[POST OnePager] Error saving One Pager:', error);
+        res.status(500).json({ error: 'Failed to save One Pager', details: String(error) });
     }
 });
 
