@@ -36,7 +36,7 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
     const initiativesWithDates = initiatives
         .filter(i => i.start_date && i.end_date)
         .sort((a, b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime())
-        .slice(0, 8); // Show max 8 initiatives
+        .sort((a, b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime());
 
     const getAreaColor = (area: string) => {
         const colors: Record<string, string> = {
@@ -89,8 +89,8 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
                         ))}
                     </div>
 
-                    {/* Timeline Items */}
-                    <div className="space-y-4">
+                    {/* Timeline Items - Scrollable */}
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {initiativesWithDates.map((initiative) => {
                             const startDate = new Date(initiative.start_date!);
                             const endDate = new Date(initiative.end_date!);
