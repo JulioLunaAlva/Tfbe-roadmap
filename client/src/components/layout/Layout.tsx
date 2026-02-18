@@ -120,7 +120,7 @@ export const Layout = () => {
                         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
                             {location.pathname === '/' ? 'Roadmap de Iniciativas' :
                                 location.pathname === '/dashboard' ? 'Dashboard Transformación' :
-                                    location.pathname === '/one-pager' ? 'One Pager Ejecutivo' : 'Importación'}
+                                    location.pathname === '/one-pager' ? 'One Pager' : 'Importación'}
                         </h2>
                     </div>
 

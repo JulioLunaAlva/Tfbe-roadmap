@@ -77,7 +77,7 @@ export const LoginPage = () => {
                         <img src="/favicon.png" alt="Logo" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Bienvenido</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Transformación Finanzas - BE</p>
+                    <p className="text-gray-500 dark:text-gray-400">Transformación Finanzas - BE / D&A</p>
                 </div>
 
                 {error && (
@@ -144,7 +144,7 @@ export const LoginPage = () => {
                 </form>
             </div>
             <div className="mt-8 text-center text-white/80 z-10 relative text-sm font-medium">
-                &copy; {new Date().getFullYear()} KOF - Transformación Finanzas
+                &copy; {new Date().getFullYear()} TF
             </div>
         </div>
     );
