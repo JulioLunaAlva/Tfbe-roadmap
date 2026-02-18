@@ -154,6 +154,7 @@ export const OnePagerPage = () => {
     const handleSave = async () => {
         if (!selectedInitiativeId) return;
         setSaving(true);
+        setMessage(null); // Clear previous messages
         try {
             const res = await fetch(`${API_URL}/api/one-pagers`, {
                 method: 'POST',
@@ -173,10 +174,14 @@ export const OnePagerPage = () => {
                 setMessage({ type: 'success', text: 'Reporte guardado exitosamente' });
                 setTimeout(() => setMessage(null), 3000);
             } else {
-                throw new Error('Failed to save');
+                // Try to get error details
+                const errData = await res.json().catch(() => ({}));
+                const errMsg = errData.error || errData.details || 'Error desconocido en el servidor';
+                throw new Error(errMsg);
             }
-        } catch (e) {
-            setMessage({ type: 'error', text: 'Error al guardar el reporte' });
+        } catch (e: any) {
+            console.error("Save error:", e);
+            setMessage({ type: 'error', text: `Error al guardar: ${e.message || 'Error de conexión'}` });
         } finally {
             setSaving(false);
         }
