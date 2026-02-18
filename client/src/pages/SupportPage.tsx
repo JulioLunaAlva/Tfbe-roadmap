@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config/api';
-import { SupportModal, SupportItem } from '../components/support/SupportModal';
+import { SupportModal, type SupportItem } from '../components/support/SupportModal';
 import { Plus, Edit2, Trash2, LifeBuoy } from 'lucide-react';
 
 const COLUMNS = ['BE', 'D&A', 'BE & D&A', 'BE & TERCEROS'];
@@ -121,8 +121,8 @@ export const SupportPage = () => {
                                                 <div className="mb-2">
                                                     <div className="flex justify-between items-start">
                                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${item.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                                item.status === 'On Hold' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                                                    'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                                                            item.status === 'On Hold' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                                'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
                                                             }`}>
                                                             {item.status === 'Active' ? 'Activo' : item.status === 'On Hold' ? 'En Espera' : 'Completado'}
                                                         </span>
