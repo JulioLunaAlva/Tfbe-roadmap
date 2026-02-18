@@ -17,8 +17,8 @@ interface Initiative {
     id: string;
     name: string;
     area: string;
-    status: string;
-    champion: string;
+    status?: string;
+    champion?: string;
 }
 
 export const OnePagerPage = () => {
@@ -42,15 +42,133 @@ export const OnePagerPage = () => {
         next_steps: '',
         stoppers_risks: ''
     });
-    // ... existing state ...
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // ... existing effects ...
+    // Initial Load - Initiatives & Current Date
+    useEffect(() => {
+        const fetchInitiatives = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const sorted = Array.isArray(data) ? data.sort((a: any, b: any) => a.name.localeCompare(b.name)) : [];
+                setInitiatives(sorted);
+                if (sorted.length > 0 && !selectedInitiativeId) {
+                    setSelectedInitiativeId(sorted[0].id);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        if (token) fetchInitiatives();
+    }, [token, year]);
+
+    // Set Default Month/Week based on current date
+    useEffect(() => {
+        const currentIsoWeek = getCurrentWeekNumber();
+        // Find which month contains this week
+        for (const q of CALENDAR_SCHEMA) {
+            for (const m of q.months) {
+                const idx = m.weeks.indexOf(currentIsoWeek);
+                if (idx !== -1) {
+                    setSelectedMonth(m.name);
+                    setSelectedWeekIndex(idx);
+                    return;
+                }
+            }
+        }
+        // Fallback
+        setSelectedMonth('Ene');
+        setSelectedWeekIndex(0);
+    }, []);
+
+    // Calculate ISO Week from selection
+    const currentIsoWeek = useMemo(() => {
+        if (!selectedMonth) return 1;
+        for (const q of CALENDAR_SCHEMA) {
+            const m = q.months.find(mon => mon.name === selectedMonth);
+            if (m) {
+                return m.weeks[selectedWeekIndex] || m.weeks[0];
+            }
+        }
+        return 1;
+    }, [selectedMonth, selectedWeekIndex]);
+
+    // Fetch Report content when selection changes
+    useEffect(() => {
+        const fetchReport = async () => {
+            if (!selectedInitiativeId || !currentIsoWeek) return;
+            setLoading(true);
+            try {
+                const res = await fetch(`${API_URL}/api/one-pagers?initiative_id=${selectedInitiativeId}&year=${year}&week_number=${currentIsoWeek}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data) {
+                    setReport({
+                        main_progress: data.main_progress || '',
+                        next_steps: data.next_steps || '',
+                        stoppers_risks: data.stoppers_risks || ''
+                    });
+                } else {
+                    setReport({ main_progress: '', next_steps: '', stoppers_risks: '' });
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReport();
+    }, [selectedInitiativeId, currentIsoWeek, year, token]);
+
+    const handleSave = async () => {
+        if (!selectedInitiativeId) return;
+        setSaving(true);
+        try {
+            const res = await fetch(`${API_URL}/api/one-pagers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    initiative_id: selectedInitiativeId,
+                    year,
+                    week_number: currentIsoWeek,
+                    ...report
+                })
+            });
+
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Reporte guardado exitosamente' });
+                setTimeout(() => setMessage(null), 3000);
+            } else {
+                throw new Error('Failed to save');
+            }
+        } catch (e) {
+            setMessage({ type: 'error', text: 'Error al guardar el reporte' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Helper to get weeks count for selected month
+    const weeksInMonth = useMemo(() => {
+        for (const q of CALENDAR_SCHEMA) {
+            const m = q.months.find(mon => mon.name === selectedMonth);
+            if (m) return m.weeks.length;
+        }
+        return 4;
+    }, [selectedMonth]);
 
     // Helper for Status Color
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status?: string) => {
         if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
         const s = status.toLowerCase();
         if (s.includes('retrasado') || s.includes('cancelado')) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
@@ -58,6 +176,8 @@ export const OnePagerPage = () => {
         if (s.includes('entregado')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     };
+
+    const canEdit = user?.role === 'admin' || user?.role === 'editor';
 
     return (
         <div className="flex flex-col h-full space-y-4 p-2">
@@ -102,7 +222,7 @@ export const OnePagerPage = () => {
                                 value={selectedMonth}
                                 onChange={(e) => {
                                     setSelectedMonth(e.target.value);
-                                    setSelectedWeekIndex(0);
+                                    setSelectedWeekIndex(0); // Reset week on month change
                                 }}
                                 className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                             >
