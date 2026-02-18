@@ -61,9 +61,21 @@ router.post('/', authenticateToken, requireRole('editor'), upload.single('file')
                 [name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, validValue, status, start_date, end_date, progress]
             );
 
-            // If inserted successfully (and returned an ID), process technologies
+            // If inserted successfully (and returned an ID), process technologies and phases
             if (resInit.rows.length > 0) {
                 const initId = resInit.rows[0].id;
+
+                // Insert Default Phases
+                // Optimization: We could cache phases outside the loop, but for now this is safe
+                const phasesRes = await query('SELECT id, default_order FROM phases');
+                for (const phase of phasesRes.rows) {
+                    await query(
+                        `INSERT INTO initiative_phases (initiative_id, phase_id, is_active, custom_order)
+                         VALUES ($1, $2, true, $3)
+                         ON CONFLICT DO NOTHING`,
+                        [initId, phase.id, phase.default_order]
+                    );
+                }
 
                 if (techString) {
                     const techNames = techString.split(';').map((t: string) => t.trim()).filter((t: string) => t);
