@@ -119,7 +119,8 @@ export const Layout = () => {
                         {/* Toggle Button in Header if Sidebar is closed/mobile? No, Sidebar has its own toggle. Just Title here. */}
                         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
                             {location.pathname === '/' ? 'Roadmap de Iniciativas' :
-                                location.pathname === '/dashboard' ? 'Dashboard Transformación' : 'Importación'}
+                                location.pathname === '/dashboard' ? 'Dashboard Transformación' :
+                                    location.pathname === '/one-pager' ? 'One Pager Ejecutivo' : 'Importación'}
                         </h2>
                     </div>
 

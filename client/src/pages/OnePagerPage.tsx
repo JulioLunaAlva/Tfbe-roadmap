@@ -17,6 +17,8 @@ interface Initiative {
     id: string;
     name: string;
     area: string;
+    status: string;
+    champion: string;
 }
 
 export const OnePagerPage = () => {
@@ -27,7 +29,12 @@ export const OnePagerPage = () => {
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [selectedInitiativeId, setSelectedInitiativeId] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<string>('');
-    const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(0); // 0-based index in the month's weeks array
+    const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(0);
+
+    // Find selected initiative object
+    const selectedInitiative = useMemo(() =>
+        initiatives.find(i => i.id === selectedInitiativeId),
+        [initiatives, selectedInitiativeId]);
 
     // Data
     const [report, setReport] = useState<OnePagerData>({
@@ -35,208 +42,123 @@ export const OnePagerPage = () => {
         next_steps: '',
         stoppers_risks: ''
     });
+    // ... existing state ...
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // Initial Load - Initiatives & Current Date
-    useEffect(() => {
-        const fetchInitiatives = async () => {
-            try {
-                const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await res.json();
-                const sorted = Array.isArray(data) ? data.sort((a: any, b: any) => a.name.localeCompare(b.name)) : [];
-                setInitiatives(sorted);
-                if (sorted.length > 0 && !selectedInitiativeId) {
-                    setSelectedInitiativeId(sorted[0].id);
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        };
+    // ... existing effects ...
 
-        if (token) fetchInitiatives();
-    }, [token, year]);
-
-    // Set Default Month/Week based on current date
-    useEffect(() => {
-        const currentIsoWeek = getCurrentWeekNumber();
-        // Find which month contains this week
-        for (const q of CALENDAR_SCHEMA) {
-            for (const m of q.months) {
-                const idx = m.weeks.indexOf(currentIsoWeek);
-                if (idx !== -1) {
-                    setSelectedMonth(m.name);
-                    setSelectedWeekIndex(idx);
-                    return;
-                }
-            }
-        }
-        // Fallback
-        setSelectedMonth('Ene');
-        setSelectedWeekIndex(0);
-    }, []);
-
-    // Calculate ISO Week from selection
-    const currentIsoWeek = useMemo(() => {
-        if (!selectedMonth) return 1;
-        for (const q of CALENDAR_SCHEMA) {
-            const m = q.months.find(mon => mon.name === selectedMonth);
-            if (m) {
-                return m.weeks[selectedWeekIndex] || m.weeks[0];
-            }
-        }
-        return 1;
-    }, [selectedMonth, selectedWeekIndex]);
-
-    // Fetch Report content when selection changes
-    useEffect(() => {
-        const fetchReport = async () => {
-            if (!selectedInitiativeId || !currentIsoWeek) return;
-            setLoading(true);
-            try {
-                const res = await fetch(`${API_URL}/api/one-pagers?initiative_id=${selectedInitiativeId}&year=${year}&week_number=${currentIsoWeek}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (data) {
-                    setReport({
-                        main_progress: data.main_progress || '',
-                        next_steps: data.next_steps || '',
-                        stoppers_risks: data.stoppers_risks || ''
-                    });
-                } else {
-                    setReport({ main_progress: '', next_steps: '', stoppers_risks: '' });
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchReport();
-    }, [selectedInitiativeId, currentIsoWeek, year, token]);
-
-    const handleSave = async () => {
-        if (!selectedInitiativeId) return;
-        setSaving(true);
-        try {
-            const res = await fetch(`${API_URL}/api/one-pagers`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    initiative_id: selectedInitiativeId,
-                    year,
-                    week_number: currentIsoWeek,
-                    ...report
-                })
-            });
-
-            if (res.ok) {
-                setMessage({ type: 'success', text: 'Reporte guardado exitosamente' });
-                setTimeout(() => setMessage(null), 3000);
-            } else {
-                throw new Error('Failed to save');
-            }
-        } catch (e) {
-            setMessage({ type: 'error', text: 'Error al guardar el reporte' });
-        } finally {
-            setSaving(false);
-        }
+    // Helper for Status Color
+    const getStatusColor = (status: string) => {
+        if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+        const s = status.toLowerCase();
+        if (s.includes('retrasado') || s.includes('cancelado')) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+        if (s.includes('en curso') || s.includes('avance')) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+        if (s.includes('entregado')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     };
-
-    // Helper to get weeks count for selected month
-    const weeksInMonth = useMemo(() => {
-        for (const q of CALENDAR_SCHEMA) {
-            const m = q.months.find(mon => mon.name === selectedMonth);
-            if (m) return m.weeks.length;
-        }
-        return 4;
-    }, [selectedMonth]);
-
-    const canEdit = user?.role === 'admin' || user?.role === 'editor';
 
     return (
         <div className="flex flex-col h-full space-y-4 p-2">
             {/* Header / Selectors */}
-            <div className="bg-white dark:bg-[#1E2630] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
-                <div className="flex flex-col md:flex-row gap-4 w-full">
-                    {/* Initiative Selector */}
-                    <div className="flex-1">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Iniciativa</label>
-                        <select
-                            value={selectedInitiativeId}
-                            onChange={(e) => setSelectedInitiativeId(e.target.value)}
-                            className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                        >
-                            {initiatives.map(i => (
-                                <option key={i.id} value={i.id}>{i.name}</option>
-                            ))}
-                        </select>
+            <div className="bg-white dark:bg-[#1E2630] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-4">
+
+                {/* Row 1: Selectors & Actions */}
+                <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
+                    <div className="flex flex-col md:flex-row gap-4 w-full">
+                        {/* Initiative Selector */}
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Iniciativa</label>
+                            <select
+                                value={selectedInitiativeId}
+                                onChange={(e) => setSelectedInitiativeId(e.target.value)}
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {initiatives.map(i => (
+                                    <option key={i.id} value={i.id}>{i.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Week Selector */}
+                        <div className="w-32">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Semana</label>
+                            <select
+                                value={selectedWeekIndex}
+                                onChange={(e) => setSelectedWeekIndex(Number(e.target.value))}
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {Array.from({ length: weeksInMonth }).map((_, i) => (
+                                    <option key={i} value={i}>Semana {i + 1}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Month Selector */}
+                        <div className="w-40">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mes</label>
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => {
+                                    setSelectedMonth(e.target.value);
+                                    setSelectedWeekIndex(0);
+                                }}
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {CALENDAR_SCHEMA.flatMap(q => q.months).map(m => (
+                                    <option key={m.name} value={m.name}>{m.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Year Selector */}
+                        <div className="w-32">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Año</label>
+                            <select
+                                value={year}
+                                onChange={(e) => setYear(Number(e.target.value))}
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value={2024}>2024</option>
+                                <option value={2025}>2025</option>
+                                <option value={2026}>2026</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {/* Week Selector */}
-                    <div className="w-32">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Semana</label>
-                        <select
-                            value={selectedWeekIndex}
-                            onChange={(e) => setSelectedWeekIndex(Number(e.target.value))}
-                            className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    {/* Save Button */}
+                    {canEdit && (
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex items-center space-x-2 px-6 py-2.5 bg-[#005490] hover:bg-[#004270] text-white rounded-lg shadow-md transition-all disabled:opacity-50 h-fit whitespace-nowrap"
                         >
-                            {Array.from({ length: weeksInMonth }).map((_, i) => (
-                                <option key={i} value={i}>Semana {i + 1}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Month Selector */}
-                    <div className="w-40">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mes</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => {
-                                setSelectedMonth(e.target.value);
-                                setSelectedWeekIndex(0); // Reset week on month change
-                            }}
-                            className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                        >
-                            {CALENDAR_SCHEMA.flatMap(q => q.months).map(m => (
-                                <option key={m.name} value={m.name}>{m.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Year Selector */}
-                    <div className="w-32">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Año</label>
-                        <select
-                            value={year}
-                            onChange={(e) => setYear(Number(e.target.value))}
-                            className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value={2024}>2024</option>
-                            <option value={2025}>2025</option>
-                            <option value={2026}>2026</option>
-                        </select>
-                    </div>
+                            <Save size={18} />
+                            <span>{saving ? 'Guardando...' : 'Guardar'}</span>
+                        </button>
+                    )}
                 </div>
 
-                {/* Save Button (Only if edit permission) */}
-                {canEdit && (
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex items-center space-x-2 px-6 py-2.5 bg-[#005490] hover:bg-[#004270] text-white rounded-lg shadow-md transition-all disabled:opacity-50 h-fit"
-                    >
-                        <Save size={18} />
-                        <span>{saving ? 'Guardando...' : 'Guardar'}</span>
-                    </button>
+                {/* Row 2: Metadata Badges (Status, Champion, Area) */}
+                {selectedInitiative && (
+                    <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(selectedInitiative.status)}`}>
+                            {selectedInitiative.status || 'Sin Estatus'}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-bold">Champion:</span>
+                            <span className="text-gray-700 dark:text-gray-200">{selectedInitiative.champion || 'N/A'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-bold">Área:</span>
+                            <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                                {selectedInitiative.area}
+                            </span>
+                        </div>
+                    </div>
                 )}
             </div>
 
