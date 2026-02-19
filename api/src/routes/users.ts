@@ -7,10 +7,18 @@ const router = Router();
 
 // Middleware to check if user is Cesar
 const requireCesar = (req: any, res: any, next: any) => {
-    const email = req.user?.email?.toLowerCase();
-    if (email === 'cesar@kof.com' || email === 'cesar') {
+    // Debug log
+    console.log('[requireCesar] User:', req.user);
+
+    // Check various possible locations/casings
+    const email = (req.user?.email || req.user?.user?.email || '').toLowerCase();
+
+    // Explicitly allow both 'cesar@kof.com' and 'cesar' (as username/email)
+    // Also checking for potential 'Cesar' if lowercasing failed for some reason (though it shouldn't)
+    if (email.includes('cesar@kof.com') || email === 'cesar') {
         next();
     } else {
+        console.warn(`[requireCesar] Access denied for email: ${email}`);
         res.status(403).json({ error: 'Access denied. Only Cesar can manage credentials.' });
     }
 };
