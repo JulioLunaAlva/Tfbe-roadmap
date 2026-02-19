@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { OnePagerPage } from './pages/OnePagerPage';
 import { ImportPage } from './pages/ImportPage';
 import { SupportPage } from './pages/SupportPage';
+import { CredentialsPage } from './pages/CredentialsPage';
 
 // Proteced Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactElement, allowedRoles?: string[] }) => {
@@ -41,6 +42,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="one-pager" element={<OnePagerPage />} />
         <Route path="support" element={<SupportPage />} />
+        <Route path="credentials" element={<CredentialsPage />} />
         <Route path="import" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <ImportPage />

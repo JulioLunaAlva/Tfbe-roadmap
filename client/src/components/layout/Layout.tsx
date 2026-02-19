@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Layout = () => {
@@ -20,6 +20,12 @@ export const Layout = () => {
 
     if (user?.role === 'admin') {
         navItems.push({ label: 'Import', path: '/import', icon: Upload });
+    }
+
+    // Restriction for Credentials: Only Cesar
+    const email = user?.email?.toLowerCase();
+    if (email === 'cesar@kof.com' || email === 'cesar') {
+        navItems.push({ label: 'Credenciales', path: '/credentials', icon: Key as any });
     }
 
     return (
