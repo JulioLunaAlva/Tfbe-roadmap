@@ -23,7 +23,7 @@ interface InitiativeForm {
     end_date: Date | null;
     progress: number;
     value: string;
-    developer_owner: string;
+    developer_owner: string[];
     methodology_type: string;
 }
 
@@ -47,11 +47,47 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         end_date: null,
         progress: 0,
         value: '',
-        developer_owner: '',
+        developer_owner: [] as string[],
         methodology_type: 'Hibrida'
     });
 
     const [techInput, setTechInput] = useState('');
+    const [devInput, setDevInput] = useState('');
+
+    // Developer Handlers
+    const handleAddDev = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && devInput.trim()) {
+            e.preventDefault();
+            const val = devInput.trim();
+            if (!formData.developer_owner.includes(val)) {
+                setFormData(prev => ({
+                    ...prev,
+                    developer_owner: Array.isArray(prev.developer_owner) ? [...prev.developer_owner, val] : [val]
+                }));
+            }
+            setDevInput('');
+        }
+    };
+
+    const handleAddDevClick = () => {
+        if (devInput.trim()) {
+            const val = devInput.trim();
+            if (!formData.developer_owner.includes(val)) {
+                setFormData(prev => ({
+                    ...prev,
+                    developer_owner: Array.isArray(prev.developer_owner) ? [...prev.developer_owner, val] : [val]
+                }));
+            }
+            setDevInput('');
+        }
+    };
+
+    const removeDev = (dev: string) => {
+        setFormData(prev => ({
+            ...prev,
+            developer_owner: (Array.isArray(prev.developer_owner) ? prev.developer_owner : []).filter(d => d !== dev)
+        }));
+    };
 
     // Predefined lists
     const areas: string[] = [];
@@ -144,16 +180,39 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
                             />
                         </div>
 
-                        {/* Developer/Owner - NEW FIELD (2nd Position) */}
+                        {/* Developer/Owner - NEW FIELD (2nd Position) - Multi-select */}
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Desarrollador / Owner</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white dark:bg-[#2A3441] text-gray-900 dark:text-white"
-                                value={formData.developer_owner}
-                                onChange={e => setFormData({ ...formData, developer_owner: e.target.value })}
-                                placeholder="Ej. Juan Pérez"
-                            />
+                            <div className="mt-1 flex flex-wrap gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-[#2A3441] min-h-[42px]">
+                                {(Array.isArray(formData.developer_owner) ? formData.developer_owner : []).map(dev => (
+                                    <span key={dev} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200">
+                                        {dev}
+                                        <button type="button" onClick={() => removeDev(dev)} className="ml-1 text-indigo-500 hover:text-indigo-900 dark:text-indigo-300 dark:hover:text-white">
+                                            <X size={12} />
+                                        </button>
+                                    </span>
+                                ))}
+                                <div className="flex-1 flex items-center min-w-[120px]">
+                                    <input
+                                        type="text"
+                                        className="w-full outline-none border-none focus:ring-0 p-1 text-sm bg-transparent text-gray-900 dark:text-white"
+                                        placeholder="Escribe y presiona Enter..."
+                                        value={devInput}
+                                        onChange={e => setDevInput(e.target.value)}
+                                        onKeyDown={handleAddDev}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAddDevClick}
+                                        className="ml-2 p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+                                        title="Agregar Desarrollador"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Methodology - NEW FIELD */}

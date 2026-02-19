@@ -29,7 +29,7 @@ interface Initiative {
     progress?: number;
     technologies?: string[];
     value?: string;
-    developer_owner?: string;
+    developer_owner?: string[];
 }
 interface InitiativePhase {
     id: string;
@@ -701,8 +701,8 @@ export const RoadmapTable = () => {
                                         </div>
                                     </td>
                                     {/* Developer/Owner Cell - NEW */}
-                                    <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center truncate text-[var(--text-secondary)] dark:text-gray-200 font-medium" title={initiative.developer_owner}>
-                                        {initiative.developer_owner || '-'}
+                                    <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center truncate text-[var(--text-secondary)] dark:text-gray-200 font-medium" title={Array.isArray(initiative.developer_owner) ? initiative.developer_owner.join(', ') : initiative.developer_owner}>
+                                        {Array.isArray(initiative.developer_owner) ? (initiative.developer_owner.length > 0 ? initiative.developer_owner.join(', ') : '-') : (initiative.developer_owner || '-')}
                                     </td>
                                     {/* Value Cell - NEW */}
                                     <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center">

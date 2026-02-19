@@ -8,8 +8,18 @@ interface Props {
 export const DashboardDeveloper: React.FC<Props> = ({ initiatives }) => {
     // Aggregate by developer_owner
     const counts = initiatives.reduce((acc: Record<string, number>, curr) => {
-        const owner = curr.developer_owner || 'Sin Asignar';
-        acc[owner] = (acc[owner] || 0) + 1;
+        const owners = Array.isArray(curr.developer_owner)
+            ? curr.developer_owner
+            // Fallback for string or empty
+            : (curr.developer_owner ? [curr.developer_owner] : []);
+
+        if (owners.length === 0) {
+            acc['Sin Asignar'] = (acc['Sin Asignar'] || 0) + 1;
+        } else {
+            owners.forEach((owner: string) => {
+                acc[owner] = (acc[owner] || 0) + 1;
+            });
+        }
         return acc;
     }, {});
 
@@ -27,8 +37,8 @@ export const DashboardDeveloper: React.FC<Props> = ({ initiatives }) => {
                     <div key={name} className="flex items-center justify-between group">
                         <div className="flex items-center flex-1 min-w-0">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-3 ${idx < 3
-                                    ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-                                    : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
                                 }`}>
                                 {idx + 1}
                             </div>
