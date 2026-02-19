@@ -61,7 +61,13 @@ export const DashboardPage = () => {
 
     const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
         const saved = localStorage.getItem('dashboard_widget_order');
-        return saved ? JSON.parse(saved) : defaultOrder;
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Merge in any new default widgets that are missing from saved state
+            const missing = defaultOrder.filter(id => !parsed.includes(id));
+            return [...parsed, ...missing];
+        }
+        return defaultOrder;
     });
 
     useEffect(() => {

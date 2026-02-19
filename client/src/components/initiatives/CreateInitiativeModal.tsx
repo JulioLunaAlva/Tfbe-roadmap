@@ -144,6 +144,18 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
                             />
                         </div>
 
+                        {/* Developer/Owner - NEW FIELD (2nd Position) */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Desarrollador / Owner</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white dark:bg-[#2A3441] text-gray-900 dark:text-white"
+                                value={formData.developer_owner}
+                                onChange={e => setFormData({ ...formData, developer_owner: e.target.value })}
+                                placeholder="Ej. Juan Pérez"
+                            />
+                        </div>
+
                         {/* Methodology - NEW FIELD */}
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
