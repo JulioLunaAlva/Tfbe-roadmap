@@ -538,11 +538,13 @@ export const RoadmapTable = () => {
                 <div className="text-xs text-[var(--text-tertiary)]">Mostrando {filteredInitiatives.length} iniciativas</div>
             </div>
 
-            <div id="roadmap-table-container" className="overflow-x-auto border border-[var(--border-color)] rounded-lg shadow sm:rounded-lg bg-[var(--bg-secondary)] relative">
-                <table className="min-w-full divide-y divide-[var(--border-color)] table-fixed">
-                    <thead className="bg-gradient-to-b from-[#E10600] to-[#C40500] text-white shadow-md z-20">
+            {/* Container with max-height to ensure horizontal scrollbar is visible and header sticks */}
+            <div id="roadmap-table-container" className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-140px)] border border-[var(--border-color)] rounded-lg shadow sm:rounded-lg bg-[var(--bg-secondary)] relative scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
+                <table className="min-w-full divide-y divide-[var(--border-color)] table-fixed border-separate border-spacing-0">
+                    <thead className="bg-gradient-to-b from-[#E10600] to-[#C40500] text-white shadow-md z-40 sticky top-0">
                         <tr>
-                            <th rowSpan={3} style={{ width: colWidths.initiative, minWidth: colWidths.initiative }} className="group px-6 py-3 text-left text-xs font-bold uppercase tracking-wider sticky left-0 bg-[#E10600] z-20 border-r border-[#B90500] border-b border-[#B90500] shadow-[4px_0_8px_-2px_rgba(0,0,0,0.2)] relative">
+                            {/* Sticky Top-Left Corner - Highest Z-Index */}
+                            <th rowSpan={3} style={{ width: colWidths.initiative, minWidth: colWidths.initiative }} className="group px-6 py-3 text-left text-xs font-bold uppercase tracking-wider sticky left-0 top-0 z-50 bg-[#E10600] border-r border-[#B90500] border-b border-[#B90500] shadow-[4px_0_8px_-2px_rgba(0,0,0,0.2)]">
                                 Iniciativa <ResizeHandle col="initiative" />
                             </th>
                             <th rowSpan={3} style={{ width: colWidths.developer_owner, minWidth: colWidths.developer_owner }} className="group px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wider bg-[#E10600] text-white border-r border-b border-[#B90500] relative">
@@ -582,7 +584,7 @@ export const RoadmapTable = () => {
                                 <th
                                     key={q.name}
                                     colSpan={q.months.reduce((acc, m) => acc + m.weeks.length, 0)}
-                                    className="px-2 py-1 text-center text-xs font-bold text-white border-r-2 border-b border-[#B90500] bg-[#CC0500] box-border tracking-widest"
+                                    className="px-2 py-1 text-center text-xs font-bold text-white border-r-2 border-b border-[#B90500] bg-[#CC0500] box-border tracking-widest sticky top-0 z-40"
                                 >
                                     <span className="inline-block bg-black/25 rounded px-2 py-0.5 shadow-sm">{q.name}</span>
                                 </th>
@@ -593,7 +595,9 @@ export const RoadmapTable = () => {
                                 <th
                                     key={`${m.name}-${i}`}
                                     colSpan={m.weeks.length}
-                                    // Always add a visible border-r for every month to separate "Ene | Feb | Mar"
+                                    // Row 2 Sticky: Top is ~29px (approx height of first row part if we were using th sticky, but with thead sticky it moves together)
+                                    // Actually with thead sticky top-0, all rows inside thead stick together?
+                                    // No, thead sticky keeps the whole block sticky.
                                     className="px-2 py-0.5 text-center text-[10px] font-medium text-white border-b border-[#B90500] bg-[#E10600] border-r border-[#B90500]"
                                 >
                                     <span className="inline-block bg-black/10 rounded px-1.5">{m.name}</span>
