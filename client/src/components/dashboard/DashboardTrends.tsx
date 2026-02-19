@@ -13,13 +13,22 @@ interface TrendsProps {
 export const DashboardTrends = ({ initiatives }: TrendsProps) => {
     // Generate monthly data for the current year
     const generateMonthlyData = () => {
-        const currentYear = new Date().getFullYear();
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonthIndex = now.getMonth(); // 0-11
+
         const months = [
             'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
             'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
         ];
 
-        const monthlyData = months.map((month, index) => {
+        // Filter valid months (only up to current month)
+        // We use map on ALL months effectively but then filter results might be better 
+        // to keep logic clean or just slice the months array.
+        // Slicing months array is safest to ensure chart stops at current month.
+        const activeMonths = months.slice(0, currentMonthIndex + 1);
+
+        const monthlyData = activeMonths.map((month, index) => {
             const monthStart = new Date(currentYear, index, 1);
             const monthEnd = new Date(currentYear, index + 1, 0);
 
@@ -30,14 +39,13 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 return createdDate >= monthStart && createdDate <= monthEnd;
             }).length;
 
-            // Count completed initiatives (assuming they were completed in the same month they were created for demo)
+            // Count completed initiatives
             const completed = initiatives.filter(i => {
                 if (!i.created_at || i.status !== 'Entregado') return false;
                 const createdDate = new Date(i.created_at);
                 return createdDate >= monthStart && createdDate <= monthEnd;
             }).length;
 
-            // Calculate cumulative
             return {
                 month,
                 created,
