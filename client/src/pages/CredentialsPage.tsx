@@ -167,7 +167,6 @@ export const CredentialsPage = () => {
                         <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Usuario</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Rol</th>
                                 <th className="px-6 py-4 text-right text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -175,7 +174,7 @@ export const CredentialsPage = () => {
                         <tbody className="divide-y divide-[var(--border-color)]">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">
+                                    <td colSpan={3} className="px-6 py-8 text-center text-[var(--text-secondary)]">
                                         <div className="flex justify-center items-center gap-2">
                                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#E10600]"></div>
                                             Cargando usuarios...
@@ -184,20 +183,20 @@ export const CredentialsPage = () => {
                                 </tr>
                             ) : users.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">No hay usuarios registrados.</td>
+                                    <td colSpan={3} className="px-6 py-8 text-center text-[var(--text-secondary)]">No hay usuarios registrados.</td>
                                 </tr>
                             ) : (
                                 users.map((u) => (
                                     <tr key={u.id} className="hover:bg-[var(--bg-tertiary)] transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
+                                            <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-[var(--text-primary)] font-bold shadow-sm">
                                                     {u.email.charAt(0).toUpperCase()}
                                                 </div>
+                                                <div className="text-sm font-medium text-[var(--text-primary)]">
+                                                    {u.email}
+                                                </div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text-primary)]">
-                                            {u.email}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={clsx(
@@ -252,19 +251,19 @@ export const CredentialsPage = () => {
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email</label>
+                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Usuario</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <UserIcon size={16} className="text-gray-400" />
                                     </div>
                                     <input
-                                        type="email"
+                                        type="text"
                                         required
                                         disabled={modalMode === 'edit'}
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         className="pl-10 block w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] px-3 py-2 text-sm focus:ring-2 focus:ring-[#E10600] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                        placeholder="usuario@kof.com"
+                                        placeholder="ej. juan.perez"
                                     />
                                 </div>
                             </div>
