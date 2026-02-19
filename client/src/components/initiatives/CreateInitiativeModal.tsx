@@ -23,6 +23,7 @@ interface InitiativeForm {
     end_date: Date | null;
     progress: number;
     value: string;
+    developer_owner: string;
     methodology_type: string;
 }
 
@@ -46,6 +47,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         end_date: null,
         progress: 0,
         value: '',
+        developer_owner: '',
         methodology_type: 'Hibrida'
     });
 

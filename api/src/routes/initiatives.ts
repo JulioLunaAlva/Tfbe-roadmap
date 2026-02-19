@@ -64,9 +64,9 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 
         // Insert Initiative
         const resInit = await query(
-            `INSERT INTO initiatives (name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, status, start_date, end_date, progress, value, methodology_type) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
-            [name, area, champion, transformation_lead, complexity, is_top_priority || false, year, notes, status, start_date, end_date, progress || 0, value, methodology]
+            `INSERT INTO initiatives (name, area, champion, transformation_lead, developer_owner, complexity, is_top_priority, year, notes, status, start_date, end_date, progress, value, methodology_type) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+            [name, area, champion, transformation_lead, req.body.developer_owner, complexity, is_top_priority || false, year, notes, status, start_date, end_date, progress || 0, value, methodology]
         );
         const initiative = resInit.rows[0];
 
@@ -139,8 +139,8 @@ router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request
         const newMethodology = methodology_type || currentMethodology;
 
         const result = await query(
-            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, complexity = $5, status = $6, start_date = $7, end_date = $8, progress = $9, notes = $10, is_top_priority = $11, year = $12, value = $13, methodology_type = $14 WHERE id = $15 RETURNING *',
-            [name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, is_top_priority, year, normalizedValue, newMethodology, id]
+            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, developer_owner = $5, complexity = $6, status = $7, start_date = $8, end_date = $9, progress = $10, notes = $11, is_top_priority = $12, year = $13, value = $14, methodology_type = $15 WHERE id = $16 RETURNING *',
+            [name, area, champion, transformation_lead, req.body.developer_owner, complexity, status, start_date, end_date, progress, notes, is_top_priority, year, normalizedValue, newMethodology, id]
         );
 
         // If methodology changed, replace phases

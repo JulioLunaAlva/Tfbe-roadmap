@@ -29,6 +29,7 @@ interface Initiative {
     progress?: number;
     technologies?: string[];
     value?: string;
+    developer_owner?: string;
 }
 interface InitiativePhase {
     id: string;
@@ -388,6 +389,7 @@ export const RoadmapTable = () => {
         // Default widths
         return {
             initiative: 400,
+            developer_owner: 140,
             value: 140,
             champion: 128,
             tech: 128,
@@ -543,6 +545,9 @@ export const RoadmapTable = () => {
                             <th rowSpan={3} style={{ width: colWidths.initiative, minWidth: colWidths.initiative }} className="group px-6 py-3 text-left text-xs font-bold uppercase tracking-wider sticky left-0 bg-[#E10600] z-20 border-r border-[#B90500] border-b border-[#B90500] shadow-[4px_0_8px_-2px_rgba(0,0,0,0.2)] relative">
                                 Iniciativa <ResizeHandle col="initiative" />
                             </th>
+                            <th rowSpan={3} style={{ width: colWidths.developer_owner, minWidth: colWidths.developer_owner }} className="group px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wider bg-[#E10600] text-white border-r border-b border-[#B90500] relative">
+                                Dev/Owner <ResizeHandle col="developer_owner" />
+                            </th>
                             <th rowSpan={3} style={{ width: colWidths.value, minWidth: colWidths.value }} className="group px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wider bg-[#E10600] text-white border-r border-b border-[#B90500] relative">
                                 Valor <ResizeHandle col="value" />
                             </th>
@@ -694,6 +699,10 @@ export const RoadmapTable = () => {
                                                 </div>
                                             )}
                                         </div>
+                                    </td>
+                                    {/* Developer/Owner Cell - NEW */}
+                                    <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center truncate text-[var(--text-secondary)] dark:text-gray-200 font-medium" title={initiative.developer_owner}>
+                                        {initiative.developer_owner || '-'}
                                     </td>
                                     {/* Value Cell - NEW */}
                                     <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center">

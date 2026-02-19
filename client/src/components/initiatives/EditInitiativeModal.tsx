@@ -29,6 +29,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         progress: 0,
         technologies: [] as string[],
         value: '',
+        developer_owner: '',
         methodology_type: 'Hibrida'
     });
 
@@ -49,6 +50,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                 progress: initiative.progress || 0,
                 technologies: initiative.technologies || [],
                 value: initiative.value || '',
+                developer_owner: initiative.developer_owner || '',
                 methodology_type: initiative.methodology_type || 'Hibrida'
             });
         }

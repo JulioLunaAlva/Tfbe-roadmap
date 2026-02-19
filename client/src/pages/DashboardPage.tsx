@@ -35,6 +35,7 @@ import { DashboardActiveSupport } from '../components/dashboard/DashboardActiveS
 import { DashboardComplexity } from '../components/dashboard/DashboardComplexity';
 import { DashboardPhase } from '../components/dashboard/DashboardPhase';
 import { DashboardTech } from '../components/dashboard/DashboardTech';
+import { DashboardDeveloper } from '../components/dashboard/DashboardDeveloper';
 
 import API_URL from '../config/api';
 
@@ -55,7 +56,7 @@ export const DashboardPage = () => {
         'timeline', 'health',
         'trends', 'active-support',
         'transf-lead', 'area', 'leaderboard',
-        'activity', 'phase', 'tech'
+        'activity', 'phase', 'tech', 'developer'
     ];
 
     const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
@@ -270,6 +271,10 @@ export const DashboardPage = () => {
         },
         'tech': {
             component: <DashboardTech techData={metrics.techData} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'developer': {
+            component: <DashboardDeveloper initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
     };
