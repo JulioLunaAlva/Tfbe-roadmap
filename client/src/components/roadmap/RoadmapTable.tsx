@@ -849,7 +849,7 @@ export const RoadmapTable = () => {
                                                 />
                                                 <span className="ml-0.5">%</span>
                                             </td>
-                                            <td colSpan={4} className="bg-[var(--bg-tertiary)] dark:bg-[#111827] border-r border-[var(--border-color)]"></td>
+                                            <td colSpan={5} className="bg-[var(--bg-tertiary)] dark:bg-[#111827] border-r border-[var(--border-color)]"></td>
                                             {flatWeeks.map(w => {
                                                 const key = `${initiative.id}-${phase.phase_id}-${w}`;
                                                 const prog = progressMap[key];
