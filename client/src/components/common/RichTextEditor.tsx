@@ -1,7 +1,15 @@
 import React from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Italic, Strikethrough, List, ListOrdered } from 'lucide-react';
+import Superscript from '@tiptap/extension-superscript';
+import Subscript from '@tiptap/extension-subscript';
+import TextAlign from '@tiptap/extension-text-align';
+import {
+    Bold, Italic, Strikethrough, List, ListOrdered,
+    Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
+    Quote, AlignLeft, AlignCenter, AlignRight, AlignJustify, Smile,
+    Heading1, Heading2
+} from 'lucide-react';
 
 interface RichTextEditorProps {
     value: string;
@@ -42,9 +50,56 @@ const MenuBar = ({ editor, readOnly }: { editor: any, readOnly: boolean }) => {
                 onClick={(e) => toggleCommand(() => editor.chain().focus().toggleStrike().run(), e)}
                 disabled={!editor.can().chain().focus().toggleStrike().run()}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('strike') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
-                title="Strikethrough (Ctrl+Shift+S)"
+                title="Tachado"
             >
                 <Strikethrough size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().toggleSuperscript().run(), e)}
+                disabled={!editor.can().chain().focus().toggleSuperscript().run()}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('superscript') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Superíndice"
+            >
+                <SuperscriptIcon size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().toggleSubscript().run(), e)}
+                disabled={!editor.can().chain().focus().toggleSubscript().run()}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('subscript') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Subíndice"
+            >
+                <SubscriptIcon size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+
+            <div className="w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().setTextAlign('left').run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Alinear a la izquierda"
+            >
+                <AlignLeft size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().setTextAlign('center').run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Centrar"
+            >
+                <AlignCenter size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().setTextAlign('right').run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Alinear a la derecha"
+            >
+                <AlignRight size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().setTextAlign('justify').run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive({ textAlign: 'justify' }) ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Justificar"
+            >
+                <AlignJustify size={16} className="text-gray-700 dark:text-gray-300" />
             </button>
 
             <div className="w-px bg-gray-300 dark:bg-gray-600 mx-1" />
@@ -52,16 +107,47 @@ const MenuBar = ({ editor, readOnly }: { editor: any, readOnly: boolean }) => {
             <button
                 onClick={(e) => toggleCommand(() => editor.chain().focus().toggleBulletList().run(), e)}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
-                title="Bullet List"
+                title="Viñetas"
             >
                 <List size={16} className="text-gray-700 dark:text-gray-300" />
             </button>
             <button
                 onClick={(e) => toggleCommand(() => editor.chain().focus().toggleOrderedList().run(), e)}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
-                title="Numbered List"
+                title="Lista Numerada"
             >
                 <ListOrdered size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().toggleBlockquote().run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('blockquote') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Cita"
+            >
+                <Quote size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().toggleHeading({ level: 1 }).run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Título 1"
+            >
+                <Heading1 size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().toggleHeading({ level: 2 }).run(), e)}
+                className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                title="Título 2"
+            >
+                <Heading2 size={16} className="text-gray-700 dark:text-gray-300" />
+            </button>
+
+            <div className="w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+
+            <button
+                onClick={(e) => toggleCommand(() => editor.chain().focus().insertContent(' ⭐ ').run(), e)}
+                className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Insertar Estrella / Tip Emoji (En Windows usa Win + .)"
+            >
+                <Smile size={16} className="text-gray-700 dark:text-gray-300" />
             </button>
         </div>
     );
@@ -71,6 +157,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
     const editor = useEditor({
         extensions: [
             StarterKit,
+            Superscript,
+            Subscript,
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
+            }),
         ],
         content: value,
         editable: !readOnly,
