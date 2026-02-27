@@ -22,6 +22,11 @@ interface FiltersProps {
     setSelectedComplexity: (v: string[]) => void;
     selectedQuarters: string[];
     setSelectedQuarters: (v: string[]) => void;
+    selectedClassification: string[];
+    setSelectedClassification: (v: string[]) => void;
+    uniqueValues: string[];
+    selectedValue: string[];
+    setSelectedValue: (v: string[]) => void;
     searchTerm: string;
     setSearchTerm: (v: string) => void;
 }
@@ -47,6 +52,11 @@ export const RoadmapFilters = ({
     setSelectedComplexity,
     selectedQuarters,
     setSelectedQuarters,
+    selectedClassification,
+    setSelectedClassification,
+    uniqueValues,
+    selectedValue,
+    setSelectedValue,
     searchTerm,
     setSearchTerm
 }: FiltersProps) => {
@@ -127,6 +137,24 @@ export const RoadmapFilters = ({
                 selectedValues={selectedComplexity}
                 onChange={setSelectedComplexity}
                 placeholder="Todas"
+            />
+
+            <MultiSelectDropdown
+                label="Clasificación"
+                icon={<Filter size={14} />}
+                options={['Top Priority', 'Iniciativa Clave']}
+                selectedValues={selectedClassification}
+                onChange={setSelectedClassification}
+                placeholder="Todas"
+            />
+
+            <MultiSelectDropdown
+                label="Valor"
+                icon={<Filter size={14} />}
+                options={uniqueValues}
+                selectedValues={selectedValue}
+                onChange={setSelectedValue}
+                placeholder="Todos"
             />
         </div>
     );

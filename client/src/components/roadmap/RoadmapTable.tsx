@@ -363,6 +363,8 @@ export const RoadmapTable = () => {
     const [selectedDevOwner, setSelectedDevOwner] = useState<string[]>([]);
     const [selectedComplexity, setSelectedComplexity] = useState<string[]>([]);
     const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
+    const [selectedClassification, setSelectedClassification] = useState<string[]>([]);
+    const [selectedValue, setSelectedValue] = useState<string[]>([]);
 
     const uniqueAreas = useMemo(() => Array.from(new Set(initiatives.map(i => i.area).filter((x): x is string => !!x))).sort(), [initiatives]);
     const uniqueStatuses = useMemo(() => Array.from(new Set(initiatives.map(i => i.status).filter((x): x is string => !!x))).sort(), [initiatives]);
@@ -391,6 +393,7 @@ export const RoadmapTable = () => {
     }, [initiatives]);
 
     const uniqueComplexities = useMemo(() => Array.from(new Set(initiatives.map(i => i.complexity).filter((x): x is string => !!x))).sort(), [initiatives]);
+    const uniqueValues = useMemo(() => Array.from(new Set(initiatives.map(i => i.value).filter((x): x is string => !!x))).sort(), [initiatives]);
 
     const filteredInitiatives = useMemo(() => {
         return initiatives.filter(i => {
@@ -428,9 +431,24 @@ export const RoadmapTable = () => {
                 }
             }
 
-            return matchesSearch && matchesArea && matchesStatus && matchesTransf && matchesTech && matchesDev && matchesComp && matchesQ;
+            const matchesValue = selectedValue.length === 0 || (i.value && selectedValue.includes(i.value));
+
+            // Classification logic (Top Priority, Iniciativa Clave)
+            let matchesClassification = true;
+            if (selectedClassification.length > 0) {
+                const isTop = i.is_top_priority;
+                const isKey = !!i.is_key_initiative;
+                // Si la iniciativa tiene al menos UNA de las clasificaciones seleccionadas
+                matchesClassification = selectedClassification.some(c => {
+                    if (c === 'Top Priority') return isTop;
+                    if (c === 'Iniciativa Clave') return isKey;
+                    return false;
+                });
+            }
+
+            return matchesSearch && matchesArea && matchesStatus && matchesTransf && matchesTech && matchesDev && matchesComp && matchesQ && matchesValue && matchesClassification;
         });
-    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters]);
+    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters, selectedValue, selectedClassification]);
 
 
 
@@ -588,6 +606,11 @@ export const RoadmapTable = () => {
                             setSelectedComplexity={setSelectedComplexity}
                             selectedQuarters={selectedQuarters}
                             setSelectedQuarters={setSelectedQuarters}
+                            selectedClassification={selectedClassification}
+                            setSelectedClassification={setSelectedClassification}
+                            uniqueValues={uniqueValues}
+                            selectedValue={selectedValue}
+                            setSelectedValue={setSelectedValue}
                         />
                     </div>
                     {(user?.role === 'admin' || user?.role === 'editor') && (

@@ -24,6 +24,7 @@ import { SortableWidget } from '../components/dashboard/SortableWidget';
 // Components
 import { DashboardKPIs } from '../components/dashboard/DashboardKPIs';
 import { DashboardActivity } from '../components/dashboard/DashboardActivity';
+import { DashboardKeyInitiatives } from '../components/dashboard/DashboardKeyInitiatives';
 import { DashboardAreaChart } from '../components/dashboard/DashboardAreaChart';
 import { DashboardHealth } from '../components/dashboard/DashboardHealth';
 import { DashboardLeaderboard } from '../components/dashboard/DashboardLeaderboard';
@@ -57,7 +58,7 @@ export const DashboardPage = () => {
         'timeline', 'health',
         'trends', 'active-support',
         'transf-lead', 'area', 'leaderboard',
-        'activity', 'phase', 'tech', 'developer'
+        'activity', 'key-initiatives', 'phase', 'tech', 'developer'
     ];
 
     const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
@@ -81,6 +82,19 @@ export const DashboardPage = () => {
                 }
 
                 const otherMissing = missing.filter(id => id !== 'quarters');
+                return [...parsed, ...otherMissing];
+            }
+
+            if (missing.includes('key-initiatives')) {
+                const targetIdx = parsed.indexOf('activity');
+
+                if (targetIdx !== -1) {
+                    parsed.splice(targetIdx + 1, 0, 'key-initiatives');
+                } else {
+                    parsed.splice(3, 0, 'key-initiatives');
+                }
+
+                const otherMissing = missing.filter(id => id !== 'key-initiatives');
                 return [...parsed, ...otherMissing];
             }
 
@@ -310,6 +324,10 @@ export const DashboardPage = () => {
         },
         'activity': {
             component: <DashboardActivity initiatives={initiatives} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'key-initiatives': {
+            component: <DashboardKeyInitiatives initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'phase': {
