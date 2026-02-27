@@ -64,8 +64,26 @@ export const DashboardPage = () => {
         const saved = localStorage.getItem('dashboard_widget_order');
         if (saved) {
             const parsed = JSON.parse(saved);
-            // Merge in any new default widgets that are missing from saved state
             const missing = defaultOrder.filter(id => !parsed.includes(id));
+
+            // Si el usuario ya tenía un orden guardado pero le falta el nuevo widget 'quarters',
+            // lo insertamos explícitamente después de 'complexity' o al principio, 
+            // en lugar de enviarlo hasta el final.
+            if (missing.includes('quarters')) {
+                const targetIdx = parsed.indexOf('complexity') !== -1
+                    ? parsed.indexOf('complexity')
+                    : (parsed.indexOf('value') !== -1 ? parsed.indexOf('value') : 1);
+
+                if (targetIdx !== -1) {
+                    parsed.splice(targetIdx + 1, 0, 'quarters');
+                } else {
+                    parsed.splice(2, 0, 'quarters');
+                }
+
+                const otherMissing = missing.filter(id => id !== 'quarters');
+                return [...parsed, ...otherMissing];
+            }
+
             return [...parsed, ...missing];
         }
         return defaultOrder;
