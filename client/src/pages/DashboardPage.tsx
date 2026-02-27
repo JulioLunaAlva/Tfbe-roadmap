@@ -34,7 +34,7 @@ import { DashboardValue } from '../components/dashboard/DashboardValue';
 import { DashboardTransfLead } from '../components/dashboard/DashboardTransfLead';
 import { DashboardActiveSupport } from '../components/dashboard/DashboardActiveSupport';
 import { DashboardComplexity } from '../components/dashboard/DashboardComplexity';
-import { DashboardPhase } from '../components/dashboard/DashboardPhase';
+// import { DashboardPhase } from '../components/dashboard/DashboardPhase';
 import { DashboardTech } from '../components/dashboard/DashboardTech';
 import { DashboardDeveloper } from '../components/dashboard/DashboardDeveloper';
 import { DashboardQuarter } from '../components/dashboard/DashboardQuarter';
@@ -58,7 +58,7 @@ export const DashboardPage = () => {
         'timeline', 'health',
         'trends', 'active-support',
         'transf-lead', 'area', 'leaderboard',
-        'activity', 'key-initiatives', 'phase', 'tech', 'developer'
+        'activity', 'key-initiatives', 'tech', 'developer'
     ];
 
     const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
@@ -342,10 +342,10 @@ export const DashboardPage = () => {
             component: <DashboardKeyInitiatives initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
-        'phase': {
-            component: <DashboardPhase phaseDataByMethodology={metrics.phaseDataByMethodology} initiatives={initiatives} />,
-            span: 'col-span-12 lg:col-span-4'
-        },
+        // 'phase': {
+        //     component: <DashboardPhase phaseDataByMethodology={metrics.phaseDataByMethodology} initiatives={initiatives} />,
+        //     span: 'col-span-12 lg:col-span-4'
+        // },
         'tech': {
             component: <DashboardTech techData={metrics.techData} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
