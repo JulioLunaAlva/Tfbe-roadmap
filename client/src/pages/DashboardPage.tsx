@@ -283,11 +283,11 @@ export const DashboardPage = () => {
             span: 'col-span-12'
         },
         'value': {
-            component: <DashboardValue valueData={metrics.valueData} total={metrics.total} />,
+            component: <DashboardValue valueData={metrics.valueData} total={metrics.total} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-8'
         },
         'complexity': {
-            component: <DashboardComplexity complexityData={metrics.complexityData} />,
+            component: <DashboardComplexity complexityData={metrics.complexityData} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'quarters': {
@@ -311,11 +311,11 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'transf-lead': {
-            component: <DashboardTransfLead transfLeadData={metrics.transfLeadData} total={metrics.total} />,
+            component: <DashboardTransfLead transfLeadData={metrics.transfLeadData} total={metrics.total} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'area': {
-            component: <DashboardAreaChart areaData={metrics.areaData} />,
+            component: <DashboardAreaChart areaData={metrics.areaData} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'leaderboard': {
@@ -331,11 +331,11 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'phase': {
-            component: <DashboardPhase phaseData={metrics.phaseData} />,
+            component: <DashboardPhase phaseData={metrics.phaseData} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'tech': {
-            component: <DashboardTech techData={metrics.techData} />,
+            component: <DashboardTech techData={metrics.techData} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'developer': {
