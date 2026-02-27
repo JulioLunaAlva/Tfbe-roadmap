@@ -5,6 +5,7 @@ import { useYear } from '../context/YearContext';
 import { CALENDAR_SCHEMA, getCurrentWeekNumber } from '../utils/calendarConstants';
 import API_URL from '../config/api';
 import { Save, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { RichTextEditor } from '../components/common/RichTextEditor';
 
 interface OnePagerData {
     id?: string;
@@ -390,13 +391,12 @@ export const OnePagerPage = () => {
                                     Principales Avances
                                 </h3>
                             </div>
-                            <div className="flex-1 p-0">
-                                <textarea
+                            <div className="flex-1 p-0 flex flex-col min-h-0">
+                                <RichTextEditor
                                     value={report.main_progress}
-                                    onChange={(e) => setReport({ ...report, main_progress: e.target.value })}
+                                    onChange={(val) => setReport({ ...report, main_progress: val })}
                                     readOnly={!canEdit}
                                     placeholder={canEdit ? "• Logro clave alcanzado...\n• Hito completado..." : "Sin información disponible"}
-                                    className="w-full h-full p-4 bg-transparent text-gray-700 dark:text-gray-300 resize-none border-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 text-sm leading-relaxed"
                                 />
                             </div>
                         </div>
@@ -411,13 +411,12 @@ export const OnePagerPage = () => {
                                     Siguientes Pasos / Compromisos
                                 </h3>
                             </div>
-                            <div className="flex-1 p-0">
-                                <textarea
+                            <div className="flex-1 p-0 flex flex-col min-h-0">
+                                <RichTextEditor
                                     value={report.next_steps}
-                                    onChange={(e) => setReport({ ...report, next_steps: e.target.value })}
+                                    onChange={(val) => setReport({ ...report, next_steps: val })}
                                     readOnly={!canEdit}
                                     placeholder={canEdit ? "• Próxima reunión de seguimiento...\n• Entregable pendiente..." : "Sin información disponible"}
-                                    className="w-full h-full p-4 bg-transparent text-gray-700 dark:text-gray-300 resize-none border-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 text-sm leading-relaxed"
                                 />
                             </div>
                         </div>
@@ -433,13 +432,12 @@ export const OnePagerPage = () => {
                                 Stoppers / Riesgos
                             </h3>
                         </div>
-                        <div className="flex-1 p-0">
-                            <textarea
+                        <div className="flex-1 p-0 flex flex-col min-h-0">
+                            <RichTextEditor
                                 value={report.stoppers_risks}
-                                onChange={(e) => setReport({ ...report, stoppers_risks: e.target.value })}
+                                onChange={(val) => setReport({ ...report, stoppers_risks: val })}
                                 readOnly={!canEdit}
                                 placeholder={canEdit ? "• Riesgo de retraso debido a...\n• Bloqueo en..." : "Sin información disponible"}
-                                className="w-full h-full p-4 bg-transparent text-gray-700 dark:text-gray-300 resize-none border-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 text-sm leading-relaxed"
                             />
                         </div>
                     </div>
