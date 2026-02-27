@@ -355,12 +355,13 @@ export const RoadmapTable = () => {
     };
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedArea, setSelectedArea] = useState('ALL');
-    const [selectedStatus, setSelectedStatus] = useState('ALL');
-    const [selectedTransfLead, setSelectedTransfLead] = useState('ALL');
-    const [selectedTechnology, setSelectedTechnology] = useState('ALL');
-    const [selectedDevOwner, setSelectedDevOwner] = useState('ALL');
-    const [selectedComplexity, setSelectedComplexity] = useState('ALL');
+    const [selectedArea, setSelectedArea] = useState<string[]>([]);
+    const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+    const [selectedTransfLead, setSelectedTransfLead] = useState<string[]>([]);
+    const [selectedTechnology, setSelectedTechnology] = useState<string[]>([]);
+    const [selectedDevOwner, setSelectedDevOwner] = useState<string[]>([]);
+    const [selectedComplexity, setSelectedComplexity] = useState<string[]>([]);
+    const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
 
     const uniqueAreas = useMemo(() => Array.from(new Set(initiatives.map(i => i.area).filter((x): x is string => !!x))).sort(), [initiatives]);
     const uniqueStatuses = useMemo(() => Array.from(new Set(initiatives.map(i => i.status).filter((x): x is string => !!x))).sort(), [initiatives]);
@@ -394,15 +395,41 @@ export const RoadmapTable = () => {
         return initiatives.filter(i => {
             const matchesSearch = i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 i.champion.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesArea = selectedArea === 'ALL' || i.area === selectedArea;
-            const matchesStatus = selectedStatus === 'ALL' || i.status === selectedStatus;
-            const matchesTransf = selectedTransfLead === 'ALL' || (i.transformation_lead || '') === selectedTransfLead;
-            const matchesTech = selectedTechnology === 'ALL' || (i.technologies && i.technologies.includes(selectedTechnology));
-            const matchesDev = selectedDevOwner === 'ALL' || (Array.isArray(i.developer_owner) ? i.developer_owner.includes(selectedDevOwner) : i.developer_owner === selectedDevOwner);
-            const matchesComp = selectedComplexity === 'ALL' || i.complexity === selectedComplexity;
-            return matchesSearch && matchesArea && matchesStatus && matchesTransf && matchesTech && matchesDev && matchesComp;
+
+            const matchesArea = selectedArea.length === 0 || (i.area && selectedArea.includes(i.area));
+            const matchesStatus = selectedStatus.length === 0 || (i.status && selectedStatus.includes(i.status));
+            const matchesTransf = selectedTransfLead.length === 0 || (i.transformation_lead && selectedTransfLead.includes(i.transformation_lead));
+
+            const matchesTech = selectedTechnology.length === 0 ||
+                (i.technologies && i.technologies.some(t => selectedTechnology.includes(t)));
+
+            const matchesDev = selectedDevOwner.length === 0 ||
+                (Array.isArray(i.developer_owner)
+                    ? i.developer_owner.some(d => selectedDevOwner.includes(d))
+                    : (i.developer_owner && selectedDevOwner.includes(i.developer_owner)));
+
+            const matchesComp = selectedComplexity.length === 0 || (i.complexity && selectedComplexity.includes(i.complexity));
+
+            // Q Logic based on end_date
+            let matchesQ = true;
+            if (selectedQuarters.length > 0) {
+                if (!i.end_date) {
+                    matchesQ = false;
+                } else {
+                    const endMonth = new Date(i.end_date).getMonth() + 1; // 1-12
+                    let q = '';
+                    if (endMonth >= 1 && endMonth <= 3) q = 'Q1';
+                    else if (endMonth >= 4 && endMonth <= 6) q = 'Q2';
+                    else if (endMonth >= 7 && endMonth <= 9) q = 'Q3';
+                    else q = 'Q4';
+
+                    matchesQ = selectedQuarters.includes(q);
+                }
+            }
+
+            return matchesSearch && matchesArea && matchesStatus && matchesTransf && matchesTech && matchesDev && matchesComp && matchesQ;
         });
-    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity]);
+    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters]);
 
 
 
@@ -558,6 +585,8 @@ export const RoadmapTable = () => {
                             setSelectedDevOwner={setSelectedDevOwner}
                             selectedComplexity={selectedComplexity}
                             setSelectedComplexity={setSelectedComplexity}
+                            selectedQuarters={selectedQuarters}
+                            setSelectedQuarters={setSelectedQuarters}
                         />
                     </div>
                     {(user?.role === 'admin' || user?.role === 'editor') && (
