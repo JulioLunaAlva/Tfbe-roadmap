@@ -87,6 +87,13 @@ export const Layout = () => {
                                     key={item.path}
                                     to={item.path}
                                     title={!isSidebarOpen ? item.label : ''}
+                                    onClick={(e) => {
+                                        // Force full page reload for Roadmap and Dashboard to ensure fresh data
+                                        if (item.path === '/' || item.path === '/dashboard') {
+                                            e.preventDefault();
+                                            window.location.href = item.path;
+                                        }
+                                    }}
                                     className={clsx(
                                         'flex items-center rounded-lg text-sm font-medium transition-all duration-200',
                                         isSidebarOpen ? "px-4 py-3 space-x-3" : "justify-center py-3 px-2",

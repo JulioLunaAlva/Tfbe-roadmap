@@ -279,7 +279,7 @@ export const DashboardPage = () => {
     // Config Mapping
     const widgetsConfig: Record<string, { component: React.ReactNode, span: string }> = {
         'kpis': {
-            component: <DashboardKPIs total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} completionRate={metrics.completionRate} />,
+            component: <DashboardKPIs total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} completionRate={metrics.completionRate} initiatives={initiatives} />,
             span: 'col-span-12'
         },
         'value': {
