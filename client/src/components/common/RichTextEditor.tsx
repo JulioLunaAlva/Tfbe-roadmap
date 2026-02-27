@@ -144,10 +144,11 @@ const MenuBar = ({ editor, readOnly }: { editor: any, readOnly: boolean }) => {
 
             <button
                 onClick={(e) => toggleCommand(() => editor.chain().focus().insertContent(' ⭐ ').run(), e)}
-                className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                title="Insertar Estrella / Tip Emoji (En Windows usa Win + .)"
+                className="flex items-center gap-1.5 p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                title="Insertar Estrella / Tip Emoji"
             >
-                <Smile size={16} className="text-gray-700 dark:text-gray-300" />
+                <Smile size={16} />
+                <span className="text-xs font-medium whitespace-nowrap">+ Emojis Win + .</span>
             </button>
         </div>
     );
