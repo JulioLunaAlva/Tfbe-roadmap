@@ -36,6 +36,7 @@ import { DashboardComplexity } from '../components/dashboard/DashboardComplexity
 import { DashboardPhase } from '../components/dashboard/DashboardPhase';
 import { DashboardTech } from '../components/dashboard/DashboardTech';
 import { DashboardDeveloper } from '../components/dashboard/DashboardDeveloper';
+import { DashboardQuarter } from '../components/dashboard/DashboardQuarter';
 
 import API_URL from '../config/api';
 
@@ -52,7 +53,7 @@ export const DashboardPage = () => {
     // Default Order of Widget IDs
     const defaultOrder = [
         'kpis',
-        'value', 'complexity',
+        'value', 'complexity', 'quarters',
         'timeline', 'health',
         'trends', 'active-support',
         'transf-lead', 'area', 'leaderboard',
@@ -199,9 +200,27 @@ export const DashboardPage = () => {
             .map(k => ({ name: k, value: transfLeadCounts[k] }))
             .sort((a, b) => b.value - a.value);
 
+        // Quarter Distribution Logic
+        const qCounts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+        initiatives.forEach(i => {
+            if (i.end_date) {
+                const month = new Date(i.end_date).getMonth() + 1;
+                if (month >= 1 && month <= 3) qCounts.Q1++;
+                else if (month >= 4 && month <= 6) qCounts.Q2++;
+                else if (month >= 7 && month <= 9) qCounts.Q3++;
+                else qCounts.Q4++;
+            }
+        });
+        const quartersData = [
+            { name: 'Q1', value: qCounts.Q1 },
+            { name: 'Q2', value: qCounts.Q2 },
+            { name: 'Q3', value: qCounts.Q3 },
+            { name: 'Q4', value: qCounts.Q4 }
+        ];
+
         return {
             total, completed, delayed, inProgress, completionRate,
-            techData, phaseData, complexityData, areaData, valueData, transfLeadData
+            techData, phaseData, complexityData, areaData, valueData, transfLeadData, quartersData
         };
     }, [initiatives]);
 
@@ -237,6 +256,10 @@ export const DashboardPage = () => {
         },
         'complexity': {
             component: <DashboardComplexity complexityData={metrics.complexityData} />,
+            span: 'col-span-12 lg:col-span-4'
+        },
+        'quarters': {
+            component: <DashboardQuarter quartersData={metrics.quartersData} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'timeline': {
