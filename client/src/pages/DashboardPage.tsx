@@ -291,7 +291,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'quarters': {
-            component: <DashboardQuarter quartersData={metrics.quartersData} />,
+            component: <DashboardQuarter quartersData={metrics.quartersData} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'timeline': {
