@@ -5,14 +5,21 @@ import { LifeBuoy } from 'lucide-react';
 
 interface SupportItem {
     id: string;
+    name: string;
     area: string;
     status: string;
+    responsible?: string;
+    technology?: string;
 }
+
+import { SupportListModal } from './SupportListModal';
 
 export const DashboardActiveSupport: React.FC = () => {
     const { token } = useAuth();
     const [items, setItems] = useState<SupportItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedArea, setSelectedArea] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -42,6 +49,16 @@ export const DashboardActiveSupport: React.FC = () => {
         return Object.entries(groups)
             .sort(([, a], [, b]) => b - a); // Sort by count desc
     }, [items]);
+
+    const handleAreaClick = (area: string) => {
+        setSelectedArea(area);
+        setIsModalOpen(true);
+    };
+
+    const filteredItems = useMemo(() => {
+        if (!selectedArea) return [];
+        return items.filter(i => i.area === selectedArea);
+    }, [selectedArea, items]);
 
     return (
         <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col min-h-[300px]">
@@ -74,7 +91,11 @@ export const DashboardActiveSupport: React.FC = () => {
                     {/* Breakdown by Area */}
                     <div className="space-y-3">
                         {stats.map(([area, count]) => (
-                            <div key={area} className="flex items-center justify-between group">
+                            <div
+                                key={area}
+                                onClick={() => handleAreaClick(area)}
+                                className="flex items-center justify-between group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                            >
                                 <div className="flex items-center gap-2 overflow-hidden">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
@@ -89,6 +110,13 @@ export const DashboardActiveSupport: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <SupportListModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={`Soporte Activo: ${selectedArea}`}
+                items={filteredItems}
+            />
         </div>
     );
 };

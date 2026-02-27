@@ -179,16 +179,28 @@ export const DashboardPage = () => {
             .sort((a, b) => b.value - a.value)
             .slice(0, 6); // Top 6
 
-        // Phase Logic
-        const phaseCounts: Record<string, number> = {};
+        // Phase Logic grouped by Methodology
+        const phaseCountsByMethodology: Record<string, Record<string, number>> = {};
+
         initiatives.forEach(i => {
+            const methodology = i.methodology_type || 'Hibrida';
             // Find active phase
             const activePhase = i.phases?.find((p: any) => p.is_active);
             const phaseName = activePhase ? activePhase.name : 'Planning'; // Default if none
-            phaseCounts[phaseName] = (phaseCounts[phaseName] || 0) + 1;
+
+            if (!phaseCountsByMethodology[methodology]) {
+                phaseCountsByMethodology[methodology] = {};
+            }
+            phaseCountsByMethodology[methodology][phaseName] = (phaseCountsByMethodology[methodology][phaseName] || 0) + 1;
         });
-        const phaseData = Object.keys(phaseCounts)
-            .map(k => ({ name: k, value: phaseCounts[k] }));
+
+        const phaseDataByMethodology: Record<string, { name: string, value: number }[]> = {};
+        Object.keys(phaseCountsByMethodology).forEach(methodology => {
+            phaseDataByMethodology[methodology] = Object.keys(phaseCountsByMethodology[methodology]).map(phaseName => ({
+                name: phaseName,
+                value: phaseCountsByMethodology[methodology][phaseName]
+            }));
+        });
 
         // Complexity Logic
         const complexityCounts = initiatives.reduce((acc: any, curr: any) => {
@@ -252,7 +264,7 @@ export const DashboardPage = () => {
 
         return {
             total, completed, delayed, inProgress, completionRate,
-            techData, phaseData, complexityData, areaData, valueData, transfLeadData, quartersData
+            techData, phaseDataByMethodology, complexityData, areaData, valueData, transfLeadData, quartersData
         };
     }, [initiatives]);
 
@@ -331,7 +343,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'phase': {
-            component: <DashboardPhase phaseData={metrics.phaseData} initiatives={initiatives} />,
+            component: <DashboardPhase phaseDataByMethodology={metrics.phaseDataByMethodology} initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'tech': {
