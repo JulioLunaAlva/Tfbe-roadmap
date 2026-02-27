@@ -358,10 +358,37 @@ export const RoadmapTable = () => {
     const [selectedArea, setSelectedArea] = useState('ALL');
     const [selectedStatus, setSelectedStatus] = useState('ALL');
     const [selectedTransfLead, setSelectedTransfLead] = useState('ALL');
+    const [selectedTechnology, setSelectedTechnology] = useState('ALL');
+    const [selectedDevOwner, setSelectedDevOwner] = useState('ALL');
+    const [selectedComplexity, setSelectedComplexity] = useState('ALL');
 
     const uniqueAreas = useMemo(() => Array.from(new Set(initiatives.map(i => i.area).filter((x): x is string => !!x))).sort(), [initiatives]);
     const uniqueStatuses = useMemo(() => Array.from(new Set(initiatives.map(i => i.status).filter((x): x is string => !!x))).sort(), [initiatives]);
     const uniqueTransfLeads = useMemo(() => Array.from(new Set(initiatives.map(i => i.transformation_lead).filter((x): x is string => !!x))).sort(), [initiatives]);
+
+    const uniqueTechnologies = useMemo(() => {
+        const techs = new Set<string>();
+        initiatives.forEach(i => {
+            if (i.technologies) {
+                i.technologies.forEach(t => techs.add(t));
+            }
+        });
+        return Array.from(techs).sort();
+    }, [initiatives]);
+
+    const uniqueDevOwners = useMemo(() => {
+        const devs = new Set<string>();
+        initiatives.forEach(i => {
+            if (Array.isArray(i.developer_owner)) {
+                i.developer_owner.forEach(d => devs.add(d));
+            } else if (i.developer_owner) {
+                devs.add(i.developer_owner);
+            }
+        });
+        return Array.from(devs).sort();
+    }, [initiatives]);
+
+    const uniqueComplexities = useMemo(() => Array.from(new Set(initiatives.map(i => i.complexity).filter((x): x is string => !!x))).sort(), [initiatives]);
 
     const filteredInitiatives = useMemo(() => {
         return initiatives.filter(i => {
@@ -370,9 +397,12 @@ export const RoadmapTable = () => {
             const matchesArea = selectedArea === 'ALL' || i.area === selectedArea;
             const matchesStatus = selectedStatus === 'ALL' || i.status === selectedStatus;
             const matchesTransf = selectedTransfLead === 'ALL' || (i.transformation_lead || '') === selectedTransfLead;
-            return matchesSearch && matchesArea && matchesStatus && matchesTransf;
+            const matchesTech = selectedTechnology === 'ALL' || (i.technologies && i.technologies.includes(selectedTechnology));
+            const matchesDev = selectedDevOwner === 'ALL' || (Array.isArray(i.developer_owner) ? i.developer_owner.includes(selectedDevOwner) : i.developer_owner === selectedDevOwner);
+            const matchesComp = selectedComplexity === 'ALL' || i.complexity === selectedComplexity;
+            return matchesSearch && matchesArea && matchesStatus && matchesTransf && matchesTech && matchesDev && matchesComp;
         });
-    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead]);
+    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity]);
 
 
 
@@ -511,6 +541,9 @@ export const RoadmapTable = () => {
                             areas={uniqueAreas}
                             statuses={uniqueStatuses}
                             transformationLeads={uniqueTransfLeads}
+                            technologies={uniqueTechnologies}
+                            developerOwners={uniqueDevOwners}
+                            complexities={uniqueComplexities}
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
                             selectedArea={selectedArea}
@@ -519,6 +552,12 @@ export const RoadmapTable = () => {
                             setSelectedStatus={setSelectedStatus}
                             selectedTransfLead={selectedTransfLead}
                             setSelectedTransfLead={setSelectedTransfLead}
+                            selectedTechnology={selectedTechnology}
+                            setSelectedTechnology={setSelectedTechnology}
+                            selectedDevOwner={selectedDevOwner}
+                            setSelectedDevOwner={setSelectedDevOwner}
+                            selectedComplexity={selectedComplexity}
+                            setSelectedComplexity={setSelectedComplexity}
                         />
                     </div>
                     {(user?.role === 'admin' || user?.role === 'editor') && (
