@@ -21,6 +21,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         transformation_lead: '',
         complexity: 'Media',
         is_top_priority: false,
+        is_key_initiative: false,
         year: new Date().getFullYear(),
         notes: '',
         status: 'En espera',
@@ -42,6 +43,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                 transformation_lead: initiative.transformation_lead || '',
                 complexity: initiative.complexity || 'Media',
                 is_top_priority: initiative.is_top_priority,
+                is_key_initiative: initiative.is_key_initiative || false,
                 year: initiative.year,
                 notes: initiative.notes || '',
                 status: initiative.status || 'En espera',
@@ -401,18 +403,33 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                             />
                         </div>
 
-                        {/* Top Priority */}
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                id="is_top_edit"
-                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white dark:bg-[#2A3441]"
-                                checked={formData.is_top_priority}
-                                onChange={e => setFormData({ ...formData, is_top_priority: e.target.checked })}
-                            />
-                            <label htmlFor="is_top_edit" className="text-sm font-medium text-gray-900 dark:text-gray-200 flex items-center">
-                                Top Priority ⭐
-                            </label>
+                        {/* Top Priority and Key Initiative */}
+                        <div className="flex items-center space-x-6 col-span-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_top_edit"
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white dark:bg-[#2A3441]"
+                                    checked={formData.is_top_priority}
+                                    onChange={e => setFormData({ ...formData, is_top_priority: e.target.checked })}
+                                />
+                                <label htmlFor="is_top_edit" className="text-sm font-medium text-gray-900 dark:text-gray-200 flex items-center">
+                                    Top Priority ⭐
+                                </label>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_key_edit"
+                                    className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-gray-300 rounded bg-white dark:bg-[#2A3441]"
+                                    checked={formData.is_key_initiative}
+                                    onChange={e => setFormData({ ...formData, is_key_initiative: e.target.checked })}
+                                />
+                                <label htmlFor="is_key_edit" className="text-sm font-medium text-gray-900 dark:text-gray-200 flex items-center">
+                                    Iniciativa Clave 💡
+                                </label>
+                            </div>
                         </div>
                     </div>
 

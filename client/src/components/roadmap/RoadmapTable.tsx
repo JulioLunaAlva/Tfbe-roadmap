@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Star, Plus, Trash2, Pencil, Flag, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, Plus, Trash2, Pencil, Flag, CheckCircle, Lightbulb } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -18,6 +18,7 @@ interface Initiative {
     area: string;
     phases: InitiativePhase[];
     is_top_priority: boolean;
+    is_key_initiative?: boolean;
     champion: string;
     complexity: string;
     year: number;
@@ -756,7 +757,10 @@ export const RoadmapTable = () => {
                                                         <span className="text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 text-wrap tracking-tight" title={initiative.name}>
                                                             {initiative.name}
                                                         </span>
-                                                        {initiative.is_top_priority && <Star className="text-yellow-400 fill-current ml-1 flex-shrink-0" size={10} />}
+                                                        <div className="flex items-center ml-1 space-x-1 flex-shrink-0">
+                                                            {initiative.is_top_priority && <span title="Top Priority"><Star className="text-yellow-400 fill-current" size={14} /></span>}
+                                                            {initiative.is_key_initiative && <span title="Iniciativa Clave"><Lightbulb className="text-amber-500 fill-current" size={14} /></span>}
+                                                        </div>
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-medium opacity-80">{initiative.area}</div>
                                                 </div>

@@ -15,6 +15,7 @@ interface InitiativeForm {
     transformation_lead: string;
     complexity: string;
     is_top_priority: boolean;
+    is_key_initiative: boolean;
     year: number;
     notes: string;
     technologies: string[];
@@ -39,6 +40,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         transformation_lead: '',
         complexity: 'Media',
         is_top_priority: false,
+        is_key_initiative: false,
         year: new Date().getFullYear(),
         notes: '',
         technologies: [] as string[],
@@ -395,17 +397,33 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
                         </div>
 
                         {/* Top Priority */}
-                        <div className="flex items-center space-x-2 pt-6">
-                            <input
-                                type="checkbox"
-                                id="is_top"
-                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white dark:bg-[#2A3441]"
-                                checked={formData.is_top_priority}
-                                onChange={e => setFormData({ ...formData, is_top_priority: e.target.checked })}
-                            />
-                            <label htmlFor="is_top" className="text-sm font-medium text-gray-900 dark:text-gray-200 flex items-center">
-                                Top Priority ⭐
-                            </label>
+                        <div className="flex items-center space-x-6 pt-6 col-span-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_top"
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white dark:bg-[#2A3441]"
+                                    checked={formData.is_top_priority}
+                                    onChange={e => setFormData({ ...formData, is_top_priority: e.target.checked })}
+                                />
+                                <label htmlFor="is_top" className="text-sm font-medium text-gray-900 dark:text-gray-200 flex items-center">
+                                    Top Priority ⭐
+                                </label>
+                            </div>
+
+                            {/* Key Initiative (Foco) */}
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_key"
+                                    className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-gray-300 rounded bg-white dark:bg-[#2A3441]"
+                                    checked={formData.is_key_initiative}
+                                    onChange={e => setFormData({ ...formData, is_key_initiative: e.target.checked })}
+                                />
+                                <label htmlFor="is_key" className="text-sm font-medium text-gray-900 dark:text-gray-200 flex items-center">
+                                    Iniciativa Clave 💡
+                                </label>
+                            </div>
                         </div>
 
 
