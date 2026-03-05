@@ -57,7 +57,16 @@ export const verifyToken = async (req: Request, res: Response) => {
     const token = authHeader.split(' ')[1];
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
-        res.json({ user: decoded });
+
+        // Fetch fresh user data from DB to include allowed_pages
+        const userResult = await query('SELECT id, email, role, allowed_pages FROM users WHERE email = $1', [decoded.email]);
+        const user = userResult.rows[0];
+
+        if (!user) {
+            return res.status(401).json({ error: 'User not found in database' });
+        }
+
+        res.json({ user });
     } catch (e) {
         res.status(401).json({ error: 'Invalid token' });
     }
