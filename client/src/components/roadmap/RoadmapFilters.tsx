@@ -29,6 +29,10 @@ interface FiltersProps {
     setSelectedValue: (v: string[]) => void;
     searchTerm: string;
     setSearchTerm: (v: string) => void;
+    hasActiveFilters: boolean;
+    onClearFilters: () => void;
+    canCreate: boolean;
+    onCreateInitiative: () => void;
 }
 
 export const RoadmapFilters = ({
@@ -58,7 +62,11 @@ export const RoadmapFilters = ({
     selectedValue,
     setSelectedValue,
     searchTerm,
-    setSearchTerm
+    setSearchTerm,
+    hasActiveFilters,
+    onClearFilters,
+    canCreate,
+    onCreateInitiative
 }: FiltersProps) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] items-end shadow-sm">
@@ -156,6 +164,30 @@ export const RoadmapFilters = ({
                 onChange={setSelectedValue}
                 placeholder="Todos"
             />
+
+            {/* Actions at the end of the grid */}
+            <div className="flex justify-end items-center space-x-4 col-span-1 md:col-span-2 lg:col-span-2 mt-2">
+                {hasActiveFilters && (
+                    <button
+                        onClick={onClearFilters}
+                        className="text-[var(--text-tertiary)] hover:text-[#E10600] text-sm flex items-center transition-colors px-2 py-2"
+                        title="Limpiar todos los filtros"
+                    >
+                        <Search size={14} className="mr-1 opacity-0 w-0" /> {/* Hidden icon for alignment if needed, or use a real icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                        Limpiar Filtros
+                    </button>
+                )}
+                {canCreate && (
+                    <button
+                        onClick={onCreateInitiative}
+                        className="flex justify-center items-center space-x-2 px-4 py-2 bg-[#E10600] text-white rounded-md hover:bg-red-700 shadow-sm text-sm font-bold transition-transform transform hover:scale-105 h-10 w-full md:w-auto"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                        <span>Nueva Iniciativa</span>
+                    </button>
+                )}
+            </div>
         </div>
     );
 };

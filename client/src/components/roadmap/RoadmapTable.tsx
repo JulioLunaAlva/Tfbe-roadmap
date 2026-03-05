@@ -615,17 +615,34 @@ export const RoadmapTable = () => {
                             uniqueValues={uniqueValues}
                             selectedValue={selectedValue}
                             setSelectedValue={setSelectedValue}
+                            hasActiveFilters={
+                                searchTerm !== '' ||
+                                selectedArea.length > 0 ||
+                                selectedStatus.length > 0 ||
+                                selectedTransfLead.length > 0 ||
+                                selectedTechnology.length > 0 ||
+                                selectedDevOwner.length > 0 ||
+                                selectedComplexity.length > 0 ||
+                                selectedQuarters.length > 0 ||
+                                selectedClassification.length > 0 ||
+                                selectedValue.length > 0
+                            }
+                            onClearFilters={() => {
+                                setSearchTerm('');
+                                setSelectedArea([]);
+                                setSelectedStatus([]);
+                                setSelectedTransfLead([]);
+                                setSelectedTechnology([]);
+                                setSelectedDevOwner([]);
+                                setSelectedComplexity([]);
+                                setSelectedQuarters([]);
+                                setSelectedClassification([]);
+                                setSelectedValue([]);
+                            }}
+                            canCreate={user?.role === 'admin' || user?.role === 'editor'}
+                            onCreateInitiative={() => setIsCreateModalOpen(true)}
                         />
                     </div>
-                    {(user?.role === 'admin' || user?.role === 'editor') && (
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center space-x-2 px-4 py-2 bg-[#E10600] text-white rounded-md hover:bg-red-700 shadow-sm text-sm font-bold transition-transform transform hover:scale-105 h-10 mt-1"
-                        >
-                            <Plus size={16} />
-                            <span>Nueva Iniciativa</span>
-                        </button>
-                    )}
                 </div>
             )}
 
