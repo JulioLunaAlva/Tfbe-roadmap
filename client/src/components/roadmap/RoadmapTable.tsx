@@ -366,59 +366,30 @@ export const RoadmapTable = () => {
     const [selectedClassification, setSelectedClassification] = useState<string[]>([]);
     const [selectedValue, setSelectedValue] = useState<string[]>([]);
 
-    const uniqueAreas = useMemo(() => Array.from(new Set(initiatives.map(i => i.area).filter((x): x is string => !!x))).sort(), [initiatives]);
-    const uniqueStatuses = useMemo(() => Array.from(new Set(initiatives.map(i => i.status).filter((x): x is string => !!x))).sort(), [initiatives]);
-    const uniqueTransfLeads = useMemo(() => Array.from(new Set(initiatives.map(i => i.transformation_lead).filter((x): x is string => !!x))).sort(), [initiatives]);
-
-    const uniqueTechnologies = useMemo(() => {
-        const techs = new Set<string>();
-        initiatives.forEach(i => {
-            if (i.technologies) {
-                i.technologies.forEach(t => techs.add(t));
-            }
-        });
-        return Array.from(techs).sort();
-    }, [initiatives]);
-
-    const uniqueDevOwners = useMemo(() => {
-        const devs = new Set<string>();
-        initiatives.forEach(i => {
-            if (Array.isArray(i.developer_owner)) {
-                i.developer_owner.forEach(d => devs.add(d));
-            } else if (i.developer_owner) {
-                devs.add(i.developer_owner);
-            }
-        });
-        return Array.from(devs).sort();
-    }, [initiatives]);
-
-    const uniqueComplexities = useMemo(() => Array.from(new Set(initiatives.map(i => i.complexity).filter((x): x is string => !!x))).sort(), [initiatives]);
-    const uniqueValues = useMemo(() => Array.from(new Set(initiatives.map(i => i.value).filter((x): x is string => !!x))).sort(), [initiatives]);
-
-    const filteredInitiatives = useMemo(() => {
-        return initiatives.filter(i => {
-            const matchesSearch = i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const filterMatches = useMemo(() => {
+        return initiatives.map(i => {
+            const search = i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 i.champion.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const matchesArea = selectedArea.length === 0 || (i.area && selectedArea.includes(i.area));
-            const matchesStatus = selectedStatus.length === 0 || (i.status && selectedStatus.includes(i.status));
-            const matchesTransf = selectedTransfLead.length === 0 || (i.transformation_lead && selectedTransfLead.includes(i.transformation_lead));
+            const area = selectedArea.length === 0 || (i.area && selectedArea.includes(i.area));
+            const status = selectedStatus.length === 0 || (i.status && selectedStatus.includes(i.status));
+            const transf = selectedTransfLead.length === 0 || (i.transformation_lead && selectedTransfLead.includes(i.transformation_lead));
 
-            const matchesTech = selectedTechnology.length === 0 ||
+            const tech = selectedTechnology.length === 0 ||
                 (i.technologies && i.technologies.some(t => selectedTechnology.includes(t)));
 
-            const matchesDev = selectedDevOwner.length === 0 ||
+            const dev = selectedDevOwner.length === 0 ||
                 (Array.isArray(i.developer_owner)
                     ? i.developer_owner.some(d => selectedDevOwner.includes(d))
                     : (i.developer_owner && selectedDevOwner.includes(i.developer_owner)));
 
-            const matchesComp = selectedComplexity.length === 0 || (i.complexity && selectedComplexity.includes(i.complexity));
+            const comp = selectedComplexity.length === 0 || (i.complexity && selectedComplexity.includes(i.complexity));
 
             // Q Logic based on end_date
-            let matchesQ = true;
+            let qMatch = true;
             if (selectedQuarters.length > 0) {
                 if (!i.end_date) {
-                    matchesQ = false;
+                    qMatch = false;
                 } else {
                     const endMonth = new Date(i.end_date).getMonth() + 1; // 1-12
                     let q = '';
@@ -427,28 +398,61 @@ export const RoadmapTable = () => {
                     else if (endMonth >= 7 && endMonth <= 9) q = 'Q3';
                     else q = 'Q4';
 
-                    matchesQ = selectedQuarters.includes(q);
+                    qMatch = selectedQuarters.includes(q);
                 }
             }
 
-            const matchesValue = selectedValue.length === 0 || (i.value && selectedValue.includes(i.value));
+            const val = selectedValue.length === 0 || (i.value && selectedValue.includes(i.value));
 
             // Classification logic (Top Priority, Iniciativa Clave)
-            let matchesClassification = true;
+            let clsMatch = true;
             if (selectedClassification.length > 0) {
                 const isTop = i.is_top_priority;
                 const isKey = !!i.is_key_initiative;
                 // Si la iniciativa tiene al menos UNA de las clasificaciones seleccionadas
-                matchesClassification = selectedClassification.some(c => {
+                clsMatch = selectedClassification.some(c => {
                     if (c === 'Top Priority') return isTop;
                     if (c === 'Iniciativa Clave') return isKey;
                     return false;
                 });
             }
 
-            return matchesSearch && matchesArea && matchesStatus && matchesTransf && matchesTech && matchesDev && matchesComp && matchesQ && matchesValue && matchesClassification;
+            return { i, search, area, status, transf, tech, dev, comp, qMatch, val, clsMatch };
         });
     }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters, selectedValue, selectedClassification]);
+
+    const filteredInitiatives = useMemo(() => {
+        return filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i);
+    }, [filterMatches]);
+
+    const uniqueAreas = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.area).filter((x): x is string => !!x))).sort(), [filterMatches]);
+    const uniqueStatuses = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.status).filter((x): x is string => !!x))).sort(), [filterMatches]);
+    const uniqueTransfLeads = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.transformation_lead).filter((x): x is string => !!x))).sort(), [filterMatches]);
+
+    const uniqueTechnologies = useMemo(() => {
+        const techs = new Set<string>();
+        filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).forEach(m => {
+            if (m.i.technologies) {
+                m.i.technologies.forEach(t => techs.add(t));
+            }
+        });
+        return Array.from(techs).sort();
+    }, [filterMatches]);
+
+    const uniqueDevOwners = useMemo(() => {
+        const devs = new Set<string>();
+        filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.comp && m.qMatch && m.val && m.clsMatch).forEach(m => {
+            if (Array.isArray(m.i.developer_owner)) {
+                m.i.developer_owner.forEach(d => devs.add(d));
+            } else if (m.i.developer_owner) {
+                devs.add(m.i.developer_owner);
+            }
+        });
+        return Array.from(devs).sort();
+    }, [filterMatches]);
+
+    const uniqueComplexities = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.qMatch && m.val && m.clsMatch).map(m => m.i.complexity).filter((x): x is string => !!x))).sort(), [filterMatches]);
+    const uniqueValues = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.clsMatch).map(m => m.i.value).filter((x): x is string => !!x))).sort(), [filterMatches]);
 
 
 
