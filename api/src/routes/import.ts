@@ -41,6 +41,7 @@ router.post('/', authenticateToken, requireRole('editor'), upload.single('file')
 
             const transformation_lead = row['Transformation Lead'] || row['Responsable Transformación'] || row['Transf. Lead'] || '';
             const techString = row['Technologies'] || row['Tecnologías'] || row['Tecnologia'] || '';
+            const devOwnerString = row['Dev/Owner'] || row['Developer/Owner'] || row['Developer'] || row['Owner'] || '';
 
             // NEW FIELDS
             const value = row['Valor'] || row['Value'] || '';
@@ -61,7 +62,7 @@ router.post('/', authenticateToken, requireRole('editor'), upload.single('file')
                 [name, area, champion, transformation_lead, complexity, is_top_priority, year, notes, validValue, status, start_date, end_date, progress]
             );
 
-            // If inserted successfully (and returned an ID), process technologies and phases
+            // If inserted successfully (and returned an ID), process technologies, phases, and dev/owners
             if (resInit.rows.length > 0) {
                 const initId = resInit.rows[0].id;
 
@@ -94,6 +95,27 @@ router.post('/', authenticateToken, requireRole('editor'), upload.single('file')
                         await query(
                             'INSERT INTO initiative_technologies (initiative_id, technology_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
                             [initId, tId]
+                        );
+                    }
+                }
+
+                if (devOwnerString) {
+                    const devNames = devOwnerString.split(';').map((d: string) => d.trim()).filter((d: string) => d);
+
+                    for (const dName of devNames) {
+                        // Find or Insert DeveloperOwner
+                        let dId;
+                        const devRes = await query('SELECT id FROM developer_owners WHERE name = $1', [dName]);
+                        if (devRes.rows.length > 0) {
+                            dId = devRes.rows[0].id;
+                        } else {
+                            const newDev = await query('INSERT INTO developer_owners (name) VALUES ($1) RETURNING id', [dName]);
+                            dId = newDev.rows[0].id;
+                        }
+
+                        await query(
+                            'INSERT INTO initiative_developer_owners (initiative_id, developer_owner_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                            [initId, dId]
                         );
                     }
                 }
