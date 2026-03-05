@@ -38,7 +38,7 @@ export const RoadmapSummary = () => {
                 <div className="flex-1">
                     <h4 className="font-bold text-gray-700 mb-2 border-b pb-1 uppercase text-xs">Iniciativas Por Área</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
-                        {Object.entries(byArea).map(([area, count]) => (
+                        {Object.entries(byArea).sort((a, b) => a[0].localeCompare(b[0])).map(([area, count]) => (
                             <div key={area} className="flex justify-between items-center bg-gray-50 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
                                 <span className="text-gray-600 truncate mr-2" title={area}>{area}</span>
                                 <span className="font-bold text-brand-black">{String(count)}</span>
