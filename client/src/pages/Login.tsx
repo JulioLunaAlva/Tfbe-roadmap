@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, AlertCircle, CheckCircle, Lock, Bot, LineChart } from 'lucide-react';
+import { Mail, ArrowRight, AlertCircle, Lock, Bot, LineChart } from 'lucide-react';
 import API_URL from '../config/api';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
-    const [sent, setSent] = useState(false);
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -22,17 +21,7 @@ export const LoginPage = () => {
             const data = await res.json().catch(() => ({ error: 'Invalid JSON response from server' }));
 
             if (res.ok) {
-                setSent(true);
-                // DEV LOGIC: Since SMTP might be missing, show token in alert for ease of use
                 if (data.token) {
-                    // Login successful, using token directly
-                    // Reload to update AuthContext or store token if manually handling
-                    // For this simple implementation, we can update context if available, 
-                    // but reloading or redirecting to /auth/callback?token=... simulates the flow.
-                    // Actually, if we just want to login:
-                    // window.localStorage.setItem('token', data.token); <--- IF we were using local storage
-                    // But our AuthContext probably relies on the URL token mechanism or a cookie.
-                    // Let's redirect to callback to "set" the token as if it came from magic link.
                     window.location.href = `/auth/callback?token=${data.token}`;
                 }
             } else {
@@ -45,25 +34,7 @@ export const LoginPage = () => {
         }
     };
 
-    if (sent) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
-                <div className="w-full max-w-md p-8 bg-white dark:bg-[#1E2630] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 text-center animate-in fade-in zoom-in duration-300">
-                    <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-                        <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Email Enviado</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-6">Hemos enviado un enlace mágico a <strong>{email}</strong></p>
-                    <p className="text-xs text-gray-400 mb-6 bg-gray-100 dark:bg-gray-800 p-2 rounded">
-                        (Si no tienes configurado SMTP, revisa los logs de Vercel para ver el Link)
-                    </p>
-                    <button onClick={() => setSent(false)} className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
-                        Usar otro correo
-                    </button>
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#F4F4F4] dark:bg-[#0D1117] px-4">
