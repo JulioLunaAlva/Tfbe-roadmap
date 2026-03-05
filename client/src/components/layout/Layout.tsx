@@ -16,9 +16,15 @@ export const Layout = () => {
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'One Pager', path: '/one-pager', icon: FileText },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
-    ];
+    ].filter(item => {
+        // If no allowed_pages are set (e.g., old token), default to allowing standard pages
+        if (!user?.allowed_pages) return ['/', '/dashboard', '/one-pager'].includes(item.path);
+        return user.allowed_pages.includes(item.path);
+    });
 
     if (user?.role === 'admin') {
+        // Admin gets import implicitly if they have role admin, 
+        // or we can also strictly check allowed_pages:
         navItems.push({ label: 'Import', path: '/import', icon: Upload });
     }
 
@@ -146,7 +152,9 @@ export const Layout = () => {
                         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
                             {location.pathname === '/' ? 'Roadmap de Iniciativas' :
                                 location.pathname === '/dashboard' ? 'Dashboard Transformación' :
-                                    location.pathname === '/one-pager' ? 'One Pager' : 'Importación'}
+                                    location.pathname === '/one-pager' ? 'One Pager' :
+                                        location.pathname === '/support' ? 'Soporte y Mantenimiento' :
+                                            location.pathname === '/credentials' ? 'Gestión de Credenciales' : 'Importación'}
                         </h2>
                     </div>
 

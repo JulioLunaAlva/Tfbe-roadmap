@@ -8,6 +8,7 @@ interface User {
     id: string;
     email: string;
     role: 'admin' | 'editor' | 'viewer';
+    allowed_pages?: string[];
     created_at?: string;
 }
 
@@ -26,7 +27,8 @@ export const CredentialsPage = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        role: 'viewer' as 'admin' | 'editor' | 'viewer'
+        role: 'viewer' as 'admin' | 'editor' | 'viewer',
+        allowed_pages: ['/', '/dashboard', '/one-pager'] as string[]
     });
 
     const fetchUsers = async () => {
@@ -57,14 +59,16 @@ export const CredentialsPage = () => {
             setFormData({
                 email: user.email,
                 password: '', // Password empty on edit unless changing
-                role: user.role
+                role: user.role,
+                allowed_pages: user.allowed_pages || ['/', '/dashboard', '/one-pager']
             });
         } else {
             setEditingUser(null);
             setFormData({
                 email: '',
                 password: '',
-                role: 'viewer'
+                role: 'viewer',
+                allowed_pages: ['/', '/dashboard', '/one-pager']
             });
         }
         setIsModalOpen(true);
@@ -81,7 +85,10 @@ export const CredentialsPage = () => {
             const method = modalMode === 'create' ? 'POST' : 'PUT';
 
             // For edit, only send password if it's not empty
-            const body: any = { role: formData.role };
+            const body: any = {
+                role: formData.role,
+                allowed_pages: formData.allowed_pages
+            };
             if (modalMode === 'create') {
                 body.email = formData.email;
                 body.password = formData.password;
@@ -302,6 +309,33 @@ export const CredentialsPage = () => {
                                         <option value="editor">Editor (Puede editar roadmap)</option>
                                         <option value="admin">Admin (Control total)</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Páginas Permitidas</label>
+                                <div className="space-y-2 p-3 bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-color)]">
+                                    {[
+                                        { id: '/', label: 'Roadmap de Iniciativas' },
+                                        { id: '/dashboard', label: 'Dashboard Transformación' },
+                                        { id: '/one-pager', label: 'One Pager' },
+                                        { id: '/support', label: 'Soporte y Mantenimiento' }
+                                    ].map(page => (
+                                        <label key={page.id} className="flex items-center space-x-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.allowed_pages?.includes(page.id)}
+                                                onChange={(e) => {
+                                                    const newPages = e.target.checked
+                                                        ? [...(formData.allowed_pages || []), page.id]
+                                                        : (formData.allowed_pages || []).filter(p => p !== page.id);
+                                                    setFormData({ ...formData, allowed_pages: newPages });
+                                                }}
+                                                className="w-4 h-4 text-[#E10600] border-gray-300 rounded focus:ring-[#E10600] dark:focus:ring-offset-zinc-800"
+                                            />
+                                            <span className="text-sm text-[var(--text-primary)]">{page.label}</span>
+                                        </label>
+                                    ))}
                                 </div>
                             </div>
 

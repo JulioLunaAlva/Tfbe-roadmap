@@ -36,11 +36,12 @@ export const loginCall = async (req: Request, res: Response) => {
         }
 
         // Generate Token
-        // Ensure user.role is valid
+        // Ensure user.role is valid. Also pass allowed_pages to token if desired, 
+        // but returning in the user object is enough for frontend state.
         const token = generateToken(user.email, user.role || 'viewer', user.id);
 
         // Respond success
-        res.json({ message: 'Login successful', token, user: { email: user.email, role: user.role } });
+        res.json({ message: 'Login successful', token, user: { email: user.email, role: user.role, allowed_pages: user.allowed_pages } });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });

@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
     try {
         // Exclude password_hash for security
         const result = await pool.query(
-            'SELECT id, email, role, created_at FROM users ORDER BY email ASC'
+            'SELECT id, email, role, allowed_pages, created_at FROM users ORDER BY email ASC'
         );
         res.json(result.rows);
     } catch (err) {
@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 
 // POST /users - Create new user
 router.post('/', async (req, res) => {
-    const { email, password, role } = req.body;
+    const { email, password, role, allowed_pages } = req.body;
 
     if (!email || !password || !role) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -50,10 +50,11 @@ router.post('/', async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
+        const pages = allowed_pages || ['/', '/dashboard', '/one-pager'];
 
         const result = await pool.query(
-            'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role',
-            [email, hashedPassword, role]
+            'INSERT INTO users (email, password_hash, role, allowed_pages) VALUES ($1, $2, $3, $4) RETURNING id, email, role, allowed_pages',
+            [email, hashedPassword, role, pages]
         );
 
         res.status(201).json(result.rows[0]);
@@ -69,12 +70,13 @@ router.post('/', async (req, res) => {
 // PUT /users/:id - Update user
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { password, role } = req.body;
+    const { password, role, allowed_pages } = req.body;
 
     try {
-        let query = 'UPDATE users SET role = $1';
-        let values = [role];
-        let paramIndex = 2;
+        let query = 'UPDATE users SET role = $1, allowed_pages = $2';
+        const pages = allowed_pages || ['/', '/dashboard', '/one-pager'];
+        let values = [role, pages];
+        let paramIndex = 3;
 
         if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -83,7 +85,7 @@ router.put('/:id', async (req, res) => {
             paramIndex++;
         }
 
-        query += ` WHERE id = $${paramIndex} RETURNING id, email, role`;
+        query += ` WHERE id = $${paramIndex} RETURNING id, email, role, allowed_pages`;
         values.push(id);
 
         const result = await pool.query(query, values);

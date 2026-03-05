@@ -13,7 +13,7 @@ import { SupportPage } from './pages/SupportPage';
 import { CredentialsPage } from './pages/CredentialsPage';
 
 // Proteced Route Wrapper
-const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactElement, allowedRoles?: string[] }) => {
+const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: React.ReactElement, allowedRoles?: string[], requiredPage?: string }) => {
   const { user, isLoading, token } = useAuth();
 
   if (isLoading) return (
@@ -28,6 +28,16 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactEleme
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" />; // or 403 page
   }
+
+  if (requiredPage && user) {
+    const allowed = user.allowed_pages || ['/', '/dashboard', '/one-pager'];
+    if (!allowed.includes(requiredPage)) {
+      // Send them to the first page they ARE allowed to see, or fallback
+      const fallback = allowed.length > 0 ? allowed[0] : '/';
+      return <Navigate to={fallback} replace />;
+    }
+  }
+
   return children;
 };
 
@@ -38,10 +48,26 @@ const AppRoutes = () => {
       <Route path="/auth/callback" element={<AuthCallback />} />
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<RoadmapPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="one-pager" element={<OnePagerPage />} />
-        <Route path="support" element={<SupportPage />} />
+        <Route index element={
+          <ProtectedRoute requiredPage="/">
+            <RoadmapPage />
+          </ProtectedRoute>
+        } />
+        <Route path="dashboard" element={
+          <ProtectedRoute requiredPage="/dashboard">
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="one-pager" element={
+          <ProtectedRoute requiredPage="/one-pager">
+            <OnePagerPage />
+          </ProtectedRoute>
+        } />
+        <Route path="support" element={
+          <ProtectedRoute requiredPage="/support">
+            <SupportPage />
+          </ProtectedRoute>
+        } />
         <Route path="credentials" element={<CredentialsPage />} />
         <Route path="import" element={
           <ProtectedRoute allowedRoles={['admin']}>

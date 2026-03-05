@@ -4,6 +4,7 @@ import API_URL from '../config/api';
 interface User {
     email: string;
     role: 'admin' | 'editor' | 'viewer';
+    allowed_pages?: string[];
 }
 
 interface AuthContextType {
