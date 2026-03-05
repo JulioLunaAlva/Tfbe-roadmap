@@ -70,13 +70,19 @@ router.post('/', async (req, res) => {
 // PUT /users/:id - Update user
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { password, role, allowed_pages } = req.body;
+    const { password, role, allowed_pages, email } = req.body;
 
     try {
         let query = 'UPDATE users SET role = $1, allowed_pages = $2';
         const pages = allowed_pages || ['/', '/dashboard', '/one-pager'];
         let values = [role, pages];
         let paramIndex = 3;
+
+        if (email) {
+            query += `, email = $${paramIndex}`;
+            values.push(email);
+            paramIndex++;
+        }
 
         if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);

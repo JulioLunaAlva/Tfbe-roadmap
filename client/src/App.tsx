@@ -30,7 +30,8 @@ const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: Re
   }
 
   if (requiredPage && user) {
-    const allowed = user.allowed_pages || ['/', '/dashboard', '/one-pager'];
+    // If user has no allowed_pages set, give them access to the main pages by default including support
+    const allowed = user.allowed_pages || ['/', '/dashboard', '/one-pager', '/support'];
     if (!allowed.includes(requiredPage)) {
       // Send them to the first page they ARE allowed to see, or fallback
       const fallback = allowed.length > 0 ? allowed[0] : '/';

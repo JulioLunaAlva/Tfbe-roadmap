@@ -18,7 +18,8 @@ export const Layout = () => {
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
     ].filter(item => {
         // If no allowed_pages are set (e.g., old token), default to allowing standard pages
-        if (!user?.allowed_pages) return ['/', '/dashboard', '/one-pager'].includes(item.path);
+        if (!user?.allowed_pages) return ['/', '/dashboard', '/one-pager', '/support'].includes(item.path);
+        // Admin always sees everything they are allowed to plus Import / Credentials
         return user.allowed_pages.includes(item.path);
     });
 

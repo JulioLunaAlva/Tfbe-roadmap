@@ -60,7 +60,7 @@ export const CredentialsPage = () => {
                 email: user.email,
                 password: '', // Password empty on edit unless changing
                 role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/dashboard', '/one-pager']
+                allowed_pages: user.allowed_pages || ['/', '/dashboard', '/one-pager', '/support']
             });
         } else {
             setEditingUser(null);
@@ -68,7 +68,7 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/dashboard', '/one-pager']
+                allowed_pages: ['/', '/dashboard', '/one-pager', '/support']
             });
         }
         setIsModalOpen(true);
@@ -87,10 +87,10 @@ export const CredentialsPage = () => {
             // For edit, only send password if it's not empty
             const body: any = {
                 role: formData.role,
-                allowed_pages: formData.allowed_pages
+                allowed_pages: formData.allowed_pages,
+                email: formData.email
             };
             if (modalMode === 'create') {
-                body.email = formData.email;
                 body.password = formData.password;
             } else {
                 if (formData.password) body.password = formData.password;
@@ -266,10 +266,9 @@ export const CredentialsPage = () => {
                                     <input
                                         type="text"
                                         required
-                                        disabled={modalMode === 'edit'}
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="pl-10 block w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] px-3 py-2 text-sm focus:ring-2 focus:ring-[#E10600] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="pl-10 block w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] px-3 py-2 text-sm focus:ring-2 focus:ring-[#E10600] outline-none"
                                         placeholder="ej. juan.perez"
                                     />
                                 </div>
