@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Star, Plus, Trash2, Pencil, Flag, CheckCircle, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
