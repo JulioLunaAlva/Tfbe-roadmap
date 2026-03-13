@@ -70,6 +70,16 @@ const getProgressColor = (val: number) => {
     }
 };
 
+const getStatusName = (val: number) => {
+    switch (val) {
+        case 1: return 'Desarrollo Funcional';
+        case 2: return 'Desarrollo Técnico';
+        case 3: return 'Avance conforme plan';
+        case 4: return 'Atraso';
+        default: return 'Sin estado';
+    }
+};
+
 const getComplexityColor = (complexity?: string) => {
     const c = (complexity || '').toUpperCase();
     if (c === 'ALTA') return 'bg-[#FDECEC] text-[#991B1B] dark:bg-[#451e1e] dark:text-[#FCA5A5]';
@@ -337,14 +347,17 @@ export const RoadmapTable = () => {
         if (ms.type === 'check') icon = <CheckCircle size={12} className="text-green-600 pointer-events-none" />;
 
         return (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                 <div
                     className={clsx(
-                        "bg-white/90 rounded-full p-0.5 shadow-sm transition-transform cursor-grab active:cursor-grabbing hover:scale-110",
+                        "bg-white/90 rounded-full p-0.5 shadow-sm transition-transform cursor-grab active:cursor-grabbing hover:scale-110 pointer-events-auto",
                         draggedMilestone?.id === ms.id ? "opacity-50" : "opacity-100"
                     )}
                     draggable={user?.role !== 'viewer'}
-                    onDragStart={(e) => handleDragStart(e, ms)}
+                    onDragStart={(e) => {
+                        e.stopPropagation();
+                        handleDragStart(e, ms);
+                    }}
                 >
                     {icon}
                 </div>
@@ -1131,7 +1144,7 @@ export const RoadmapTable = () => {
                                                 onClick={(e) => { if (user?.role === 'viewer') return; handleCellClick(e, initiative.id, 0, w); }}
                                                 onDragOver={(e) => handleDragOver(e, initiative.id)}
                                                 onDrop={(e) => handleDrop(e, initiative.id, w)}
-                                                title={prog?.comment ? `Semana ${w}\n${prog.comment}` : `Semana ${w}`}
+                                                title={`Semana ${w} - ${getStatusName(prog?.progress_value || 0)}${prog?.comment ? `\n\nComentario:\n${prog.comment}` : ''}`}
                                             >
                                                 {!expanded[initiative.id] && <div className="absolute inset-x-0 bottom-0 h-1 bg-[var(--bg-secondary)] opacity-50"></div>}
                                                 {renderMilestone(initiative.id, w)}
@@ -1219,7 +1232,7 @@ export const RoadmapTable = () => {
                                                             // Current Week Highlighter
                                                             w === currentWeekNumber ? "!border-l-[2px] !border-l-[#4ADE80] bg-gradient-to-r from-[rgba(34,197,94,0.15)] to-transparent dark:from-[rgba(74,222,128,0.1)] dark:to-transparent shadow-[inset_1px_0_0_0_rgba(74,222,128,0.2)]" : ""
                                                         )}
-                                                        title={prog?.comment ? `Semana ${w}\n${prog.comment}` : `Semana ${w}`}
+                                                        title={`Semana ${w} - ${getStatusName(prog?.progress_value || 0)}${prog?.comment ? `\n\nComentario:\n${prog.comment}` : ''}`}
                                                     ></td>
                                                 );
                                             })}
