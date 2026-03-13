@@ -1,6 +1,5 @@
 import { RoadmapTable } from '../components/roadmap/RoadmapTable';
 import { RoadmapSummary } from '../components/roadmap/RoadmapSummary';
-import { RoadmapLegend } from '../components/roadmap/RoadmapLegend';
 
 export const RoadmapPage = () => {
     return (
@@ -10,7 +9,6 @@ export const RoadmapPage = () => {
             </div>
 
             <RoadmapSummary />
-            <RoadmapLegend />
             <RoadmapTable />
         </div>
     );
