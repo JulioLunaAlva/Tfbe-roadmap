@@ -276,6 +276,13 @@ export const RoadmapTable = () => {
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, ms: Milestone) => {
         if (user?.role === 'viewer') return;
         setDraggedMilestone(ms);
+
+        // Required for Firefox to start dragging a non-text element natively
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', ms.id);
+        }
+
         // Optional: Make it look transparent while dragging
         requestAnimationFrame(() => {
             if (e.target instanceof HTMLElement) {
@@ -354,6 +361,10 @@ export const RoadmapTable = () => {
                         draggedMilestone?.id === ms.id ? "opacity-50" : "opacity-100"
                     )}
                     draggable={user?.role !== 'viewer'}
+                    onMouseDown={(e) => {
+                        // Impide que inicie un multi-select accidental
+                        e.stopPropagation();
+                    }}
                     onDragStart={(e) => {
                         e.stopPropagation();
                         handleDragStart(e, ms);

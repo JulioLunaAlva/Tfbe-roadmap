@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Flag, Star, CheckCircle, Trash2 } from 'lucide-react';
 
 interface Props {
@@ -23,11 +23,23 @@ export const MilestoneContextMenu: React.FC<Props> = ({ x, y, onClose, onSelect,
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    // Adjust position if close to edge (simple check)
-    const style = {
-        top: y,
-        left: x,
-    };
+    const [style, setStyle] = useState({ top: y, left: x, opacity: 0 }); // start hidden to avoid flash
+
+    useEffect(() => {
+        if (ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            let newY = y;
+            let newX = x;
+
+            if (y + rect.height > window.innerHeight) {
+                newY = window.innerHeight - rect.height - 10;
+            }
+            if (x + rect.width > window.innerWidth) {
+                newX = window.innerWidth - rect.width - 10;
+            }
+            setStyle({ top: newY, left: newX, opacity: 1 });
+        }
+    }, [x, y]);
 
     return (
         <div
