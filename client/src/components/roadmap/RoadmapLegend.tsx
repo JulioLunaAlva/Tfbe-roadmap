@@ -17,7 +17,7 @@ export const RoadmapLegend: React.FC<Props> = ({ highlightedStatus = null, onHig
     };
 
     return (
-        <div className="flex flex-wrap gap-4 text-xs text-[var(--text-secondary)] mb-4 items-center bg-[var(--bg-secondary)] p-3 rounded-lg shadow-sm border border-[var(--border-color)]">
+        <div className="flex flex-wrap gap-4 text-xs text-[var(--text-secondary)] items-center bg-[var(--bg-secondary)] p-3 rounded-lg shadow-sm border border-[var(--border-color)]">
             {/* Markers */}
             <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha original término planificada">
                 <Flag size={14} className="text-gray-600 fill-current dark:text-gray-400" />

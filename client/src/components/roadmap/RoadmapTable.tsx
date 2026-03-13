@@ -865,16 +865,27 @@ export const RoadmapTable = () => {
                 </div>
             )}
 
-            <div className="flex justify-between items-center px-2">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">Roadmap de Iniciativas</h2>
-                    <RoadmapLegend
-                        highlightedStatus={highlightedStatus}
-                        onHighlight={setHighlightedStatus}
-                    />
+            {/* Legend standalone below filters */}
+            <div className="flex justify-center w-full my-4">
+                <RoadmapLegend
+                    highlightedStatus={highlightedStatus}
+                    onHighlight={setHighlightedStatus}
+                />
+            </div>
+
+            {/* Date and Count Info Row */}
+            <div className="grid grid-cols-3 items-center px-2 pb-4">
+                <div className="flex justify-start">
+                    <span className="text-xs text-[var(--text-tertiary)] font-medium bg-[var(--bg-secondary)] px-3 py-1.5 rounded-md border border-[var(--border-color)] shadow-sm">
+                        Total iniciativas: <strong className="text-[var(--text-primary)]">{filteredInitiatives.length}</strong>
+                    </span>
                 </div>
-                <div className="text-sm text-[var(--text-secondary)] capitalize">{todayFormatted}</div>
-                <div className="text-xs text-[var(--text-tertiary)]">Mostrando {filteredInitiatives.length} iniciativas</div>
+                <div className="text-sm font-semibold text-[var(--text-secondary)] capitalize text-center place-self-center">
+                    {todayFormatted}
+                </div>
+                <div className="flex justify-end">
+                    {/* Empty for symmetry, or can hold other tools in the future */}
+                </div>
             </div>
 
             {/* Container with max-height to ensure horizontal scrollbar is visible and header sticks */}
