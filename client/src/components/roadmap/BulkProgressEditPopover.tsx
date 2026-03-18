@@ -39,16 +39,16 @@ export const BulkProgressEditPopover: React.FC<Props> = ({
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Aplicar Estado / Color a Todas</label>
                     <div className="grid grid-cols-2 gap-2">
                         <button
-                            className={`p-2 text-xs rounded border ${value === 2 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-yellow-400 text-black font-medium`}
+                            className={`p-2 text-xs rounded border ${value === 2 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-purple-500 text-white font-medium`}
                             onClick={() => setValue(2)}
                         >
-                            D. Técnico
+                            Atraso / Redef.
                         </button>
                         <button
                             className={`p-2 text-xs rounded border ${value === 1 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-gray-300 text-black font-medium`}
                             onClick={() => setValue(1)}
                         >
-                            D. Funcional
+                            En plan
                         </button>
                         <button
                             className={`p-2 text-xs rounded border ${value === 3 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-green-500 text-white font-medium`}

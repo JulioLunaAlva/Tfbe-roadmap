@@ -19,9 +19,9 @@ export const RoadmapLegend: React.FC<Props> = ({ highlightedStatus = null, onHig
     return (
         <div className="flex flex-wrap gap-4 text-xs text-[var(--text-secondary)] items-center bg-[var(--bg-secondary)] p-3 rounded-lg shadow-sm border border-[var(--border-color)]">
             {/* Markers */}
-            <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha original término planificada">
+            <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha Plan término planificada">
                 <Flag size={14} className="text-gray-600 fill-current dark:text-gray-400" />
-                <span>Fecha original</span>
+                <span>Fecha Plan</span>
             </div>
 
             <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha planeada entrega">
@@ -29,9 +29,9 @@ export const RoadmapLegend: React.FC<Props> = ({ highlightedStatus = null, onHig
                 <span>Fecha entrega</span>
             </div>
 
-            <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha Champion/Funcional">
+            <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha Inicio">
                 <Star size={14} className="text-yellow-500 fill-current dark:text-yellow-600" />
-                <span>Fecha Champion</span>
+                <span>Fecha Inicio</span>
             </div>
 
             <div className="h-4 w-px bg-[var(--border-color)] mx-2"></div>
@@ -41,8 +41,8 @@ export const RoadmapLegend: React.FC<Props> = ({ highlightedStatus = null, onHig
                 className={`flex items-center space-x-1 cursor-pointer transition-opacity ${highlightedStatus !== null && highlightedStatus !== 2 ? 'opacity-30' : 'hover:opacity-80'}`}
                 onClick={() => handleToggle(2)}
             >
-                <div className="w-3 h-3 bg-yellow-400 rounded-sm"></div>
-                <span>Desarrollo Técnico</span>
+                <div className="w-3 h-3 bg-purple-500 rounded-sm"></div>
+                <span>Atraso / Redefinición Funcional</span>
             </div>
 
             <div
@@ -50,7 +50,7 @@ export const RoadmapLegend: React.FC<Props> = ({ highlightedStatus = null, onHig
                 onClick={() => handleToggle(1)}
             >
                 <div className="w-3 h-3 bg-gray-300 rounded-sm"></div>
-                <span>Desarrollo Funcional</span>
+                <span>En plan</span>
             </div>
 
             <div

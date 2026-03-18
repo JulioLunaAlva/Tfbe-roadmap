@@ -62,8 +62,8 @@ interface Milestone {
 
 const getProgressColor = (val: number) => {
     switch (val) {
-        case 1: return 'bg-gray-300'; // Desarrollo Funcional
-        case 2: return 'bg-yellow-400'; // Desarrollo Técnico
+        case 1: return 'bg-gray-300'; // En plan
+        case 2: return 'bg-purple-500'; // Atraso / Redefinición Funcional
         case 3: return 'bg-green-500'; // Avance conforme plan
         case 4: return 'bg-red-600'; // Atraso
         default: return '';
@@ -72,8 +72,8 @@ const getProgressColor = (val: number) => {
 
 const getStatusName = (val: number) => {
     switch (val) {
-        case 1: return 'Desarrollo Funcional';
-        case 2: return 'Desarrollo Técnico';
+        case 1: return 'En plan';
+        case 2: return 'Atraso / Redefinición Funcional';
         case 3: return 'Avance conforme plan';
         case 4: return 'Atraso';
         default: return 'Sin estado';
