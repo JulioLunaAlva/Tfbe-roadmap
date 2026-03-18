@@ -39,12 +39,6 @@ export const BulkProgressEditPopover: React.FC<Props> = ({
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Aplicar Estado / Color a Todas</label>
                     <div className="grid grid-cols-2 gap-2">
                         <button
-                            className={`p-2 text-xs rounded border ${value === 2 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-purple-500 text-white font-medium`}
-                            onClick={() => setValue(2)}
-                        >
-                            Atraso / Redef.
-                        </button>
-                        <button
                             className={`p-2 text-xs rounded border ${value === 1 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-gray-300 text-black font-medium`}
                             onClick={() => setValue(1)}
                         >
@@ -61,6 +55,12 @@ export const BulkProgressEditPopover: React.FC<Props> = ({
                             onClick={() => setValue(4)}
                         >
                             Atraso
+                        </button>
+                        <button
+                            className={`p-2 text-xs rounded border ${value === 2 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-purple-500 text-white font-medium`}
+                            onClick={() => setValue(2)}
+                        >
+                            Atraso / Redef.
                         </button>
                         <button
                             className={`p-2 text-xs rounded border ${value === 0 ? 'ring-2 ring-blue-500 border-transparent dark:ring-blue-400' : 'border-gray-200 dark:border-gray-600'} bg-[var(--bg-primary)] text-[var(--text-secondary)] col-span-2`}

@@ -40,12 +40,6 @@ export const ProgressEditPopover: React.FC<Props> = ({
                     <label className="text-xs font-semibold text-gray-700">Estado / Color</label>
                     <div className="grid grid-cols-2 gap-2">
                         <button
-                            className={`p-2 text-xs rounded border ${value === 2 ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-200'} bg-purple-500 text-white font-medium`}
-                            onClick={() => setValue(2)}
-                        >
-                            Atraso / Redef.
-                        </button>
-                        <button
                             className={`p-2 text-xs rounded border ${value === 1 ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-200'} bg-gray-300 text-black font-medium`}
                             onClick={() => setValue(1)}
                         >
@@ -62,6 +56,12 @@ export const ProgressEditPopover: React.FC<Props> = ({
                             onClick={() => setValue(4)}
                         >
                             Atraso
+                        </button>
+                        <button
+                            className={`p-2 text-xs rounded border ${value === 2 ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-200'} bg-purple-500 text-white font-medium`}
+                            onClick={() => setValue(2)}
+                        >
+                            Atraso / Redef.
                         </button>
                         <button
                             className={`p-2 text-xs rounded border ${value === 0 ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-200'} bg-white text-gray-500 col-span-2`}
