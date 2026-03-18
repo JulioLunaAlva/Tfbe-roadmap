@@ -53,10 +53,18 @@ export const MilestoneContextMenu: React.FC<Props> = ({ x, y, onClose, onSelect,
 
             <button
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-gray-700"
+                onClick={() => onSelect('star')}
+            >
+                <Star size={14} className="text-yellow-500 fill-current" />
+                <span>Fecha Inicio</span>
+            </button>
+
+            <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-gray-700"
                 onClick={() => onSelect('flag')}
             >
                 <Flag size={14} className="text-gray-600 fill-current" />
-                <span>Fecha Original</span>
+                <span>Fecha Plan</span>
             </button>
 
             <button
@@ -65,14 +73,6 @@ export const MilestoneContextMenu: React.FC<Props> = ({ x, y, onClose, onSelect,
             >
                 <CheckCircle size={14} className="text-green-600" />
                 <span>Fecha Entrega</span>
-            </button>
-
-            <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-gray-700"
-                onClick={() => onSelect('star')}
-            >
-                <Star size={14} className="text-yellow-500 fill-current" />
-                <span>Fecha Champion</span>
             </button>
 
             {hasExisting && onDelete && (
