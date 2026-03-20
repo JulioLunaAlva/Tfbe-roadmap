@@ -46,24 +46,45 @@ import API_URL from '../config/api';
 
 export const DashboardPage = () => {
     const { token } = useAuth();
+    const { user } = useAuth();
     const { year } = useYear();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
-    const dashboardSteps: Step[] = [
+    const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
+
+    const dashboardSteps: Step[] = isAdminOrEditor ? [
         {
             target: '.tour-target-title',
-            content: '¡Bienvenido al Dashboard de Transformación! Aquí podrás tener una visión general del portafolio del año.',
+            content: '¡Bienvenido al Dashboard de Gestión! Como editor, aquí puedes supervisar y organizar todo el portafolio.',
             disableBeacon: true,
         },
         {
             target: '.tour-widget-kpis',
-            content: 'Estos son los KPIs principales. Te mostrarán el total de iniciativas y su estado actual.',
+            content: 'Estos son los KPIs principales. Te permiten ver de un vistazo el avance de todas las iniciativas.',
+        },
+        {
+            target: '.tour-dashboard-grid',
+            content: '¡Tip! Puedes arrastrar y soltar cualquier tarjeta para reordenar el dashboard a tu gusto.',
         },
         {
             target: '.tour-widget-timeline',
-            content: 'Aquí puedes ver la línea de tiempo de las iniciativas para este año.',
+            content: 'Utiliza la línea de tiempo para visualizar la duración y entrega de los proyectos.',
+        }
+    ] : [
+        {
+            target: '.tour-target-title',
+            content: '¡Bienvenido al Dashboard de Transformación! Aquí puedes consultar el estado actual del portafolio.',
+            disableBeacon: true,
+        },
+        {
+            target: '.tour-widget-kpis',
+            content: 'Consulta estos indicadores para conocer el progreso general y posibles retrasos.',
+        },
+        {
+            target: '.tour-widget-timeline',
+            content: 'Aquí puedes ver las fechas clave y el cronograma de las iniciativas.',
         }
     ];
 
@@ -385,7 +406,7 @@ export const DashboardPage = () => {
                 </div>
                 <button
                     onClick={() => {
-                        localStorage.removeItem('dashboardTourCompleted');
+                        localStorage.removeItem(`dashboardTourCompleted_${user?.role || 'user'}`);
                         setRunTour(true);
                     }}
                     className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
@@ -397,7 +418,7 @@ export const DashboardPage = () => {
 
             <OnboardingTour
                 steps={dashboardSteps}
-                tourKey="dashboardTourCompleted"
+                tourKey={`dashboardTourCompleted_${user?.role || 'user'}`}
                 runTour={runTour}
             />
 
@@ -410,7 +431,7 @@ export const DashboardPage = () => {
                     items={widgetOrder}
                     strategy={rectSortingStrategy}
                 >
-                    <div className="grid grid-cols-12 gap-6">
+                    <div className="grid grid-cols-12 gap-6 tour-dashboard-grid">
                         {widgetOrder.map((widgetId) => {
                             const widget = widgetsConfig[widgetId];
                             if (!widget) return null;

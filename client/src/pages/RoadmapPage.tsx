@@ -3,24 +3,42 @@ import { HelpCircle } from 'lucide-react';
 import { RoadmapTable } from '../components/roadmap/RoadmapTable';
 import { RoadmapSummary } from '../components/roadmap/RoadmapSummary';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
+import { useAuth } from '../context/AuthContext';
 import type { Step } from 'react-joyride';
 
 export const RoadmapPage = () => {
+    const { user } = useAuth();
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
-    const roadmapSteps: Step[] = [
+    const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
+
+    const roadmapSteps: Step[] = isAdminOrEditor ? [
         {
             target: '.tour-target-title-roadmap',
-            content: 'Aquí puedes ver el Roadmap completo de las iniciativas planeadas para este año.',
+            content: 'Bienvenido al gestor de Roadmap. Aquí puedes supervisar la planificación anual de todas las iniciativas.',
             disableBeacon: true,
         },
         {
             target: '.tour-roadmap-summary',
-            content: 'Este es el resumen de iniciativas general, agrupado por áreas.',
+            content: 'Este resumen te permite identificar rápidamente la carga de trabajo por cada área.',
         },
         {
             target: '.tour-roadmap-table',
-            content: 'Esta tabla interactiva te permite ver el detalle de cada iniciativa a lo largo de las semanas.',
+            content: '¡Tip! Como editor, puedes hacer clic en las celdas de la tabla para actualizar el progreso o fechas de entrega.',
+        }
+    ] : [
+        {
+            target: '.tour-target-title-roadmap',
+            content: 'Bienvenido al Roadmap de Iniciativas. Aquí puedes consultar la planificación estratégica del año.',
+            disableBeacon: true,
+        },
+        {
+            target: '.tour-roadmap-summary',
+            content: 'Consulta el despliegue de iniciativas agrupadas por las distintas áreas de la organización.',
+        },
+        {
+            target: '.tour-roadmap-table',
+            content: 'Utiliza esta tabla para dar seguimiento al cumplimiento de los hitos y fechas pactadas.',
         }
     ];
 
@@ -30,7 +48,7 @@ export const RoadmapPage = () => {
                 <h2 className="text-xl font-bold text-slate-100">Roadmap de Iniciativas</h2>
                 <button
                     onClick={() => {
-                        localStorage.removeItem('roadmapTourCompleted');
+                        localStorage.removeItem(`roadmapTourCompleted_${user?.role || 'user'}`);
                         setRunTour(true);
                     }}
                     className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
@@ -42,7 +60,7 @@ export const RoadmapPage = () => {
 
             <OnboardingTour
                 steps={roadmapSteps}
-                tourKey="roadmapTourCompleted"
+                tourKey={`roadmapTourCompleted_${user?.role || 'user'}`}
                 runTour={runTour}
             />
 

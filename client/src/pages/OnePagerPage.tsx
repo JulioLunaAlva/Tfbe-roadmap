@@ -31,7 +31,9 @@ export const OnePagerPage = () => {
     const { year, setYear } = useYear();
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
-    const onepagerSteps: Step[] = [
+    const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
+
+    const onepagerSteps: Step[] = isAdminOrEditor ? [
         {
             target: '.tour-onepager-header',
             content: 'Este es el One Pager, donde puedes reportar el avance semanal de cada iniciativa.',
@@ -43,15 +45,33 @@ export const OnePagerPage = () => {
         },
         {
             target: '.tour-onepager-content',
-            content: 'Aquí puedes detallar los avances, siguientes pasos y compromisos.',
+            content: '¡Acción requerida! Aquí es donde debes detallar los avances y próximos compromisos de la semana.',
         },
         {
             target: '.tour-onepager-stoppers',
-            content: 'No olvides registrar los riesgos o impedimentos (stoppers) que puedan afectar el progreso.',
+            content: 'Reporta cualquier riesgo o impedimento que esté bloqueando el progreso.',
         },
         {
             target: '.tour-onepager-save',
-            content: 'Finalmente, guarda tus cambios para que se reflejen en el sistema.',
+            content: 'No olvides guardar tus cambios para que el equipo pueda revisar el estatus actualizado.',
+        }
+    ] : [
+        {
+            target: '.tour-onepager-header',
+            content: 'Bienvenido al visualizador de One Pagers. Aquí podrás consultar el detalle semanal de cada iniciativa.',
+            disableBeacon: true,
+        },
+        {
+            target: '.tour-onepager-selectors',
+            content: 'Usa estos selectores para navegar entre las distintas áreas e iniciativas del portafolio.',
+        },
+        {
+            target: '.tour-onepager-content',
+            content: 'En esta sección puedes leer los avances y compromisos pactados para la semana seleccionada.',
+        },
+        {
+            target: '.tour-onepager-stoppers',
+            content: 'Aquí verás si existen riesgos o alertas reportadas por los responsables.',
         }
     ];
 
@@ -242,7 +262,7 @@ export const OnePagerPage = () => {
         <div className="flex flex-col h-full space-y-4 p-2">
             <OnboardingTour
                 steps={onepagerSteps}
-                tourKey="onePagerTourCompleted"
+                tourKey={`onePagerTourCompleted_${user?.role || 'user'}`}
                 runTour={runTour}
             />
             {/* Header / Selectors */}
@@ -342,7 +362,7 @@ export const OnePagerPage = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => {
-                                localStorage.removeItem('onePagerTourCompleted');
+                                localStorage.removeItem(`onePagerTourCompleted_${user?.role || 'user'}`);
                                 setRunTour(true);
                             }}
                             className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
