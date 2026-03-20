@@ -46,7 +46,7 @@ export const OnboardingTour = ({ steps, tourKey, runTour }: OnboardingTourProps)
       hideCloseButton
       run={run}
       scrollToFirstStep
-      showProgress
+      showProgress={false}
       showSkipButton
       steps={steps}
       styles={{

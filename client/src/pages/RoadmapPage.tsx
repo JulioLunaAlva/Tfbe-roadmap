@@ -16,7 +16,7 @@ export const RoadmapPage = () => {
         },
         {
             target: '.tour-roadmap-summary',
-            content: 'Este es el resumen del avance general, agrupado por estados.',
+            content: 'Este es el resumen de iniciativas general, agrupado por áreas.',
         },
         {
             target: '.tour-roadmap-table',

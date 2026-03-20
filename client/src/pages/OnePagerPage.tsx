@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import { CALENDAR_SCHEMA, getCurrentWeekNumber } from '../utils/calendarConstants';
 import API_URL from '../config/api';
-import { Save, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Save, AlertTriangle, CheckCircle2, ArrowRight, HelpCircle } from 'lucide-react';
 import { RichTextEditor } from '../components/common/RichTextEditor';
+import { OnboardingTour } from '../components/onboarding/OnboardingTour';
+import type { Step } from 'react-joyride';
 
 interface OnePagerData {
     id?: string;
@@ -27,6 +29,31 @@ interface Initiative {
 export const OnePagerPage = () => {
     const { user, token } = useAuth();
     const { year, setYear } = useYear();
+    const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
+
+    const onepagerSteps: Step[] = [
+        {
+            target: '.tour-onepager-header',
+            content: 'Este es el One Pager, donde puedes reportar el avance semanal de cada iniciativa.',
+            disableBeacon: true,
+        },
+        {
+            target: '.tour-onepager-selectors',
+            content: 'Selecciona el área, la iniciativa y la semana correspondiente para cargar o editar el reporte.',
+        },
+        {
+            target: '.tour-onepager-content',
+            content: 'Aquí puedes detallar los avances, siguientes pasos y compromisos.',
+        },
+        {
+            target: '.tour-onepager-stoppers',
+            content: 'No olvides registrar los riesgos o impedimentos (stoppers) que puedan afectar el progreso.',
+        },
+        {
+            target: '.tour-onepager-save',
+            content: 'Finalmente, guarda tus cambios para que se reflejen en el sistema.',
+        }
+    ];
 
     // Selectors
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
@@ -213,11 +240,16 @@ export const OnePagerPage = () => {
 
     return (
         <div className="flex flex-col h-full space-y-4 p-2">
+            <OnboardingTour
+                steps={onepagerSteps}
+                tourKey="onePagerTourCompleted"
+                runTour={runTour}
+            />
             {/* Header / Selectors */}
-            <div className="bg-white dark:bg-[#1E2630] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-4">
+            <div className="bg-white dark:bg-[#1E2630] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-4 tour-onepager-header">
 
                 {/* Row 1: Selectors & Actions */}
-                <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
+                <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between tour-onepager-selectors">
                     <div className="flex flex-col md:flex-row gap-4 w-full">
 
                         {/* Area Selector */}
@@ -307,17 +339,30 @@ export const OnePagerPage = () => {
                         </div>
                     </div>
 
-                    {/* RED Save Button */}
-                    {canEdit && (
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-[#E10600] to-red-800 hover:from-red-600 hover:to-red-900 text-white rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 h-fit whitespace-nowrap transform hover:-translate-y-0.5 active:translate-y-0"
+                            onClick={() => {
+                                localStorage.removeItem('onePagerTourCompleted');
+                                setRunTour(true);
+                            }}
+                            className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                            title="Repetir recorrido"
                         >
-                            <Save size={18} />
-                            <span>{saving ? 'Guardando...' : 'Guardar'}</span>
+                            <HelpCircle size={24} />
                         </button>
-                    )}
+
+                        {/* RED Save Button */}
+                        {canEdit && (
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="tour-onepager-save flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-[#E10600] to-red-800 hover:from-red-600 hover:to-red-900 text-white rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 h-fit whitespace-nowrap transform hover:-translate-y-0.5 active:translate-y-0"
+                            >
+                                <Save size={18} />
+                                <span>{saving ? 'Guardando...' : 'Guardar'}</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Row 2: Metadata Badges (Status, Champion, Area) */}
@@ -378,7 +423,7 @@ export const OnePagerPage = () => {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col gap-4 min-h-0">
+                <div className="flex-1 flex flex-col gap-4 min-h-0 tour-onepager-content">
                     {/* Top Row: Progress & Next Steps (Takes most space) */}
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
                         {/* Progress */}
@@ -423,7 +468,7 @@ export const OnePagerPage = () => {
                     </div>
 
                     {/* Bottom Row: Stoppers/Risks (Fixed smaller height) */}
-                    <div className="h-48 flex-shrink-0 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-md ring-1 ring-red-50 dark:ring-red-900/20">
+                    <div className="h-48 flex-shrink-0 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-md ring-1 ring-red-50 dark:ring-red-900/20 tour-onepager-stoppers">
                         <div className="px-4 py-2 bg-gradient-to-r from-red-50 to-white dark:from-[#451a1a] dark:to-[#1E2630] border-b border-red-100 dark:border-red-900/50 flex items-center gap-2">
                             <div className="p-1.5 bg-red-100 dark:bg-red-900/50 rounded-lg text-red-600 dark:text-red-400">
                                 <AlertTriangle size={18} />
