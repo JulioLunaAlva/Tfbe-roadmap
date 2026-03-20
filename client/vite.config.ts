@@ -9,7 +9,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'recharts', 'react-joyride'],
+          vendor: ['react', 'react-dom', 'react-router-dom', 'recharts', 'react-joyride', 'react-is'],
           dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
         }
       }
