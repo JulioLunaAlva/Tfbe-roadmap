@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
-import { Zap } from 'lucide-react';
+import { Zap, HelpCircle } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -39,6 +39,9 @@ import { DashboardTech } from '../components/dashboard/DashboardTech';
 import { DashboardDeveloper } from '../components/dashboard/DashboardDeveloper';
 import { DashboardQuarter } from '../components/dashboard/DashboardQuarter';
 
+import { OnboardingTour } from '../components/onboarding/OnboardingTour';
+import type { Step } from 'react-joyride';
+
 import API_URL from '../config/api';
 
 export const DashboardPage = () => {
@@ -46,6 +49,23 @@ export const DashboardPage = () => {
     const { year } = useYear();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
+
+    const dashboardSteps: Step[] = [
+        {
+            target: '.tour-target-title',
+            content: '¡Bienvenido al Dashboard de Transformación! Aquí podrás tener una visión general del portafolio del año.',
+            disableBeacon: true,
+        },
+        {
+            target: '.tour-widget-kpis',
+            content: 'Estos son los KPIs principales. Te mostrarán el total de iniciativas y su estado actual.',
+        },
+        {
+            target: '.tour-widget-timeline',
+            content: 'Aquí puedes ver la línea de tiempo de las iniciativas para este año.',
+        }
+    ];
 
     // --- Widgets Configuration ---
     // Defined inside component to access data, or outside if static
@@ -358,10 +378,28 @@ export const DashboardPage = () => {
 
     return (
         <div className="p-2 md:p-6 max-w-[1800px] mx-auto animate-in fade-in duration-500 space-y-6">
-            <div className="mb-2">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Transformación</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">Visión general del portafolio del año {year}</p>
+            <div className="flex justify-between items-center mb-2 tour-target-title">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Transformación</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Visión general del portafolio del año {year}</p>
+                </div>
+                <button
+                    onClick={() => {
+                        localStorage.removeItem('dashboardTourCompleted');
+                        setRunTour(true);
+                    }}
+                    className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    title="Repetir recorrido"
+                >
+                    <HelpCircle size={24} />
+                </button>
             </div>
+
+            <OnboardingTour
+                steps={dashboardSteps}
+                tourKey="dashboardTourCompleted"
+                runTour={runTour}
+            />
 
             <DndContext
                 sensors={sensors}
@@ -378,7 +416,7 @@ export const DashboardPage = () => {
                             if (!widget) return null;
 
                             return (
-                                <div key={widgetId} className={widget.span}>
+                                <div key={widgetId} className={`${widget.span} tour-widget-${widgetId}`}>
                                     <SortableWidget id={widgetId}>
                                         {widget.component}
                                     </SortableWidget>
