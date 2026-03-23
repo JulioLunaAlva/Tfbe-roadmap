@@ -1,4 +1,4 @@
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Initiative {
@@ -20,7 +20,8 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
     const getMonths = () => {
         const months = [];
         const now = new Date();
-        for (let i = 0; i < 6; i++) {
+        // Start 2 months ago to show recent history
+        for (let i = -2; i < 4; i++) {
             const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
             months.push({
                 label: date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
@@ -106,11 +107,21 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
                                     {/* Initiative Name */}
                                     <div className="flex items-center mb-2">
                                         <div className={clsx('w-2 h-2 rounded-full mr-2', getAreaColor(initiative.area))}></div>
-                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                                        <span className={clsx(
+                                            "text-xs font-semibold truncate",
+                                            initiative.status === 'Entregado' ? "text-green-600 dark:text-green-400" : "text-gray-700 dark:text-gray-300"
+                                        )}>
                                             {initiative.name}
                                         </span>
-                                        <span className="ml-auto text-[10px] text-gray-500 dark:text-gray-400 flex items-center">
-                                            <Clock className="w-3 h-3 mr-1" />
+                                        <span className={clsx(
+                                            "ml-auto text-[10px] flex items-center font-bold",
+                                            initiative.status === 'Entregado' ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
+                                        )}>
+                                            {initiative.status === 'Entregado' ? (
+                                                <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                            ) : (
+                                                <Clock className="w-3 h-3 mr-1" />
+                                            )}
                                             {initiative.progress}%
                                         </span>
                                     </div>
