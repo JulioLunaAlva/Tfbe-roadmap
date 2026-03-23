@@ -172,7 +172,7 @@ export const DashboardPage = () => {
         const total = initiatives.length;
         const completed = initiatives.filter(i => i.status === 'Entregado').length;
         const delayed = initiatives.filter(i => i.status === 'Retrasado').length;
-        const inProgress = initiatives.filter(i => i.status === 'En curso').length;
+        const inProgress = initiatives.filter(i => i.status === 'En curso' || i.status === 'En redefinición').length;
         const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
         // Area Distribution Logic

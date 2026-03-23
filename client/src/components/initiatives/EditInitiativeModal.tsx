@@ -61,7 +61,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
     // Predefined lists
     const areas: string[] = [];
     const complexities = ['Alta', 'Media', 'Baja'];
-    const statuses = ['En espera', 'En curso', 'Entregado', 'Cancelado', 'Retrasado'];
+    const statuses = ['En espera', 'En curso', 'Entregado', 'Cancelado', 'Retrasado', 'En redefinición'];
     const methodologies = ['Hibrida', 'Analiticos', 'Reporting'];
 
     const [techInput, setTechInput] = useState('');

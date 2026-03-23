@@ -1099,6 +1099,7 @@ export const RoadmapTable = () => {
                                             const s = initiative.status;
                                             if (s === 'Retrasado' || s === 'Cancelado') return 'bg-[#FCE8E6] text-[#9F1239] dark:bg-[#3F1515] dark:text-[#FDA4AF]';
                                             if (s === 'En curso' || s === 'Avance conforme plan') return 'bg-[#DFF3EA] text-[#115E59] dark:bg-[#134E4A] dark:text-[#5EEAD4]';
+                                            if (s === 'En redefinición') return 'bg-[#FEF3C7] text-[#92400E] dark:bg-[#451A03]/50 dark:text-[#FCD34D]';
                                             if (s === 'Entregado') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
                                             return 'bg-[#F1F3F5] text-[#4B5563] dark:bg-[#27272A] dark:text-[#E5E7EB]';
                                         })()
