@@ -477,8 +477,8 @@ export const RoadmapTable = () => {
             if (val !== undefined) payload.progress = val;
             if (note !== undefined) payload.notes = note;
 
-            const r = await fetch(`${API_URL}/api/initiatives/${initId}/phases/${phaseId}`, {
-                method: 'PUT',
+            const r = await fetch(`${API_URL}/api/initiatives/${initId}/phases/${phaseId}/progress`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -486,10 +486,13 @@ export const RoadmapTable = () => {
                 body: JSON.stringify(payload)
             });
             if (!r.ok) {
-                // Ignore error for now, maybe revert later
+                const errData = await r.json().catch(() => ({}));
+                console.error('Error updating phase progress:', errData);
+                alert('No se pudo guardar el cambio en la fase. Verifique su conexión o permisos.');
             }
         } catch (error) {
             console.error(error);
+            alert('Error de conexión al intentar guardar la fase.');
         }
     };
 

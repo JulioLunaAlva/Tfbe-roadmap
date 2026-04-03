@@ -43,9 +43,13 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
             case 'Total Iniciativas':
                 return activeInitiatives;
             case 'En Ejecución':
-                return activeInitiatives.filter(i => i.status !== 'Entregado' && i.status !== 'Retrasado' && i.status !== 'En espera' && i.status !== 'Cancelado');
+                return activeInitiatives.filter(i =>
+                    i.status === 'En curso' ||
+                    i.status === 'En redefinición' ||
+                    i.status === 'Avance conforme plan'
+                );
             case 'Riesgo / Retraso':
-                return activeInitiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo'); // Usually delayed
+                return activeInitiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo');
             case 'Concluidas':
                 return activeInitiatives.filter(i => i.status === 'Entregado');
             default:

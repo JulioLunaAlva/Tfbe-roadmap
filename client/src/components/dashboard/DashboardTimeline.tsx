@@ -53,9 +53,11 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
     const getStatusColor = (status: string) => {
         if (status === 'Entregado') return 'bg-green-500';
         if (status === 'Retrasado') return 'bg-red-500';
+        if (status === 'En riesgo') return 'bg-orange-500';
         if (status === 'En redefinición') return 'bg-amber-500';
         if (status === 'En espera') return 'bg-gray-400';
         if (status === 'Cancelado') return 'bg-stone-500';
+        if (status === 'Avance conforme plan') return 'bg-blue-500';
         return 'bg-blue-500'; // En curso
     };
 

@@ -171,8 +171,12 @@ export const DashboardPage = () => {
     const metrics = useMemo(() => {
         const total = initiatives.length;
         const completed = initiatives.filter(i => i.status === 'Entregado').length;
-        const delayed = initiatives.filter(i => i.status === 'Retrasado').length;
-        const inProgress = initiatives.filter(i => i.status === 'En curso' || i.status === 'En redefinición').length;
+        const delayed = initiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo').length;
+        const inProgress = initiatives.filter(i =>
+            i.status === 'En curso' ||
+            i.status === 'En redefinición' ||
+            i.status === 'Avance conforme plan'
+        ).length;
         const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
         // Area Distribution Logic
