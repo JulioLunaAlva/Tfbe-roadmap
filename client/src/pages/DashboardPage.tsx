@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
@@ -34,10 +33,10 @@ import { DashboardValue } from '../components/dashboard/DashboardValue';
 import { DashboardTransfLead } from '../components/dashboard/DashboardTransfLead';
 import { DashboardActiveSupport } from '../components/dashboard/DashboardActiveSupport';
 import { DashboardComplexity } from '../components/dashboard/DashboardComplexity';
-// import { DashboardPhase } from '../components/dashboard/DashboardPhase';
 import { DashboardTech } from '../components/dashboard/DashboardTech';
 import { DashboardDeveloper } from '../components/dashboard/DashboardDeveloper';
 import { DashboardQuarter } from '../components/dashboard/DashboardQuarter';
+import { DashboardFilters } from '../components/dashboard/DashboardFilters';
 
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import type { Step } from 'react-joyride';
@@ -50,6 +49,7 @@ export const DashboardPage = () => {
     const { year } = useYear();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
@@ -88,11 +88,6 @@ export const DashboardPage = () => {
         }
     ];
 
-    // --- Widgets Configuration ---
-    // Defined inside component to access data, or outside if static
-    // We need a map of components to render dynamically
-
-    // Default Order of Widget IDs
     const defaultOrder = [
         'kpis',
         'value', 'complexity', 'quarters',
@@ -108,9 +103,6 @@ export const DashboardPage = () => {
             const parsed = JSON.parse(saved);
             const missing = defaultOrder.filter(id => !parsed.includes(id));
 
-            // Si el usuario ya tenía un orden guardado pero le falta el nuevo widget 'quarters',
-            // lo insertamos explícitamente después de 'complexity' o al principio, 
-            // en lugar de enviarlo hasta el final.
             if (missing.includes('quarters')) {
                 const targetIdx = parsed.indexOf('complexity') !== -1
                     ? parsed.indexOf('complexity')
@@ -148,7 +140,6 @@ export const DashboardPage = () => {
         localStorage.setItem('dashboard_widget_order', JSON.stringify(widgetOrder));
     }, [widgetOrder]);
 
-    // DnD Sensors
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, {
@@ -167,39 +158,40 @@ export const DashboardPage = () => {
             .catch(() => setLoading(false));
     }, [token, year]);
 
-    // Data Processing for Charts & KPIs
+    const transformationLeads = useMemo(() => {
+        const leads = new Set<string>();
+        initiatives.forEach(i => {
+            const lead = i.transformation_lead?.trim();
+            if (lead) leads.add(lead);
+        });
+        return Array.from(leads).sort();
+    }, [initiatives]);
+
+    const filteredInitiatives = useMemo(() => {
+        if (selectedLeads.length === 0) return initiatives;
+        return initiatives.filter(i => selectedLeads.includes(i.transformation_lead?.trim() || ''));
+    }, [initiatives, selectedLeads]);
+
     const metrics = useMemo(() => {
-        const total = initiatives.length;
-        const completed = initiatives.filter(i => i.status === 'Entregado').length;
-        const delayed = initiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo').length;
-        const inProgress = initiatives.filter(i =>
+        const total = filteredInitiatives.length;
+        const completed = filteredInitiatives.filter(i => i.status === 'Entregado').length;
+        const delayed = filteredInitiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo').length;
+        const inProgress = filteredInitiatives.filter(i =>
             i.status === 'En curso' ||
             i.status === 'En redefinición' ||
             i.status === 'Avance conforme plan'
         ).length;
         const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-        // Area Distribution Logic
         const areaCounts: Record<string, number> = {};
-        initiatives.forEach(i => {
+        filteredInitiatives.forEach(i => {
             const area = i.area || 'Sin Área';
             areaCounts[area] = (areaCounts[area] || 0) + 1;
         });
 
-        // Dynamic color palette - vibrant colors for better distinction
         const colorPalette = [
-            '#3B82F6', // Blue
-            '#8B5CF6', // Purple
-            '#10B981', // Green
-            '#F59E0B', // Orange
-            '#EC4899', // Pink
-            '#06B6D4', // Cyan
-            '#EF4444', // Red
-            '#84CC16', // Lime
-            '#F97316', // Orange-Red
-            '#6366F1', // Indigo
-            '#14B8A6', // Teal
-            '#A855F7', // Purple-Pink
+            '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EC4899', '#06B6D4',
+            '#EF4444', '#84CC16', '#F97316', '#6366F1', '#14B8A6', '#A855F7',
         ];
 
         const areaData = Object.keys(areaCounts)
@@ -210,9 +202,8 @@ export const DashboardPage = () => {
             }))
             .sort((a, b) => b.value - a.value);
 
-        // Tech Stack Logic
         const techCounts: Record<string, number> = {};
-        initiatives.forEach(i => {
+        filteredInitiatives.forEach(i => {
             if (i.technologies && Array.isArray(i.technologies)) {
                 i.technologies.forEach((t: string) => {
                     techCounts[t] = (techCounts[t] || 0) + 1;
@@ -222,16 +213,13 @@ export const DashboardPage = () => {
         const techData = Object.keys(techCounts)
             .map(k => ({ name: k, value: techCounts[k] }))
             .sort((a, b) => b.value - a.value)
-            .slice(0, 6); // Top 6
+            .slice(0, 6);
 
-        // Phase Logic grouped by Methodology
         const phaseCountsByMethodology: Record<string, Record<string, number>> = {};
-
-        initiatives.forEach(i => {
+        filteredInitiatives.forEach(i => {
             const methodology = i.methodology_type || 'Hibrida';
-            // Find active phase
             const activePhase = i.phases?.find((p: any) => p.is_active);
-            const phaseName = activePhase ? activePhase.name : 'Planning'; // Default if none
+            const phaseName = activePhase ? activePhase.name : 'Planning';
 
             if (!phaseCountsByMethodology[methodology]) {
                 phaseCountsByMethodology[methodology] = {};
@@ -247,8 +235,7 @@ export const DashboardPage = () => {
             }));
         });
 
-        // Complexity Logic
-        const complexityCounts = initiatives.reduce((acc: any, curr: any) => {
+        const complexityCounts = filteredInitiatives.reduce((acc: any, curr: any) => {
             const c = curr.complexity || 'N/A';
             acc[c] = (acc[c] || 0) + 1;
             return acc;
@@ -258,12 +245,11 @@ export const DashboardPage = () => {
             value: complexityCounts[k] || 0
         }));
 
-        // Value Distribution Logic
         const valueColors: Record<string, string> = {
-            'Estrategico Alto Valor': '#8B5CF6',      // Purple
-            'Operational Value': '#3B82F6',           // Blue
-            'Mandatorio/Compliance': '#F59E0B',       // Orange
-            'Deferred/Not prioritized': '#6B7280'     // Gray
+            'Estrategico Alto Valor': '#8B5CF6',
+            'Operational Value': '#3B82F6',
+            'Mandatorio/Compliance': '#F59E0B',
+            'Deferred/Not prioritized': '#6B7280'
         };
 
         const valueData = [
@@ -273,13 +259,12 @@ export const DashboardPage = () => {
             'Deferred/Not prioritized'
         ].map(val => ({
             name: val,
-            value: initiatives.filter(i => i.value === val).length,
+            value: filteredInitiatives.filter(i => i.value === val).length,
             color: valueColors[val]
         }));
 
-        // Transformation Lead Distribution Logic
         const transfLeadCounts: Record<string, number> = {};
-        initiatives.forEach(i => {
+        filteredInitiatives.forEach(i => {
             const lead = i.transformation_lead?.trim();
             if (lead) {
                 transfLeadCounts[lead] = (transfLeadCounts[lead] || 0) + 1;
@@ -289,9 +274,8 @@ export const DashboardPage = () => {
             .map(k => ({ name: k, value: transfLeadCounts[k] }))
             .sort((a, b) => b.value - a.value);
 
-        // Quarter Distribution Logic
         const qCounts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
-        initiatives.forEach(i => {
+        filteredInitiatives.forEach(i => {
             if (i.end_date) {
                 const month = new Date(i.end_date).getMonth() + 1;
                 if (month >= 1 && month <= 3) qCounts.Q1++;
@@ -311,12 +295,10 @@ export const DashboardPage = () => {
             total, completed, delayed, inProgress, completionRate,
             techData, phaseDataByMethodology, complexityData, areaData, valueData, transfLeadData, quartersData
         };
-    }, [initiatives]);
+    }, [filteredInitiatives]);
 
-    // Handle Drag End
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-
         if (active.id !== over?.id) {
             setWidgetOrder((items) => {
                 const oldIndex = items.indexOf(active.id as string);
@@ -333,26 +315,25 @@ export const DashboardPage = () => {
         </div>
     );
 
-    // Config Mapping
     const widgetsConfig: Record<string, { component: React.ReactNode, span: string }> = {
         'kpis': {
-            component: <DashboardKPIs total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} completionRate={metrics.completionRate} initiatives={initiatives} />,
+            component: <DashboardKPIs total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} completionRate={metrics.completionRate} initiatives={filteredInitiatives} />,
             span: 'col-span-12'
         },
         'value': {
-            component: <DashboardValue valueData={metrics.valueData} total={metrics.total} initiatives={initiatives} />,
+            component: <DashboardValue valueData={metrics.valueData} total={metrics.total} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-8'
         },
         'complexity': {
-            component: <DashboardComplexity complexityData={metrics.complexityData} initiatives={initiatives} />,
+            component: <DashboardComplexity complexityData={metrics.complexityData} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'quarters': {
-            component: <DashboardQuarter quartersData={metrics.quartersData} initiatives={initiatives} />,
+            component: <DashboardQuarter quartersData={metrics.quartersData} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'timeline': {
-            component: <DashboardTimeline initiatives={initiatives} />,
+            component: <DashboardTimeline initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-8'
         },
         'health': {
@@ -360,7 +341,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'trends': {
-            component: <DashboardTrends initiatives={initiatives} />,
+            component: <DashboardTrends initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-8'
         },
         'active-support': {
@@ -368,35 +349,31 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'transf-lead': {
-            component: <DashboardTransfLead transfLeadData={metrics.transfLeadData} total={metrics.total} initiatives={initiatives} />,
+            component: <DashboardTransfLead transfLeadData={metrics.transfLeadData} total={metrics.total} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'area': {
-            component: <DashboardAreaChart areaData={metrics.areaData} initiatives={initiatives} />,
+            component: <DashboardAreaChart areaData={metrics.areaData} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'leaderboard': {
-            component: <DashboardLeaderboard initiatives={initiatives} />,
+            component: <DashboardLeaderboard initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'activity': {
-            component: <DashboardActivity initiatives={initiatives} />,
+            component: <DashboardActivity initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'key-initiatives': {
-            component: <DashboardKeyInitiatives initiatives={initiatives} />,
+            component: <DashboardKeyInitiatives initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
-        // 'phase': {
-        //     component: <DashboardPhase phaseDataByMethodology={metrics.phaseDataByMethodology} initiatives={initiatives} />,
-        //     span: 'col-span-12 lg:col-span-4'
-        // },
         'tech': {
-            component: <DashboardTech techData={metrics.techData} initiatives={initiatives} />,
+            component: <DashboardTech techData={metrics.techData} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'developer': {
-            component: <DashboardDeveloper initiatives={initiatives} />,
+            component: <DashboardDeveloper initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
     };
@@ -419,6 +396,12 @@ export const DashboardPage = () => {
                     <HelpCircle size={24} />
                 </button>
             </div>
+
+            <DashboardFilters
+                transformationLeads={transformationLeads}
+                selectedLeads={selectedLeads}
+                setSelectedLeads={setSelectedLeads}
+            />
 
             <OnboardingTour
                 steps={dashboardSteps}
