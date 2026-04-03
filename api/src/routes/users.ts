@@ -117,7 +117,14 @@ router.delete('/:id', async (req, res) => {
     // Ideally backend should block deleting specifically the 'Cesar' account to prevent lockout.
 
     try {
-        // Protect Cesar account from deletion
+        // Step 1: Manual cleanup of references (Integrity Protection)
+        // Since database constraints might block deletion, we manually set references to NULL
+        // to preserve historical data but allow the user to be removed.
+        await pool.query('UPDATE weekly_progress SET created_by = NULL WHERE created_by = $1', [id]);
+        await pool.query('UPDATE initiative_milestones SET created_by = NULL WHERE created_by = $1', [id]);
+        await pool.query('UPDATE audit_logs SET user_id = NULL WHERE user_id = $1', [id]);
+
+        // Step 2: Protect Cesar account from accidental deletion
         const userCheck = await pool.query('SELECT email FROM users WHERE id = $1', [id]);
         if (userCheck.rows.length > 0) {
             const email = userCheck.rows[0].email.toLowerCase();
@@ -126,6 +133,7 @@ router.delete('/:id', async (req, res) => {
             }
         }
 
+        // Step 3: Perform the actual deletion
         const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
 
         if (result.rowCount === 0) {
@@ -133,9 +141,14 @@ router.delete('/:id', async (req, res) => {
         }
 
         res.json({ message: 'User deleted successfully' });
-    } catch (err) {
+    } catch (err: any) {
         console.error('Error deleting user:', err);
-        res.status(500).json({ error: 'Failed to delete user' });
+        // Provice a more descriptive error if it's still a constraint issue
+        if (err.code === '23503') {
+            res.status(500).json({ error: 'Cannot delete user because they are still referenced in other tables. Manual cleanup required.' });
+        } else {
+            res.status(500).json({ error: `Failed to delete user: ${err.message}` });
+        }
     }
 });
 
