@@ -3,6 +3,7 @@ import { TrendingUp } from 'lucide-react';
 
 interface Initiative {
     created_at?: string;
+    end_date?: string;
     status: string;
 }
 
@@ -30,11 +31,11 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 return createdDate >= monthStart && createdDate <= monthEnd;
             }).length;
 
-            // Count completed initiatives (assuming they were completed in the same month they were created for demo)
+            // Count completed initiatives (using end_date for actual completion)
             const completed = initiatives.filter(i => {
-                if (!i.created_at || i.status !== 'Entregado') return false;
-                const createdDate = new Date(i.created_at);
-                return createdDate >= monthStart && createdDate <= monthEnd;
+                if (!i.end_date || i.status !== 'Entregado') return false;
+                const endDate = new Date(i.end_date);
+                return endDate >= monthStart && endDate <= monthEnd;
             }).length;
 
             // Calculate cumulative
