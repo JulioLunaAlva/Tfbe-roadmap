@@ -298,6 +298,34 @@ router.patch('/:id/reorder', authenticateToken, requireRole('editor'), async (re
     }
 });
 
+// PATCH /api/initiatives/reorder-all
+router.patch('/reorder-all', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
+    const { initiativeIds } = req.body; // Array of IDs in the new order
+
+    if (!Array.isArray(initiativeIds)) {
+        return res.status(400).json({ error: 'initiativeIds must be an array' });
+    }
+
+    try {
+        await query('BEGIN');
+
+        // Update each initiative's custom_order based on its position in the array
+        for (let i = 0; i < initiativeIds.length; i++) {
+            await query(
+                'UPDATE initiatives SET custom_order = $1 WHERE id = $2',
+                [i + 1, initiativeIds[i]]
+            );
+        }
+
+        await query('COMMIT');
+        res.json({ message: 'All initiatives reordered' });
+    } catch (err) {
+        await query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Failed to reorder all initiatives' });
+    }
+});
+
 // DELETE /api/initiatives/:id
 router.delete('/:id', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     const { id } = req.params;
