@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { InitiativeListModal } from './InitiativeListModal';
 import { clsx } from 'clsx';
-import { User, Users, ChevronRight, TrendingUp } from 'lucide-react';
+import { Users, ChevronRight, TrendingUp } from 'lucide-react';
 
 interface Props {
     initiatives: any[];
