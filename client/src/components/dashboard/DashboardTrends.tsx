@@ -30,21 +30,18 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
             const monthStart = new Date(currentYear, index, 1);
             const monthEnd = new Date(currentYear, index + 1, 0);
 
-            // New entries just in this specific month (Flow)
             const monthCreated = initiatives.filter(i => {
                 if (!i.created_at) return false;
                 const createdDate = new Date(i.created_at);
                 return createdDate >= monthStart && createdDate <= monthEnd;
             }).length;
 
-            // Finished entries in this specific month
             const monthCompleted = initiatives.filter(i => {
                 if (!i.end_date || i.status !== 'Entregado') return false;
                 const endDate = new Date(i.end_date);
                 return endDate >= monthStart && endDate <= monthEnd;
             }).length;
 
-            // Historical Accumulation (Stock)
             runningCreated += monthCreated;
             runningCompleted += monthCompleted;
 
@@ -52,7 +49,10 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 month,
                 nuevasMensuales: monthCreated,  // Bar
                 completadasAcum : runningCompleted, // Line
-                volumenTotal: runningCreated // Area
+                volumenTotal: runningCreated, // Area
+                created: runningCreated, // Legacy identical logic
+                completed: runningCompleted, // Legacy logic
+                cumulative: runningCreated // Legacy identical logic
             };
         });
     };
@@ -68,6 +68,19 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
     // Advanced Tooltip UI
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
+            if (viewMode === 'legacy') {
+                return (
+                    <div className="bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 p-3 rounded shadow-lg text-sm">
+                        <p className="font-bold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
+                        {payload.map((entry: any, index: number) => (
+                            <p key={index} style={{ color: entry.color }} className="font-semibold">
+                                {entry.name}: {entry.value}
+                            </p>
+                        ))}
+                    </div>
+                );
+            }
+
             return (
                 <div className="bg-white/90 dark:bg-[#1E2630]/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-xl min-w-[200px]">
                     <div className="border-b border-gray-100 dark:border-gray-800 pb-2 mb-3">
@@ -127,46 +140,80 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
 
     return (
         <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col justify-between">
-            {/* Standard Widget Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative">
-                <div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                        <span className="w-1.5 h-6 bg-indigo-500 rounded-full mr-3"></span>
-                        Tendencias del Portafolio
-                        {/* Toggle Button */}
-                        <button 
-                            onClick={() => setViewMode(prev => prev === 'hybrid' ? 'legacy' : 'hybrid')}
-                            className="ml-4 flex items-center text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                            title="Cambiar tipo de gráfico"
-                        >
-                            {viewMode === 'hybrid' ? <ToggleRight size={16} className="mr-1.5 text-indigo-500" /> : <ToggleLeft size={16} className="mr-1.5 text-gray-400" />}
-                            {viewMode === 'hybrid' ? 'Vista Avanzada' : 'Vista Clásica'}
-                        </button>
-                    </h3>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 ml-4 block">
-                        Crecimiento histórico vs Flujo mensual de proyectos
-                    </p>
-                </div>
+            {/* Conditional Header based on View Mode */}
+            {viewMode === 'hybrid' ? (
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                            <span className="w-1.5 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                            Tendencias del Portafolio
+                            {/* Toggle Button */}
+                            <button 
+                                onClick={() => setViewMode('legacy')}
+                                className="ml-4 flex items-center text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                title="Cambiar tipo de gráfico"
+                            >
+                                <ToggleRight size={16} className="mr-1.5 text-indigo-500" />
+                                Vista Avanzada
+                            </button>
+                        </h3>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 ml-4 block">
+                            Crecimiento histórico vs Flujo mensual de proyectos
+                        </p>
+                    </div>
 
-                {/* Analytical Summary Badges */}
-                <div className="flex items-center space-x-3 self-start md:self-auto bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700/50">
-                    <div className="px-3 text-right border-r border-gray-200 dark:border-gray-700">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Histórico</div>
-                        <div className="text-lg font-black text-indigo-500 leading-none mt-1">{totalCreated}</div>
-                    </div>
-                    <div className="px-3 text-right border-r border-gray-200 dark:border-gray-700">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Completado</div>
-                        <div className="text-lg font-black text-emerald-500 leading-none mt-1">{totalCompleted}</div>
-                    </div>
-                    <div className="px-3 pr-4 text-right">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Tasa (Win)</div>
-                        <div className="text-lg font-black text-gray-800 dark:text-gray-200 flex items-center leading-none mt-1">
-                            {completionRate}%
-                            {completionRate > 50 ? <TrendingUp size={14} className="ml-1.5 text-emerald-500" /> : <AlertCircle size={14} className="ml-1.5 text-amber-500" />}
+                    <div className="flex items-center space-x-3 self-start md:self-auto bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                        <div className="px-3 text-right border-r border-gray-200 dark:border-gray-700">
+                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Creadas</div>
+                            <div className="text-lg font-black text-indigo-500 leading-none mt-1">{totalCreated}</div>
+                        </div>
+                        <div className="px-3 text-right border-r border-gray-200 dark:border-gray-700">
+                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Completado</div>
+                            <div className="text-lg font-black text-emerald-500 leading-none mt-1">{totalCompleted}</div>
+                        </div>
+                        <div className="px-3 pr-4 text-right">
+                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Tasa (Win)</div>
+                            <div className="text-lg font-black text-gray-800 dark:text-gray-200 flex items-center leading-none mt-1">
+                                {completionRate}%
+                                {completionRate > 50 ? <TrendingUp size={14} className="ml-1.5 text-emerald-500" /> : <AlertCircle size={14} className="ml-1.5 text-amber-500" />}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                        <span className="w-1 h-6 bg-emerald-500 rounded-full mr-3"></span>
+                        Tendencias del Portafolio
+                        <button 
+                            onClick={() => setViewMode('hybrid')}
+                            className="ml-4 flex items-center text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                            title="Cambiar tipo de gráfico"
+                        >
+                            <ToggleLeft size={16} className="mr-1.5 text-gray-400" />
+                            Vista Clásica
+                        </button>
+                    </h3>
+
+                    <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Creadas</div>
+                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalCreated}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Completadas</div>
+                            <div className="text-lg font-bold text-green-600 dark:text-green-400">{totalCompleted}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Tasa</div>
+                            <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400 flex items-center">
+                                {completionRate}%
+                                <TrendingUp className="w-4 h-4 ml-1" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Graphic Sector */}
             <div className="h-[300px] w-full mt-2 transition-all duration-500">
@@ -200,7 +247,6 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                             <Legend content={renderLegend} />
 
-                            {/* Fondo: Área de Volumen Total Histórico */}
                             <Area 
                                 type="monotone" 
                                 dataKey="volumenTotal" 
@@ -211,7 +257,6 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                                 activeDot={{ r: 6, strokeWidth: 0, fill: '#8B5CF6' }}
                             />
                             
-                            {/* Capa Media: Barras de Ingreso Mensual Nuevo */}
                             <Bar 
                                 dataKey="nuevasMensuales" 
                                 name="nuevasMensuales" 
@@ -221,7 +266,6 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                                 opacity={0.8}
                             />
 
-                            {/* Capa Superior: Línea de Crecimiento de Éxito */}
                             <Line 
                                 type="monotone" 
                                 dataKey="completadasAcum" 
@@ -234,7 +278,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             />
                         </ComposedChart>
                     ) : (
-                        <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.3} />
                             
                             <XAxis 
@@ -242,13 +286,11 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                                 tick={{ fill: '#6B7280', fontSize: 11 }} 
                                 axisLine={false} 
                                 tickLine={false} 
-                                dy={10}
                             />
                             <YAxis 
                                 tick={{ fill: '#6B7280', fontSize: 11 }} 
                                 axisLine={false} 
                                 tickLine={false} 
-                                dx={-10}
                             />
                             
                             <Tooltip content={<CustomTooltip />} />
@@ -256,8 +298,8 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             
                             <Line 
                                 type="monotone" 
-                                dataKey="nuevasMensuales" 
-                                name="Creadas (Mes)" 
+                                dataKey="created" 
+                                name="Creadas" 
                                 stroke="#3B82F6" 
                                 strokeWidth={2} 
                                 dot={{ fill: '#3B82F6', r: 4 }} 
@@ -265,7 +307,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             />
                             <Line 
                                 type="monotone" 
-                                dataKey="completadasAcum" 
+                                dataKey="completed" 
                                 name="Completadas" 
                                 stroke="#10B981" 
                                 strokeWidth={2} 
@@ -274,7 +316,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             />
                             <Line 
                                 type="monotone" 
-                                dataKey="volumenTotal" 
+                                dataKey="cumulative" 
                                 name="Acumuladas" 
                                 stroke="#8B5CF6" 
                                 strokeWidth={2} 
@@ -286,45 +328,75 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 </ResponsiveContainer>
             </div>
 
-            {/* Smart Insights Zone Premium */}
-            <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center mb-3 text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
-                    <Sparkles size={14} className="mr-2" />
-                    Observaciones Estratégicas
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Volumen Activo:</strong>
-                            {totalCreated > 0 
-                                ? `El pool de operación ha registrado ingresos de nuevos folios hasta alcanzar un volumen bruto de ${totalCreated} iniciativas detectadas en plataforma.` 
-                                : `El canal de operación tecnológica actualmente carece de peticiones detectadas.`}
-                        </p>
+            {/* Smart Insights Zone Premium vs Legacy */}
+            {viewMode === 'hybrid' ? (
+                <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center mb-3 text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
+                        <Sparkles size={14} className="mr-2" />
+                        Observaciones Estratégicas
                     </div>
                     
-                    <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Cierre de Iteraciones:</strong>
-                            {totalCompleted > 0 
-                                ? `La curva de éxito cerró ${totalCompleted} expedientes en total marcando un factor constante de bateo logístico del ${completionRate}%.` 
-                                : `El ciclo de terminación de software reportó nula actividad de lanzamiento formal por el momento.`}
-                        </p>
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
+                            <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                                <strong className="text-gray-900 dark:text-gray-200 block mb-1">Volumen Activo:</strong>
+                                {totalCreated > 0 
+                                    ? `El pool de operación ha registrado ingresos de nuevas iniciativas hasta alcanzar un volumen de ${totalCreated} iniciativas detectadas en el portafolio.` 
+                                    : `El portafolio de iniciativas actualmente carece de peticiones detectadas.`}
+                            </p>
+                        </div>
+                        
+                        <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
+                            <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                                <strong className="text-gray-900 dark:text-gray-200 block mb-1">Cierre de Iteraciones:</strong>
+                                {totalCompleted > 0 
+                                    ? `Se ha logrado la conclusión de ${totalCompleted} iniciativas en total, manteniendo una tasa de éxito del ${completionRate}%.` 
+                                    : `Aún no se ha registrado la compleción formal de ninguna iniciativa este año.`}
+                            </p>
+                        </div>
 
-                    <div className={clsx(
-                        "p-3 rounded-lg border transition-colors",
-                        totalCreated > 0 ? "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/50" : "bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800/70"
-                    )}>
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Lectura de Gráficas:</strong>
-                            {viewMode === 'hybrid' 
-                                ? "La montaña púrpura indica el volumen general histórico. Contrastarlo con las columnas azules marca en qué mes estricto entraron las nuevas peticiones."
-                                : "Las líneas representan crecimientos. Revisa la distancia entre la línea Púrpura (Acumuladas) y la Azul (Nuevas) para entender la proporción."}
-                        </p>
+                        <div className={clsx(
+                            "p-3 rounded-lg border transition-colors",
+                            totalCreated > 0 ? "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/50" : "bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800/70"
+                        )}>
+                            <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                                <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Lectura de Gráficas:</strong>
+                                La montaña púrpura indica el volumen general histórico. Contrastarlo con las columnas azules marca en qué mes estricto entraron las nuevas iniciativas.
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                        Insights
+                    </h4>
+                    <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <li className="flex items-start">
+                            <span className="text-blue-500 mr-2">•</span>
+                            <span>
+                                {totalCreated > 0
+                                    ? `Se han creado ${totalCreated} iniciativas en el año actual`
+                                    : 'No hay iniciativas creadas este año'}
+                            </span>
+                        </li>
+                        <li className="flex items-start">
+                            <span className="text-green-500 mr-2">•</span>
+                            <span>
+                                {totalCompleted > 0
+                                    ? `${totalCompleted} iniciativas completadas (${completionRate}% de tasa de éxito)`
+                                    : 'Aún no hay iniciativas completadas'}
+                            </span>
+                        </li>
+                        <li className="flex items-start">
+                            <span className="text-purple-500 mr-2">•</span>
+                            <span>
+                                La línea acumulada muestra el crecimiento total del portafolio
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            )}
         </div>
     );
 };
