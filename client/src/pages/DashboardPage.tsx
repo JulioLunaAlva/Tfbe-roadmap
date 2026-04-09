@@ -45,6 +45,19 @@ import type { Step } from 'react-joyride';
 
 import API_URL from '../config/api';
 
+const migrateSizes = (sizes: any): Record<string, { w: number, h?: number }> => {
+    if (!sizes || typeof sizes !== 'object') return {};
+    const firstKey = Object.keys(sizes)[0];
+    if (firstKey && typeof sizes[firstKey] === 'number') {
+        const migrated: Record<string, { w: number, h?: number }> = {};
+        Object.keys(sizes).forEach(k => {
+            migrated[k] = { w: sizes[k] };
+        });
+        return migrated;
+    }
+    return sizes;
+};
+
 export const DashboardPage = () => {
     const { token } = useAuth();
     const { user } = useAuth();
@@ -168,19 +181,6 @@ export const DashboardPage = () => {
             else next = 4;
             return { ...prev, [id]: { ...prev[id], w: next } };
         });
-    };
-
-    const migrateSizes = (sizes: any): Record<string, { w: number, h?: number }> => {
-        if (!sizes || typeof sizes !== 'object') return {};
-        const firstKey = Object.keys(sizes)[0];
-        if (firstKey && typeof sizes[firstKey] === 'number') {
-            const migrated: Record<string, { w: number, h?: number }> = {};
-            Object.keys(sizes).forEach(k => {
-                migrated[k] = { w: sizes[k] };
-            });
-            return migrated;
-        }
-        return sizes;
     };
 
     // Load layout from API
