@@ -53,6 +53,7 @@ export const DashboardPage = () => {
     const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
     const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
+    const [resizingWidget, setResizingWidget] = useState<string | null>(null);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
 
@@ -138,25 +139,9 @@ export const DashboardPage = () => {
         return defaultOrder;
     });
 
-    const [widgetSizes, setWidgetSizes] = useState<Record<string, number>>(() => {
+    const [widgetSizes, setWidgetSizes] = useState<Record<string, { w: number, h?: number }>>(() => {
         const saved = localStorage.getItem('dashboard_widget_sizes');
-        return saved ? JSON.parse(saved) : {
-            'kpis': 12,
-            'value': 8,
-            'complexity': 4,
-            'quarters': 4,
-            'timeline': 8,
-            'health': 4,
-            'trends': 8,
-            'active-support': 4,
-            'transf-lead': 4,
-            'area': 4,
-            'leaderboard': 4,
-            'activity': 4,
-            'key-initiatives': 4,
-            'tech': 4,
-            'developer': 4
-        };
+        return migrateSizes(saved ? JSON.parse(saved) : null);
     });
 
     useEffect(() => {
@@ -167,16 +152,34 @@ export const DashboardPage = () => {
         localStorage.setItem('dashboard_widget_sizes', JSON.stringify(widgetSizes));
     }, [widgetSizes]);
 
-    const handleResize = (id: string) => {
+    const handleResize = (id: string, newSize?: { w: number, h?: number }) => {
         setWidgetSizes(prev => {
-            const current = prev[id] || 4;
+            if (newSize) {
+                return { ...prev, [id]: newSize };
+            }
+            
+            // Legacy toggler logic (click based)
+            const current = prev[id]?.w || 4;
             let next = 4;
             if (current === 4) next = 6;
             else if (current === 6) next = 8;
             else if (current === 8) next = 12;
             else next = 4;
-            return { ...prev, [id]: next };
+            return { ...prev, [id]: { ...prev[id], w: next } };
         });
+    };
+
+    const migrateSizes = (sizes: any): Record<string, { w: number, h?: number }> => {
+        if (!sizes || typeof sizes !== 'object') return {};
+        const firstKey = Object.keys(sizes)[0];
+        if (firstKey && typeof sizes[firstKey] === 'number') {
+            const migrated: Record<string, { w: number, h?: number }> = {};
+            Object.keys(sizes).forEach(k => {
+                migrated[k] = { w: sizes[k] };
+            });
+            return migrated;
+        }
+        return sizes;
     };
 
     // Load layout from API
@@ -193,8 +196,8 @@ export const DashboardPage = () => {
                     if (order && Array.isArray(order)) {
                         setWidgetOrder(order);
                     }
-                    if (sizes && typeof sizes === 'object') {
-                        setWidgetSizes(sizes);
+                    if (sizes) {
+                        setWidgetSizes(migrateSizes(sizes));
                     }
                 }
             } catch (error) {
@@ -521,14 +524,27 @@ export const DashboardPage = () => {
                             const widget = widgetsConfig[widgetId];
                             if (!widget) return null;
 
-                            const size = widgetSizes[widgetId] || 4;
-                            const spanClass = size === 12 ? 'col-span-12' : `col-span-12 lg:col-span-${size}`;
+                            const size = widgetSizes[widgetId] || { w: 4 };
+                            const spanClass = size.w === 12 ? 'col-span-12' : `col-span-12 lg:col-span-${size.w}`;
 
                             return (
-                                <div key={widgetId} className={`${spanClass} tour-widget-${widgetId} transition-all duration-300 ease-in-out`}>
+                                <div 
+                                    key={widgetId} 
+                                    className={clsx(
+                                        spanClass, 
+                                        `tour-widget-${widgetId}`,
+                                        resizingWidget !== widgetId && "transition-all duration-300 ease-in-out"
+                                    )}
+                                    style={{ 
+                                        height: size.h ? `${size.h}px` : undefined,
+                                        zIndex: resizingWidget === widgetId ? 50 : 'auto'
+                                    }}
+                                >
                                     <SortableWidget 
                                         id={widgetId} 
-                                        onResize={() => handleResize(widgetId)}
+                                        onResize={(newSize) => handleResize(widgetId, newSize)}
+                                        onResizeStart={() => setResizingWidget(widgetId)}
+                                        onResizeEnd={() => setResizingWidget(null)}
                                         currentSize={size}
                                     >
                                         {widget.component}

@@ -12,7 +12,7 @@ interface DashboardLayout {
 interface Props {
     token: string;
     currentOrder: string[];
-    currentSizes: Record<string, number>;
+    currentSizes: Record<string, { w: number, h?: number }>;
     onLayoutSelected: (order: string[], sizes: Record<string, number>) => void;
 }
 
