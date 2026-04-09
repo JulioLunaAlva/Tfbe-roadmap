@@ -137,8 +137,8 @@ export const Layout = () => {
                 </aside>
             )}
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--bg-primary)]">
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col min-h-0 bg-[var(--bg-primary)]">
                 {/* Top Controls Bar (Sticky) */}
                 <header className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] z-10">
                     <div className="flex items-center space-x-3">
@@ -197,10 +197,10 @@ export const Layout = () => {
                     </div>
                 </header>
 
-                {/* Page Content */}
-                <div className="flex-1 overflow-auto p-4 md:p-6 w-full">
+                {/* Page Content - Pure Scrolling Container */}
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 w-full custom-scrollbar scroll-smooth">
                     <Outlet />
-                </div>
+                </main>
             </div>
         </div>
     );

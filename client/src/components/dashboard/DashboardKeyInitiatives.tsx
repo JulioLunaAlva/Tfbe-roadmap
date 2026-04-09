@@ -1,5 +1,5 @@
 
-import { Lightbulb, ChevronRight, User } from 'lucide-react';
+import { Lightbulb, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Initiative {
@@ -18,26 +18,23 @@ interface KeyInitiativesProps {
 }
 
 export const DashboardKeyInitiatives = ({ initiatives }: KeyInitiativesProps) => {
-    // Filter for Key Initiative and Sort by Progress
+    // Filter for Key Initiative and increase limit to 15
     const displayItems = initiatives
         .filter(i => i.is_key_initiative)
-        .slice(0, 5); // Top 5
+        .slice(0, 15);
 
     return (
-        <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden h-full">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+        <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden h-full flex flex-col">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/30 dark:bg-gray-800/20">
                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
                     <Lightbulb className="w-5 h-5 text-amber-500 fill-current mr-2" />
                     Iniciativas Clave
                 </h3>
-                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center transition-colors">
-                    Ver Todo <ChevronRight size={16} />
-                </button>
             </div>
 
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="flex-1 overflow-y-auto max-h-[480px] divide-y divide-gray-100 dark:divide-gray-800 custom-scrollbar">
                 {displayItems.length === 0 ? (
-                    <div className="p-8 text-center text-gray-400 text-sm">No hay iniciativas clave</div>
+                    <div className="p-12 text-center text-gray-400 text-sm">No hay iniciativas clave</div>
                 ) : (
                     displayItems.map(item => (
                         <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#252D38] transition-colors group">
@@ -70,7 +67,7 @@ export const DashboardKeyInitiatives = ({ initiatives }: KeyInitiativesProps) =>
                             {/* Progress Bar */}
                             <div className="w-full bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
                                 <div
-                                    className={clsx("h-full rounded-full",
+                                    className={clsx("h-full rounded-full transition-all duration-500",
                                         item.status === 'Retrasado' ? 'bg-red-500' :
                                             item.status === 'Entregado' ? 'bg-green-500' : 'bg-blue-500'
                                     )}
