@@ -128,13 +128,14 @@ export const SortableWidget = ({
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
+                        // Reset width cyclically and clear custom height (auto scale)
                         const nextW = tempSize.w === 4 ? 6 : tempSize.w === 6 ? 8 : tempSize.w === 8 ? 12 : 4;
-                        const newSize = { ...tempSize, w: nextW };
+                        const newSize = { w: nextW }; // h is omitted to reset to 'auto'
                         setTempSize(newSize);
                         if (onResize) onResize(newSize);
                     }}
                     className="p-1.5 rounded-md bg-white/90 dark:bg-gray-800/90 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-gray-700 backdrop-blur-sm shadow-sm transition-colors border border-gray-100 dark:border-gray-700"
-                    title={`Ajuste rápido (Actual: ${getSizeLabel(tempSize)})`}
+                    title={`Ajuste rápido a Grid (Resetea Altura)`}
                 >
                     <Maximize2 size={14} />
                 </button>
@@ -150,14 +151,14 @@ export const SortableWidget = ({
             </div>
 
             {/* Content Wrapper */}
-            <div className={clsx(
-                "bg-white dark:bg-[#1E2630] rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 transition-all duration-300",
-                isResizing ? "h-full" : (tempSize.h ? "" : "h-full")
-            )}>
-                <div 
-                    className="w-full h-full overflow-hidden"
-                    style={isResizing ? { height: `${tempSize.h}px` } : undefined}
-                >
+            <div 
+                className={clsx(
+                    "bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-all duration-300 overflow-hidden flex flex-col",
+                    !tempSize.h && "h-full"
+                )}
+                style={tempSize.h ? { height: `${tempSize.h}px` } : undefined}
+            >
+                <div className="w-full h-full overflow-y-auto custom-scrollbar flex flex-col flex-1">
                     {children}
                 </div>
             </div>

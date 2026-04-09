@@ -533,6 +533,7 @@ export const DashboardPage = () => {
                                     key={widgetId} 
                                     className={clsx(
                                         spanClass, 
+                                        "self-start",
                                         `tour-widget-${widgetId}`,
                                         resizingWidget !== widgetId && "transition-all duration-300 ease-in-out"
                                     )}
