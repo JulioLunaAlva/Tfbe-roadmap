@@ -50,6 +50,7 @@ export const DashboardPage = () => {
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+    const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
@@ -168,9 +169,27 @@ export const DashboardPage = () => {
     }, [initiatives]);
 
     const filteredInitiatives = useMemo(() => {
-        if (selectedLeads.length === 0) return initiatives;
-        return initiatives.filter(i => selectedLeads.includes(i.transformation_lead?.trim() || ''));
-    }, [initiatives, selectedLeads]);
+        return initiatives.filter(i => {
+            const leadMatch = selectedLeads.length === 0 || selectedLeads.includes(i.transformation_lead?.trim() || '');
+            
+            let quarterMatch = true;
+            if (selectedQuarters.length > 0) {
+                if (!i.end_date) {
+                    quarterMatch = false;
+                } else {
+                    const month = new Date(i.end_date).getMonth() + 1;
+                    let q = '';
+                    if (month >= 1 && month <= 3) q = 'Q1';
+                    else if (month >= 4 && month <= 6) q = 'Q2';
+                    else if (month >= 7 && month <= 9) q = 'Q3';
+                    else q = 'Q4';
+                    quarterMatch = selectedQuarters.includes(q);
+                }
+            }
+
+            return leadMatch && quarterMatch;
+        });
+    }, [initiatives, selectedLeads, selectedQuarters]);
 
     const metrics = useMemo(() => {
         const total = filteredInitiatives.length;
@@ -401,6 +420,8 @@ export const DashboardPage = () => {
                 transformationLeads={transformationLeads}
                 selectedLeads={selectedLeads}
                 setSelectedLeads={setSelectedLeads}
+                selectedQuarters={selectedQuarters}
+                setSelectedQuarters={setSelectedQuarters}
             />
 
             <OnboardingTour
