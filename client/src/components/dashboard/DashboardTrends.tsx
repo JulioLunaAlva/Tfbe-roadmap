@@ -1,6 +1,7 @@
-import { ComposedChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
+import { ComposedChart, Area, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TrendingUp, Sparkles, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useState } from 'react';
 
 interface Initiative {
     created_at?: string;
@@ -13,6 +14,8 @@ interface TrendsProps {
 }
 
 export const DashboardTrends = ({ initiatives }: TrendsProps) => {
+    const [viewMode, setViewMode] = useState<'hybrid' | 'legacy'>('hybrid');
+
     const generateMonthlyData = () => {
         const currentYear = new Date().getFullYear();
         const months = [
@@ -125,11 +128,20 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
     return (
         <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col justify-between">
             {/* Standard Widget Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative">
                 <div>
                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
                         <span className="w-1.5 h-6 bg-indigo-500 rounded-full mr-3"></span>
                         Tendencias del Portafolio
+                        {/* Toggle Button */}
+                        <button 
+                            onClick={() => setViewMode(prev => prev === 'hybrid' ? 'legacy' : 'hybrid')}
+                            className="ml-4 flex items-center text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                            title="Cambiar tipo de gráfico"
+                        >
+                            {viewMode === 'hybrid' ? <ToggleRight size={16} className="mr-1.5 text-indigo-500" /> : <ToggleLeft size={16} className="mr-1.5 text-gray-400" />}
+                            {viewMode === 'hybrid' ? 'Vista Avanzada' : 'Vista Clásica'}
+                        </button>
                     </h3>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 ml-4 block">
                         Crecimiento histórico vs Flujo mensual de proyectos
@@ -156,70 +168,121 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 </div>
             </div>
 
-            {/* Hybrid Advanced Graph Sector */}
-            <div className="h-[300px] w-full mt-2">
+            {/* Graphic Sector */}
+            <div className="h-[300px] w-full mt-2 transition-all duration-500">
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id="colorVolumen" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.25} />
-                                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.02} />
-                            </linearGradient>
-                        </defs>
-                        
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.15} />
-                        
-                        <XAxis 
-                            dataKey="month" 
-                            tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} 
-                            axisLine={false} 
-                            tickLine={false}
-                            dy={10}
-                        />
-                        <YAxis 
-                            tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tickCount={5}
-                            dx={-10}
-                        />
-                        
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                        <Legend content={renderLegend} />
+                    {viewMode === 'hybrid' ? (
+                        <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorVolumen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.02} />
+                                </linearGradient>
+                            </defs>
+                            
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.15} />
+                            
+                            <XAxis 
+                                dataKey="month" 
+                                tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} 
+                                axisLine={false} 
+                                tickLine={false}
+                                dy={10}
+                            />
+                            <YAxis 
+                                tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }} 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tickCount={5}
+                                dx={-10}
+                            />
+                            
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                            <Legend content={renderLegend} />
 
-                        {/* 1. Fondo: Área de Volumen Total Histórico */}
-                        <Area 
-                            type="monotone" 
-                            dataKey="volumenTotal" 
-                            name="volumenTotal" 
-                            stroke="#8B5CF6" 
-                            strokeWidth={3} 
-                            fill="url(#colorVolumen)" 
-                            activeDot={{ r: 6, strokeWidth: 0, fill: '#8B5CF6' }}
-                        />
-                        
-                        {/* 2. Capa Media: Barras de Ingreso Mensual Nuevo */}
-                        <Bar 
-                            dataKey="nuevasMensuales" 
-                            name="nuevasMensuales" 
-                            fill="#3B82F6" 
-                            barSize={16}
-                            radius={[4, 4, 0, 0]} 
-                            opacity={0.8}
-                        />
+                            {/* Fondo: Área de Volumen Total Histórico */}
+                            <Area 
+                                type="monotone" 
+                                dataKey="volumenTotal" 
+                                name="volumenTotal" 
+                                stroke="#8B5CF6" 
+                                strokeWidth={3} 
+                                fill="url(#colorVolumen)" 
+                                activeDot={{ r: 6, strokeWidth: 0, fill: '#8B5CF6' }}
+                            />
+                            
+                            {/* Capa Media: Barras de Ingreso Mensual Nuevo */}
+                            <Bar 
+                                dataKey="nuevasMensuales" 
+                                name="nuevasMensuales" 
+                                fill="#3B82F6" 
+                                barSize={16}
+                                radius={[4, 4, 0, 0]} 
+                                opacity={0.8}
+                            />
 
-                        {/* 3. Capa Superior: Línea de Crecimiento de Éxito (Completadas) */}
-                        <Line 
-                            type="monotone" 
-                            dataKey="completadasAcum" 
-                            name="completadasAcum" 
-                            stroke="#10B981" 
-                            strokeWidth={3} 
-                            dot={false}
-                            activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#10B981' }}
-                            strokeLinecap="round"
-                        />
-                    </ComposedChart>
+                            {/* Capa Superior: Línea de Crecimiento de Éxito */}
+                            <Line 
+                                type="monotone" 
+                                dataKey="completadasAcum" 
+                                name="completadasAcum" 
+                                stroke="#10B981" 
+                                strokeWidth={3} 
+                                dot={false}
+                                activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#10B981' }}
+                                strokeLinecap="round"
+                            />
+                        </ComposedChart>
+                    ) : (
+                        <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.3} />
+                            
+                            <XAxis 
+                                dataKey="month" 
+                                tick={{ fill: '#6B7280', fontSize: 11 }} 
+                                axisLine={false} 
+                                tickLine={false} 
+                                dy={10}
+                            />
+                            <YAxis 
+                                tick={{ fill: '#6B7280', fontSize: 11 }} 
+                                axisLine={false} 
+                                tickLine={false} 
+                                dx={-10}
+                            />
+                            
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} iconType="circle" />
+                            
+                            <Line 
+                                type="monotone" 
+                                dataKey="nuevasMensuales" 
+                                name="Creadas (Mes)" 
+                                stroke="#3B82F6" 
+                                strokeWidth={2} 
+                                dot={{ fill: '#3B82F6', r: 4 }} 
+                                activeDot={{ r: 6 }} 
+                            />
+                            <Line 
+                                type="monotone" 
+                                dataKey="completadasAcum" 
+                                name="Completadas" 
+                                stroke="#10B981" 
+                                strokeWidth={2} 
+                                dot={{ fill: '#10B981', r: 4 }} 
+                                activeDot={{ r: 6 }} 
+                            />
+                            <Line 
+                                type="monotone" 
+                                dataKey="volumenTotal" 
+                                name="Acumuladas" 
+                                stroke="#8B5CF6" 
+                                strokeWidth={2} 
+                                strokeDasharray="5 5" 
+                                dot={{ fill: '#8B5CF6', r: 3 }} 
+                            />
+                        </LineChart>
+                    )}
                 </ResponsiveContainer>
             </div>
 
@@ -255,7 +318,9 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                     )}>
                         <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
                             <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Lectura de Gráficas:</strong>
-                            La montaña de sombra púrpura muestra el empuje general del entorno corporativo. Contrastarlo con las columnas azules para notar en qué mes entraron realmente las peticiones.
+                            {viewMode === 'hybrid' 
+                                ? "La montaña púrpura indica el volumen general histórico. Contrastarlo con las columnas azules marca en qué mes estricto entraron las nuevas peticiones."
+                                : "Las líneas representan crecimientos. Revisa la distancia entre la línea Púrpura (Acumuladas) y la Azul (Nuevas) para entender la proporción."}
                         </p>
                     </div>
                 </div>
@@ -263,3 +328,4 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
         </div>
     );
 };
+
