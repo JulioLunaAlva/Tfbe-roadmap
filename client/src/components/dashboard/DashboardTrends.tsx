@@ -333,25 +333,25 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center mb-3 text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
                         <Sparkles size={14} className="mr-2" />
-                        Observaciones Estratégicas
+                        Análisis de Progreso
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
                             <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                                <strong className="text-gray-900 dark:text-gray-200 block mb-1">Volumen Activo:</strong>
+                                <strong className="text-gray-900 dark:text-gray-200 block mb-1">Crecimiento del Portafolio:</strong>
                                 {totalCreated > 0 
-                                    ? `El pool de operación ha registrado ingresos de nuevas iniciativas hasta alcanzar un volumen de ${totalCreated} iniciativas detectadas en el portafolio.` 
-                                    : `El portafolio de iniciativas actualmente carece de peticiones detectadas.`}
+                                    ? `Durante este periodo, se han incorporado un total de ${totalCreated} iniciativas, reflejando el volumen actual de carga de trabajo e innovación.` 
+                                    : `El portafolio de iniciativas actualmente se encuentra sin nuevas peticiones registradas.`}
                             </p>
                         </div>
                         
                         <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
                             <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                                <strong className="text-gray-900 dark:text-gray-200 block mb-1">Cierre de Iteraciones:</strong>
+                                <strong className="text-gray-900 dark:text-gray-200 block mb-1">Tasa de Finalización:</strong>
                                 {totalCompleted > 0 
-                                    ? `Se ha logrado la conclusión de ${totalCompleted} iniciativas en total, manteniendo una tasa de éxito del ${completionRate}%.` 
-                                    : `Aún no se ha registrado la compleción formal de ninguna iniciativa este año.`}
+                                    ? `El equipo ha entregado satisfactoriamente ${totalCompleted} iniciativas, logrando resolver el ${completionRate}% del volumen total acumulado.` 
+                                    : `Aún no se registran iniciativas finalizadas durante este ciclo de trabajo.`}
                             </p>
                         </div>
 
@@ -360,8 +360,8 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             totalCreated > 0 ? "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/50" : "bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800/70"
                         )}>
                             <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                                <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Lectura de Gráficas:</strong>
-                                La montaña púrpura indica el volumen general histórico. Contrastarlo con las columnas azules marca en qué mes estricto entraron las nuevas iniciativas.
+                                <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Guía Visual de Tendencias:</strong>
+                                La superficie púrpura de fondo muestra cómo crece el portafolio en total. Las columnas azules te muestran rápidamente en qué meses entraron exactamente.
                             </p>
                         </div>
                     </div>
