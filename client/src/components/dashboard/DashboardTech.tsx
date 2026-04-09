@@ -46,15 +46,15 @@ export const DashboardTech = ({ techData, initiatives }: TechProps) => {
                             <span className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg mr-3">
                                 <Cpu size={20} />
                             </span>
-                            Top Tecnologías
+                            Ecosistema Tecnológico
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-1">
-                            Concentración tecnológica en el portafolio ({totalInitiatives} iniciatvas totales)
+                            Mapa completo de capacidades tecnológicas en el portafolio
                         </p>
                     </div>
                 </div>
 
-                <div className="flex-1 space-y-5">
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-5 max-h-[400px]">
                     {techData.length > 0 ? (
                         techData.map((tech, index) => {
                             const percentage = totalInitiatives > 0 

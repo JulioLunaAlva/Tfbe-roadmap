@@ -296,8 +296,7 @@ export const DashboardPage = () => {
         });
         const techData = Object.keys(techCounts)
             .map(k => ({ name: k, value: techCounts[k] }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 6);
+            .sort((a, b) => b.value - a.value);
 
         const phaseCountsByMethodology: Record<string, Record<string, number>> = {};
         filteredInitiatives.forEach(i => {
