@@ -101,15 +101,6 @@ export const SortableWidget = ({
         opacity: isDragging ? 0.5 : 1,
     };
 
-    const getSizeLabel = (size: WidgetSize) => {
-        const w = size.w;
-        if (w === 4) return "Pequeño (1/3)";
-        if (w === 6) return "Mediano (1/2)";
-        if (w === 8) return "Grande (2/3)";
-        if (w === 12) return "Completo (1/1)";
-        return `Personalizado (${w}/12)`;
-    };
-
     return (
         <div
             ref={(node) => {
