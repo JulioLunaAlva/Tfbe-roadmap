@@ -1,4 +1,5 @@
-import { Gauge } from 'lucide-react';
+
+import { Gauge, CheckCircle2, Clock, AlertCircle, Sparkles, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface HealthProps {
@@ -17,10 +18,6 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
         const delayedRate = (delayed / total) * 100;
         const progressRate = (inProgress / total) * 100;
 
-        // Health formula: 
-        // - Completion contributes positively (40%)
-        // - Delayed contributes negatively (40%)
-        // - In Progress contributes positively (20%)
         const score = Math.round(
             (completionRate * 0.4) +
             (Math.max(0, 100 - delayedRate * 2) * 0.4) +
@@ -33,107 +30,211 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
     const healthScore = calculateHealthScore();
 
     const getHealthStatus = (score: number) => {
-        if (score >= 80) return { label: 'Excelente', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-500' };
-        if (score >= 60) return { label: 'Saludable', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500' };
-        if (score >= 40) return { label: 'Atención', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-500' };
-        return { label: 'Crítico', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-500' };
+        if (score >= 80) return { 
+            label: 'Excelente', 
+            color: 'text-emerald-500', 
+            fill: 'fill-emerald-500', 
+            bg: 'bg-emerald-500', 
+            glow: 'shadow-emerald-500/20',
+            icon: TrendingUp
+        };
+        if (score >= 60) return { 
+            label: 'Saludable', 
+            color: 'text-blue-500', 
+            fill: 'fill-blue-500', 
+            bg: 'bg-blue-500', 
+            glow: 'shadow-blue-500/20',
+            icon: Minus
+        };
+        if (score >= 40) return { 
+            label: 'Atención', 
+            color: 'text-amber-500', 
+            fill: 'fill-amber-500', 
+            bg: 'bg-amber-500', 
+            glow: 'shadow-amber-500/20',
+            icon: TrendingDown
+        };
+        return { 
+            label: 'Crítico', 
+            color: 'text-rose-500', 
+            fill: 'fill-rose-500', 
+            bg: 'bg-rose-500', 
+            glow: 'shadow-rose-500/20',
+            icon: AlertCircle
+        };
     };
 
     const status = getHealthStatus(healthScore);
-    const circumference = 2 * Math.PI * 70; // radius = 70
-    const strokeDashoffset = circumference - (healthScore / 100) * circumference;
+    const StatusIcon = status.icon;
+
+    // SVG Constants for Gauge
+    const size = 200;
+    const center = size / 2;
+    const radius = 80;
+    const strokeWidth = 14;
+    const circumference = 2 * Math.PI * radius;
+    const dashLength = (circumference / 20) - 2; // 20 segments
+    const dashArray = `${dashLength} 2`;
+    const offset = circumference - (healthScore / 100) * circumference;
 
     const getRecommendations = () => {
         const recommendations = [];
-        if (delayed > 0) recommendations.push(`${delayed} iniciativa${delayed > 1 ? 's' : ''} requiere${delayed === 1 ? '' : 'n'} atención inmediata`);
-        if (completed / total < 0.5) recommendations.push('Acelerar cierre de iniciativas en curso');
-        if (inProgress === 0 && total > completed) recommendations.push('Activar iniciativas pendientes');
-        if (recommendations.length === 0) recommendations.push('Portafolio en buen estado, mantener el ritmo');
+        if (delayed > 0) recommendations.push({
+            text: `${delayed} iniciativa${delayed > 1 ? 's' : ''} requiere${delayed === 1 ? '' : 'n'} atención inmediata por retraso crítico.`,
+            priority: 'Alta',
+            color: 'text-rose-500',
+            bg: 'bg-rose-500/10'
+        });
+        if (completed / total < 0.5) recommendations.push({
+            text: 'Baja tasa de cierre detectada. Priorizar la entrega de hitos finales este mes.',
+            priority: 'Media',
+            color: 'text-amber-500',
+            bg: 'bg-amber-500/10'
+        });
+        if (inProgress > total * 0.7) recommendations.push({
+            text: 'Alta saturación "En Curso". Riesgo de cuellos de botella en el equipo.',
+            priority: 'Media',
+            color: 'text-blue-500',
+            bg: 'bg-blue-500/10'
+        });
+        
+        if (recommendations.length === 0) recommendations.push({
+            text: 'Operación óptima. Mantener el ritmo actual de ejecución y seguimiento.',
+            priority: 'Baja',
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-500/10'
+        });
         return recommendations;
     };
 
     return (
-        <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
-                <span className="w-1 h-6 bg-teal-500 rounded-full mr-3"></span>
-                Salud del Portafolio
-            </h3>
+        <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col transition-all duration-300 hover:shadow-md">
+            <div className="mb-8 flex justify-between items-start">
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                        <span className="p-1.5 bg-teal-500/10 text-teal-500 rounded-lg mr-3">
+                            <Sparkles size={20} />
+                        </span>
+                        Salud del Portafolio
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-1">
+                        Índice de eficiencia operativa basado en KPIs actuales
+                    </p>
+                </div>
+            </div>
 
-            <div className="flex flex-col items-center">
-                {/* Gauge Chart */}
-                <div className="relative w-48 h-48 mb-6">
-                    <svg className="transform -rotate-90 w-48 h-48">
-                        {/* Background circle */}
+            <div className="flex-1 flex flex-col items-center">
+                {/* HUD Gauge Component */}
+                <div className="relative w-48 h-48 mb-8 group">
+                    {/* Glowing Aura Background */}
+                    <div className={clsx(
+                        "absolute inset-4 rounded-full blur-3xl opacity-20 transition-all duration-1000",
+                        status.bg
+                    )} />
+                    
+                    <svg viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90 w-full h-full drop-shadow-sm">
+                        {/* Shadow/Track Background */}
                         <circle
-                            cx="96"
-                            cy="96"
-                            r="70"
-                            stroke="currentColor"
-                            strokeWidth="12"
+                            cx={center}
+                            cy={center}
+                            r={radius}
                             fill="transparent"
-                            className="text-gray-200 dark:text-gray-700"
+                            stroke="currentColor"
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={dashArray}
+                            className="text-gray-100 dark:text-gray-800/50"
                         />
-                        {/* Progress circle */}
+                        {/* Active Health Progress Ring */}
                         <circle
-                            cx="96"
-                            cy="96"
-                            r="70"
-                            stroke="currentColor"
-                            strokeWidth="12"
+                            cx={center}
+                            cy={center}
+                            r={radius}
                             fill="transparent"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={strokeDashoffset}
-                            className={clsx(status.bg.replace('bg-', 'text-'), 'transition-all duration-1000 ease-out')}
-                            strokeLinecap="round"
+                            stroke="url(#healthGradient)"
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={dashArray}
+                            strokeDashoffset={offset}
+                            className="transition-all duration-1000 ease-out"
+                            strokeLinecap="butt"
                         />
+                        {/* Gradient Definition */}
+                        <defs>
+                            <linearGradient id="healthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="currentColor" className={status.color} />
+                                <stop offset="100%" stopColor="currentColor" className={status.color} />
+                            </linearGradient>
+                        </defs>
                     </svg>
 
-                    {/* Center content */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <Gauge className={clsx('w-8 h-8 mb-2', status.color)} />
-                        <span className="text-4xl font-bold text-gray-900 dark:text-white">{healthScore}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">de 100</span>
+                    {/* Center HUD Info */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <div className={clsx("mb-1 transition-transform duration-500 group-hover:scale-110", status.color)}>
+                            <StatusIcon size={24} />
+                        </div>
+                        <div className="flex items-baseline">
+                            <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">
+                                {healthScore}
+                            </span>
+                            <span className="text-xs font-bold text-gray-400 dark:text-gray-500 ml-1">
+                                PT
+                            </span>
+                        </div>
+                        <div className={clsx(
+                            "mt-2 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700",
+                            status.color
+                        )}>
+                            {status.label}
+                        </div>
                     </div>
                 </div>
 
-                {/* Status Badge */}
-                <div className={clsx(
-                    'px-6 py-2 rounded-full font-bold text-sm mb-6',
-                    healthScore >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        healthScore >= 60 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                            healthScore >= 40 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                )}>
-                    Estado: {status.label}
+                {/* Metrics Matrix HUD */}
+                <div className="grid grid-cols-3 gap-3 w-full mb-8">
+                    {[
+                        { label: 'Entrega', value: completed, color: 'text-emerald-500', bg: 'bg-emerald-500/5', icon: CheckCircle2 },
+                        { label: 'Ritmo', value: inProgress, color: 'text-blue-500', bg: 'bg-blue-500/5', icon: Clock },
+                        { label: 'Riesgo', value: delayed, color: 'text-rose-500', bg: 'bg-rose-500/5', icon: AlertCircle }
+                    ].map((m) => (
+                        <div key={m.label} className={clsx("relative flex flex-col items-center p-3 rounded-2xl border border-transparent transition-all hover:border-gray-100 dark:hover:border-gray-800", m.bg)}>
+                            <m.icon size={14} className={clsx("mb-2 opacity-50", m.color)} />
+                            <div className="text-xl font-black text-gray-900 dark:text-white">{m.value}</div>
+                            <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter mt-1">{m.label}</div>
+                        </div>
+                    ))}
                 </div>
 
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-3 gap-4 w-full mb-6">
-                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/10 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{completed}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Completadas</div>
-                    </div>
-                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{inProgress}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">En Curso</div>
-                    </div>
-                    <div className="text-center p-3 bg-red-50 dark:bg-red-900/10 rounded-lg">
-                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{delayed}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Retrasadas</div>
-                    </div>
-                </div>
-
-                {/* Recommendations */}
-                <div className="w-full bg-gray-50 dark:bg-[#252D38] rounded-lg p-4">
-                    <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Recomendaciones</h4>
-                    <ul className="space-y-2">
+                {/* Intelligent Insights HUD */}
+                <div className="w-full space-y-3">
+                    <h4 className="flex items-center text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">
+                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2 animate-pulse" />
+                        Smart Insights
+                    </h4>
+                    
+                    <div className="space-y-2">
                         {getRecommendations().map((rec, idx) => (
-                            <li key={idx} className="text-sm text-gray-600 dark:text-gray-400 flex items-start">
-                                <span className="text-indigo-500 mr-2">•</span>
-                                <span>{rec}</span>
-                            </li>
+                            <div 
+                                key={idx} 
+                                className={clsx(
+                                    "p-3 rounded-xl border border-transparent flex items-start group transition-all hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm",
+                                    rec.bg
+                                )}
+                            >
+                                <div className={clsx("mt-1 mr-3 flex-shrink-0", rec.color)}>
+                                    <Sparkles size={14} />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-0.5">
+                                        <span className={clsx("text-[9px] font-black uppercase tracking-wider", rec.color)}>
+                                            Prioridad {rec.priority}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white">
+                                        {rec.text}
+                                    </p>
+                                </div>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
