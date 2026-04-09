@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, List, Trash2, CheckCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Trash2, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import API_URL from '../../config/api';
 
 interface DashboardLayout {
