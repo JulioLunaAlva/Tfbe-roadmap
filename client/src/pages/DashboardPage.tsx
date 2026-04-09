@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import { Zap, HelpCircle } from 'lucide-react';
-import { clsx } from 'clsx';
 import {
     DndContext,
     closestCenter,
@@ -45,19 +44,6 @@ import type { Step } from 'react-joyride';
 
 import API_URL from '../config/api';
 
-const migrateSizes = (sizes: any): Record<string, { w: number, h?: number }> => {
-    if (!sizes || typeof sizes !== 'object') return {};
-    const firstKey = Object.keys(sizes)[0];
-    if (firstKey && typeof sizes[firstKey] === 'number') {
-        const migrated: Record<string, { w: number, h?: number }> = {};
-        Object.keys(sizes).forEach(k => {
-            migrated[k] = { w: sizes[k] };
-        });
-        return migrated;
-    }
-    return sizes;
-};
-
 export const DashboardPage = () => {
     const { token } = useAuth();
     const { user } = useAuth();
@@ -67,7 +53,6 @@ export const DashboardPage = () => {
     const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
     const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
-    const [resizingWidget, setResizingWidget] = useState<string | null>(null);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
 
@@ -153,9 +138,25 @@ export const DashboardPage = () => {
         return defaultOrder;
     });
 
-    const [widgetSizes, setWidgetSizes] = useState<Record<string, { w: number, h?: number }>>(() => {
+    const [widgetSizes, setWidgetSizes] = useState<Record<string, number>>(() => {
         const saved = localStorage.getItem('dashboard_widget_sizes');
-        return migrateSizes(saved ? JSON.parse(saved) : null);
+        return saved ? JSON.parse(saved) : {
+            'kpis': 12,
+            'value': 8,
+            'complexity': 4,
+            'quarters': 4,
+            'timeline': 8,
+            'health': 4,
+            'trends': 8,
+            'active-support': 4,
+            'transf-lead': 4,
+            'area': 4,
+            'leaderboard': 4,
+            'activity': 4,
+            'key-initiatives': 4,
+            'tech': 4,
+            'developer': 4
+        };
     });
 
     useEffect(() => {
@@ -166,20 +167,15 @@ export const DashboardPage = () => {
         localStorage.setItem('dashboard_widget_sizes', JSON.stringify(widgetSizes));
     }, [widgetSizes]);
 
-    const handleResize = (id: string, newSize?: { w: number, h?: number }) => {
+    const handleResize = (id: string) => {
         setWidgetSizes(prev => {
-            if (newSize) {
-                return { ...prev, [id]: newSize };
-            }
-            
-            // Legacy toggler logic (click based)
-            const current = prev[id]?.w || 4;
+            const current = prev[id] || 4;
             let next = 4;
             if (current === 4) next = 6;
             else if (current === 6) next = 8;
             else if (current === 8) next = 12;
             else next = 4;
-            return { ...prev, [id]: { ...prev[id], w: next } };
+            return { ...prev, [id]: next };
         });
     };
 
@@ -197,8 +193,8 @@ export const DashboardPage = () => {
                     if (order && Array.isArray(order)) {
                         setWidgetOrder(order);
                     }
-                    if (sizes) {
-                        setWidgetSizes(migrateSizes(sizes));
+                    if (sizes && typeof sizes === 'object') {
+                        setWidgetSizes(sizes);
                     }
                 }
             } catch (error) {
@@ -506,7 +502,7 @@ export const DashboardPage = () => {
                     currentSizes={widgetSizes}
                     onLayoutSelected={(order, sizes) => {
                         setWidgetOrder(order);
-                        setWidgetSizes(migrateSizes(sizes));
+                        setWidgetSizes(sizes);
                     }}
                 />
             )}
@@ -525,28 +521,14 @@ export const DashboardPage = () => {
                             const widget = widgetsConfig[widgetId];
                             if (!widget) return null;
 
-                            const size = widgetSizes[widgetId] || { w: 4 };
-                            const spanClass = size.w === 12 ? 'col-span-12' : `col-span-12 lg:col-span-${size.w}`;
+                            const size = widgetSizes[widgetId] || 4;
+                            const spanClass = size === 12 ? 'col-span-12' : `col-span-12 lg:col-span-${size}`;
 
                             return (
-                                <div 
-                                    key={widgetId} 
-                                    className={clsx(
-                                        spanClass, 
-                                        "self-start",
-                                        `tour-widget-${widgetId}`,
-                                        resizingWidget !== widgetId && "transition-all duration-300 ease-in-out"
-                                    )}
-                                    style={{ 
-                                        height: size.h ? `${size.h}px` : undefined,
-                                        zIndex: resizingWidget === widgetId ? 50 : 'auto'
-                                    }}
-                                >
+                                <div key={widgetId} className={`${spanClass} tour-widget-${widgetId} transition-all duration-300 ease-in-out`}>
                                     <SortableWidget 
                                         id={widgetId} 
-                                        onResize={(newSize) => handleResize(widgetId, newSize)}
-                                        onResizeStart={() => setResizingWidget(widgetId)}
-                                        onResizeEnd={() => setResizingWidget(null)}
+                                        onResize={() => handleResize(widgetId)}
                                         currentSize={size}
                                     >
                                         {widget.component}

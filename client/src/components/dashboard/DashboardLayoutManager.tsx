@@ -12,8 +12,8 @@ interface DashboardLayout {
 interface Props {
     token: string;
     currentOrder: string[];
-    currentSizes: Record<string, { w: number, h?: number }>;
-    onLayoutSelected: (order: string[], sizes: Record<string, { w: number, h?: number }>) => void;
+    currentSizes: Record<string, number>;
+    onLayoutSelected: (order: string[], sizes: Record<string, number>) => void;
 }
 
 export const DashboardLayoutManager = ({ token, currentOrder, currentSizes, onLayoutSelected }: Props) => {
