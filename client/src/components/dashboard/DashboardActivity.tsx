@@ -19,12 +19,9 @@ interface ActivityProps {
 
 export const DashboardActivity = ({ initiatives }: ActivityProps) => {
     // Filter for Top Priority and Sort by Progress (or any other metric)
-    const priorityItems = initiatives
+    const displayItems = initiatives
         .filter(i => i.is_top_priority)
         .slice(0, 5); // Top 5
-
-    // If no top priority, just take latest 5
-    const displayItems = priorityItems.length > 0 ? priorityItems : initiatives.slice(0, 5);
 
     return (
         <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden h-full">

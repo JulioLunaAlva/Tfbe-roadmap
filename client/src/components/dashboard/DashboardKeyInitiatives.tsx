@@ -19,12 +19,9 @@ interface KeyInitiativesProps {
 
 export const DashboardKeyInitiatives = ({ initiatives }: KeyInitiativesProps) => {
     // Filter for Key Initiative and Sort by Progress
-    const keyItems = initiatives
+    const displayItems = initiatives
         .filter(i => i.is_key_initiative)
         .slice(0, 5); // Top 5
-
-    // If no key initiatives, just take latest 5
-    const displayItems = keyItems.length > 0 ? keyItems : initiatives.slice(0, 5);
 
     return (
         <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden h-full">
