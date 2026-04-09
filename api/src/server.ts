@@ -11,6 +11,8 @@ import dbStatusRouter from './routes/db-status';
 import onePagerRouter from './routes/onepagers';
 import supportRouter from './routes/support';
 import usersRouter from './routes/users';
+import dashboardRouter from './routes/dashboard';
+import { query } from './db';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -37,3 +39,25 @@ app.use('/api/one-pagers', onePagerRouter);
 app.use('/api/one-pagers', onePagerRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/dashboard', dashboardRouter);
+
+// Database Initialization: Create dashboard_layouts table if not exists
+const initDb = async () => {
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS dashboard_layouts (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        layout_data JSONB NOT NULL,
+        is_active BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_dashboard_layouts_active ON dashboard_layouts(is_active) WHERE (is_active = true);
+    `);
+    console.log('✅ Dashboard layouts table ready');
+  } catch (err) {
+    console.error('❌ Failed to initialize dashboard layout table:', err);
+  }
+};
+initDb();

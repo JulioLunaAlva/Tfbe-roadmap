@@ -7,6 +7,7 @@ import progressRouter from './routes/progress';
 import importRouter from './routes/import';
 import preferencesRouter from './routes/preferences';
 import usersRouter from './routes/users';
+import dashboardRouter from './routes/dashboard';
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/progress', progressRouter);
 app.use('/import', importRouter);
 app.use('/preferences', preferencesRouter);
 app.use('/users', usersRouter);
+app.use('/dashboard', dashboardRouter);
 
 // Debug: Log all requests
 app.use((req, res, next) => {

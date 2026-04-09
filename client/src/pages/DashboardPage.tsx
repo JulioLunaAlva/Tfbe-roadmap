@@ -37,6 +37,7 @@ import { DashboardTech } from '../components/dashboard/DashboardTech';
 import { DashboardDeveloper } from '../components/dashboard/DashboardDeveloper';
 import { DashboardQuarter } from '../components/dashboard/DashboardQuarter';
 import { DashboardFilters } from '../components/dashboard/DashboardFilters';
+import { DashboardLayoutManager } from '../components/dashboard/DashboardLayoutManager';
 
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import type { Step } from 'react-joyride';
@@ -177,6 +178,33 @@ export const DashboardPage = () => {
             return { ...prev, [id]: next };
         });
     };
+
+    // Load layout from API
+    useEffect(() => {
+        const fetchActiveLayout = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/dashboard/layout`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data && data.layout_data) {
+                    const { order, sizes } = data.layout_data;
+                    if (order && Array.isArray(order)) {
+                        setWidgetOrder(order);
+                    }
+                    if (sizes && typeof sizes === 'object') {
+                        setWidgetSizes(sizes);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching global layout:', error);
+            }
+        };
+        fetchActiveLayout();
+    }, [token]);
+
+    const isCesar = user?.email?.toLowerCase() === 'cesar@kof.com' || user?.email?.toLowerCase() === 'cesar';
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -466,6 +494,19 @@ export const DashboardPage = () => {
                 tourKey={`dashboardTourCompleted_${user?.role || 'user'}`}
                 runTour={runTour}
             />
+
+            {/* Admin Layout Controls */}
+            {isCesar && (
+                <DashboardLayoutManager 
+                    token={token || ''} 
+                    currentOrder={widgetOrder}
+                    currentSizes={widgetSizes}
+                    onLayoutSelected={(order, sizes) => {
+                        setWidgetOrder(order);
+                        setWidgetSizes(sizes);
+                    }}
+                />
+            )}
 
             <DndContext
                 sensors={sensors}
