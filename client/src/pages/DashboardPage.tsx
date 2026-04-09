@@ -137,9 +137,46 @@ export const DashboardPage = () => {
         return defaultOrder;
     });
 
+    const [widgetSizes, setWidgetSizes] = useState<Record<string, number>>(() => {
+        const saved = localStorage.getItem('dashboard_widget_sizes');
+        return saved ? JSON.parse(saved) : {
+            'kpis': 12,
+            'value': 8,
+            'complexity': 4,
+            'quarters': 4,
+            'timeline': 8,
+            'health': 4,
+            'trends': 8,
+            'active-support': 4,
+            'transf-lead': 4,
+            'area': 4,
+            'leaderboard': 4,
+            'activity': 4,
+            'key-initiatives': 4,
+            'tech': 4,
+            'developer': 4
+        };
+    });
+
     useEffect(() => {
         localStorage.setItem('dashboard_widget_order', JSON.stringify(widgetOrder));
     }, [widgetOrder]);
+
+    useEffect(() => {
+        localStorage.setItem('dashboard_widget_sizes', JSON.stringify(widgetSizes));
+    }, [widgetSizes]);
+
+    const handleResize = (id: string) => {
+        setWidgetSizes(prev => {
+            const current = prev[id] || 4;
+            let next = 4;
+            if (current === 4) next = 6;
+            else if (current === 6) next = 8;
+            else if (current === 8) next = 12;
+            else next = 4;
+            return { ...prev, [id]: next };
+        });
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -439,14 +476,21 @@ export const DashboardPage = () => {
                     items={widgetOrder}
                     strategy={rectSortingStrategy}
                 >
-                    <div className="grid grid-cols-12 gap-6 tour-dashboard-grid">
+                    <div className="grid grid-cols-12 grid-flow-row-dense gap-6 tour-dashboard-grid">
                         {widgetOrder.map((widgetId) => {
                             const widget = widgetsConfig[widgetId];
                             if (!widget) return null;
 
+                            const size = widgetSizes[widgetId] || 4;
+                            const spanClass = size === 12 ? 'col-span-12' : `col-span-12 lg:col-span-${size}`;
+
                             return (
-                                <div key={widgetId} className={`${widget.span} tour-widget-${widgetId}`}>
-                                    <SortableWidget id={widgetId}>
+                                <div key={widgetId} className={`${spanClass} tour-widget-${widgetId} transition-all duration-300 ease-in-out`}>
+                                    <SortableWidget 
+                                        id={widgetId} 
+                                        onResize={() => handleResize(widgetId)}
+                                        currentSize={size}
+                                    >
                                         {widget.component}
                                     </SortableWidget>
                                 </div>
