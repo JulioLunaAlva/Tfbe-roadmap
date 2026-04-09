@@ -12,7 +12,6 @@ interface TrendsProps {
 }
 
 export const DashboardTrends = ({ initiatives }: TrendsProps) => {
-    // Generate monthly data for the current year
     const generateMonthlyData = () => {
         const currentYear = new Date().getFullYear();
         const months = [
@@ -20,38 +19,37 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
             'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
         ];
 
+        // Calculate running totals (cumulative)
+        let runningCreated = 0;
+        let runningCompleted = 0;
+
         const monthlyData = months.map((month, index) => {
             const monthStart = new Date(currentYear, index, 1);
             const monthEnd = new Date(currentYear, index + 1, 0);
 
             // Count initiatives created in this month
-            const created = initiatives.filter(i => {
+            const monthCreated = initiatives.filter(i => {
                 if (!i.created_at) return false;
                 const createdDate = new Date(i.created_at);
                 return createdDate >= monthStart && createdDate <= monthEnd;
             }).length;
 
-            // Count completed initiatives (using end_date for actual completion)
-            const completed = initiatives.filter(i => {
+            // Count completed initiatives in this month
+            const monthCompleted = initiatives.filter(i => {
                 if (!i.end_date || i.status !== 'Entregado') return false;
                 const endDate = new Date(i.end_date);
                 return endDate >= monthStart && endDate <= monthEnd;
             }).length;
 
-            // Calculate cumulative
+            runningCreated += monthCreated;
+            runningCompleted += monthCompleted;
+
             return {
                 month,
-                created,
-                completed,
-                cumulative: 0 // Will be calculated below
+                created: runningCreated,
+                completed: runningCompleted,
+                cumulative: runningCreated
             };
-        });
-
-        // Calculate cumulative
-        let cumulative = 0;
-        monthlyData.forEach(data => {
-            cumulative += data.created;
-            data.cumulative = cumulative;
         });
 
         return monthlyData;
@@ -59,9 +57,10 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
 
     const data = generateMonthlyData();
 
-    // Calculate totals
-    const totalCreated = data.reduce((sum, d) => sum + d.created, 0);
-    const totalCompleted = data.reduce((sum, d) => sum + d.completed, 0);
+    // Calculate totals from the final month (Dec)
+    const lastData = data[data.length - 1];
+    const totalCreated = lastData.created;
+    const totalCompleted = lastData.completed;
     const completionRate = totalCreated > 0 ? Math.round((totalCompleted / totalCreated) * 100) : 0;
 
     const CustomTooltip = ({ active, payload, label }: any) => {
