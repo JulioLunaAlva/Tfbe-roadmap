@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import { Zap, HelpCircle } from 'lucide-react';
+import { clsx } from 'clsx';
 import {
     DndContext,
     closestCenter,
@@ -505,7 +506,7 @@ export const DashboardPage = () => {
                     currentSizes={widgetSizes}
                     onLayoutSelected={(order, sizes) => {
                         setWidgetOrder(order);
-                        setWidgetSizes(sizes);
+                        setWidgetSizes(migrateSizes(sizes));
                     }}
                 />
             )}
