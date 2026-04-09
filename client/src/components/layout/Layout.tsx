@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -7,9 +8,19 @@ import { clsx } from 'clsx';
 
 export const Layout = () => {
     const { user, logout } = useAuth();
+    const location = useLocation();
     const { theme, toggleTheme, isSidebarOpen, toggleSidebar, isPresentationMode, togglePresentationMode } = useTheme();
     const { year, setYear } = useYear();
-    const location = useLocation();
+
+    // Reset scroll on navigation
+    React.useEffect(() => {
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            mainContent.scrollTop = 0;
+            // Force a reflow by slightly changing a property if necessary, 
+            // but usually resetting scrollTop is enough to trigger a recalculation
+        }
+    }, [location.pathname]);
 
     const navItems = [
         { label: 'Roadmap', path: '/', icon: ListTodo },
@@ -199,7 +210,7 @@ export const Layout = () => {
 
                 {/* Page Content - Full Scrolling Area */}
                 <div className="flex-1 relative overflow-hidden">
-                    <main id="main-content" className="absolute inset-0 overflow-y-auto overflow-x-auto p-4 md:p-6 custom-scrollbar scroll-smooth">
+                    <main id="main-content" className="absolute inset-0 overflow-y-auto overflow-x-auto p-4 md:p-6 custom-scrollbar">
                         <div className="min-h-full w-full">
                             <Outlet />
                         </div>
