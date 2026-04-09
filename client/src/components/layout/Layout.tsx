@@ -138,11 +138,11 @@ export const Layout = () => {
             )}
 
             {/* Main Content Area */}
+            {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[var(--bg-primary)]">
                 {/* Top Controls Bar (Sticky) */}
-                <header className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] z-10">
+                <header className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] z-10 flex-shrink-0">
                     <div className="flex items-center space-x-3">
-                        {/* Toggle Button in Header if Sidebar is closed/mobile? No, Sidebar has its own toggle. Just Title here. */}
                         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
                             {location.pathname === '/' ? 'Roadmap de Iniciativas' :
                                 location.pathname === '/dashboard' ? 'Dashboard Transformación' :
@@ -197,10 +197,14 @@ export const Layout = () => {
                     </div>
                 </header>
 
-                {/* Page Content - Pure Scrolling Container */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 w-full custom-scrollbar scroll-smooth">
-                    <Outlet />
-                </main>
+                {/* Page Content - Full Scrolling Area */}
+                <div className="flex-1 relative overflow-hidden">
+                    <main id="main-content" className="absolute inset-0 overflow-y-auto overflow-x-auto p-4 md:p-6 custom-scrollbar scroll-smooth">
+                        <div className="min-h-full w-full">
+                            <Outlet />
+                        </div>
+                    </main>
+                </div>
             </div>
         </div>
     );
