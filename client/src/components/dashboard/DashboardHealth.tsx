@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, AlertCircle, BarChart3, ShieldAlert, Box, RefreshCw } from 'lucide-react';
+import { CheckCircle2, BarChart3, ShieldAlert, Box, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useMemo } from 'react';
 
