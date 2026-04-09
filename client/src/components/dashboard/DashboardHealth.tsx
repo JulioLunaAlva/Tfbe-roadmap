@@ -30,8 +30,9 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
 
     // Prescriptive Analytics Engine (Smart Insights 2.0)
     const insights = useMemo(() => {
-        if (total === 0) return [{ text: 'Sin datos para generar insights en este periodo.', priority: 'Baja', color: 'text-gray-500', bg: 'bg-gray-500/10' }];
+        if (total === 0) return [{ title: 'Esperando Datos', text: 'Sin datos para generar insights en este periodo.', priority: 'Baja', color: 'text-gray-500', bg: 'bg-gray-500/10' }];
         const recs = [];
+
         const delayedRate = delayed / total;
         const progressRate = inProgress / total;
 
