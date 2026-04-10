@@ -398,7 +398,9 @@ export const DashboardPage = () => {
         </div>
     );
 
-    const widgetsConfig: Record<string, { component: React.ReactNode, span: string }> = {
+    const hasFilters = selectedLeads.length > 0 || selectedQuarters.length > 0;
+
+    const widgetsConfig: Record<string, { component: React.ReactNode | null, span: string }> = {
         'kpis': {
             component: <DashboardKPIs total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} completionRate={metrics.completionRate} initiatives={filteredInitiatives} />,
             span: 'col-span-12'
@@ -412,7 +414,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'quarters': {
-            component: <DashboardQuarter quartersData={metrics.quartersData} initiatives={filteredInitiatives} />,
+            component: hasFilters ? null : <DashboardQuarter quartersData={metrics.quartersData} initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'timeline': {
@@ -424,7 +426,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'trends': {
-            component: <DashboardTrends initiatives={filteredInitiatives} />,
+            component: <DashboardTrends initiatives={initiatives} />,
             span: 'col-span-12 lg:col-span-8'
         },
         'active-support': {
@@ -519,7 +521,7 @@ export const DashboardPage = () => {
                     <div className="grid grid-cols-12 grid-flow-row-dense gap-6 tour-dashboard-grid">
                         {widgetOrder.map((widgetId) => {
                             const widget = widgetsConfig[widgetId];
-                            if (!widget) return null;
+                            if (!widget || !widget.component) return null;
 
                             const size = widgetSizes[widgetId] || 4;
                             const spanClass = size === 12 ? 'col-span-12' : `col-span-12 lg:col-span-${size}`;
