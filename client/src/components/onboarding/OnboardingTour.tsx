@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Joyride, { STATUS } from 'react-joyride';
 import type { CallBackProps, Step } from 'react-joyride';
 
@@ -10,6 +10,23 @@ interface OnboardingTourProps {
 
 export const OnboardingTour = ({ steps, tourKey, runTour }: OnboardingTourProps) => {
   const [run, setRun] = useState(false);
+  const originalOverflow = useRef<string>('');
+
+  // Restore body overflow whenever run changes to false (tour ended/skipped)
+  useEffect(() => {
+    if (!run) {
+      // Ensure body overflow is always restored when tour is not running
+      document.body.style.overflow = '';
+    }
+  }, [run]);
+
+  // Cleanup on unmount to be safe
+  useEffect(() => {
+    originalOverflow.current = document.body.style.overflow;
+    return () => {
+      document.body.style.overflow = originalOverflow.current;
+    };
+  }, []);
 
   useEffect(() => {
     // If runTour is explicitly provided, it overrides localStorage
@@ -36,6 +53,8 @@ export const OnboardingTour = ({ steps, tourKey, runTour }: OnboardingTourProps)
     if (finishedStatuses.includes(status)) {
       setRun(false);
       localStorage.setItem(tourKey, 'true');
+      // Immediately restore body overflow so scrollbar reappears
+      document.body.style.overflow = '';
     }
   };
 
@@ -46,6 +65,8 @@ export const OnboardingTour = ({ steps, tourKey, runTour }: OnboardingTourProps)
       hideCloseButton
       run={run}
       scrollToFirstStep
+      disableScrolling
+      disableScrollParentFix
       showProgress={false}
       showSkipButton
       steps={steps}

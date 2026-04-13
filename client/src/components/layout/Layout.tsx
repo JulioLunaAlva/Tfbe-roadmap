@@ -209,8 +209,8 @@ export const Layout = () => {
                 </header>
 
                 {/* Page Content - Full Scrolling Area */}
-                <div className="flex-1 relative overflow-hidden">
-                    <main id="main-content" className="absolute inset-0 overflow-y-auto overflow-x-auto p-4 md:p-6 custom-scrollbar">
+                <div className="flex-1 relative overflow-hidden isolate">
+                    <main id="main-content" className="absolute inset-0 overflow-y-scroll overflow-x-auto p-4 md:p-6 custom-scrollbar">
                         <div className="min-h-full w-full">
                             <Outlet />
                         </div>
