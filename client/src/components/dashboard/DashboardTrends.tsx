@@ -316,6 +316,3 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
         </div>
     );
 };
-
-    );
-};
