@@ -1,8 +1,15 @@
+import { useState } from 'react';
 import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
+import { InitiativeListModal } from './InitiativeListModal';
 
 interface Initiative {
+    id: string;
+    name: string;
+    champion: string;
+    progress: number;
+    area: string;
     created_at?: string;
     end_date?: string;
     status: string;
@@ -13,6 +20,10 @@ interface TrendsProps {
 }
 
 export const DashboardTrends = ({ initiatives }: TrendsProps) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalTitle, setModalTitle] = useState('');
+    const [modalInitiatives, setModalInitiatives] = useState<Initiative[]>([]);
+
     const generateMonthlyData = () => {
         const currentYear = new Date().getFullYear();
         const months = [
@@ -22,35 +33,61 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
 
         let runningCreated = 0;
         let runningCompleted = 0;
+        const accumulatedCreated: Initiative[] = [];
+        const accumulatedCompleted: Initiative[] = [];
 
         return months.map((month, index) => {
             const monthStart = new Date(currentYear, index, 1);
             const monthEnd = new Date(currentYear, index + 1, 0);
 
-            const monthCreated = initiatives.filter(i => {
+            const monthCreatedInits = initiatives.filter(i => {
                 if (!i.created_at) return false;
                 const createdDate = new Date(i.created_at);
                 return createdDate >= monthStart && createdDate <= monthEnd;
-            }).length;
+            });
 
-            const monthCompleted = initiatives.filter(i => {
+            const monthCompletedInits = initiatives.filter(i => {
                 if (!i.end_date || i.status !== 'Entregado') return false;
                 const endDate = new Date(i.end_date);
                 return endDate >= monthStart && endDate <= monthEnd;
-            }).length;
+            });
 
-            runningCreated += monthCreated;
-            runningCompleted += monthCompleted;
+            accumulatedCreated.push(...monthCreatedInits);
+            accumulatedCompleted.push(...monthCompletedInits);
+
+            runningCreated += monthCreatedInits.length;
+            runningCompleted += monthCompletedInits.length;
 
             return {
                 month,
                 completadasAcum : runningCompleted,
-                volumenTotal: runningCreated
+                volumenTotal: runningCreated,
+                // Store snapshots for the modal
+                completedList: [...accumulatedCompleted],
+                createdList: [...accumulatedCreated]
             };
         });
     };
 
     const data = generateMonthlyData();
+
+    const handleBarClick = (data: any) => {
+        if (data && data.activePayload && data.activePayload.length > 0) {
+            const { month, completedList } = data.activePayload[0].payload;
+            setModalTitle(`Iniciativas: Completadas hasta ${month}`);
+            setModalInitiatives(completedList);
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleAreaClick = (data: any) => {
+        if (data && data.activePayload && data.activePayload.length > 0) {
+            const { month, createdList } = data.activePayload[0].payload;
+            setModalTitle(`Portafolio: Volumen hasta ${month}`);
+            setModalInitiatives(createdList);
+            setIsModalOpen(true);
+        }
+    };
 
     // Summary calculation
     const lastData = data[data.length - 1];
@@ -82,6 +119,9 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                                 </div>
                             );
                         })}
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800 text-[10px] text-indigo-500 font-bold text-center animate-pulse">
+                        Clic para ver detalle
                     </div>
                 </div>
             );
@@ -130,11 +170,25 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 </div>
 
                 <div className="flex items-center space-x-3 self-start md:self-auto bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700/50">
-                    <div className="px-3 text-right border-r border-gray-200 dark:border-gray-700">
+                    <div 
+                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-colors"
+                        onClick={() => {
+                            setModalTitle(`Portafolio: Volumen Total Actual`);
+                            setModalInitiatives(lastData?.createdList || []);
+                            setIsModalOpen(true);
+                        }}
+                    >
                         <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Volumen Total</div>
                         <div className="text-lg font-black text-indigo-500 leading-none mt-1">{totalCreated}</div>
                     </div>
-                    <div className="px-3 text-right border-r border-gray-200 dark:border-gray-700">
+                    <div 
+                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-colors"
+                        onClick={() => {
+                            setModalTitle(`Iniciativas: Total Completadas`);
+                            setModalInitiatives(lastData?.completedList || []);
+                            setIsModalOpen(true);
+                        }}
+                    >
                         <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Completadas</div>
                         <div className="text-lg font-black text-emerald-500 leading-none mt-1">{totalCompleted}</div>
                     </div>
@@ -151,7 +205,19 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
             {/* Graphic Sector */}
             <div className="h-[300px] w-full mt-2 transition-all duration-500">
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <ComposedChart 
+                        data={data} 
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        onClick={(data) => {
+                            // Determine which piece of data was clicked
+                            if (data && data.activePayload && data.activePayload.length > 0) {
+                                // If they clicked the bar specifically, or generally the month column
+                                // For simplicity/UX, we treat a general click on the month column as "show completed"
+                                // unless we can distinguish better. Recharts Bar onClick is more specific.
+                                handleBarClick(data);
+                            }
+                        }}
+                    >
                         <defs>
                             <linearGradient id="colorVolumen" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.25} />
@@ -187,15 +253,17 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             strokeWidth={3} 
                             fill="url(#colorVolumen)" 
                             activeDot={{ r: 6, strokeWidth: 0, fill: '#8B5CF6' }}
+                            strokeDasharray="5 5"
                         />
                         
                         <Bar 
                             dataKey="completadasAcum" 
                             name="completadasAcum" 
                             fill="#10B981" 
-                            barSize={16}
-                            radius={[4, 4, 0, 0]} 
+                            barSize={30}
+                            radius={[6, 6, 0, 0]} 
                             opacity={0.8}
+                            className="cursor-pointer hover:opacity-100 transition-opacity"
                         />
                     </ComposedChart>
                 </ResponsiveContainer>
@@ -233,11 +301,21 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                     )}>
                         <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
                             <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Guía Visual de Tendencias:</strong>
-                            La superficie púrpura de fondo muestra cómo crece el portafolio en total. Las columnas verdes muestran progresivamente las completadas acumuladas.
+                            Las columnas verdes muestran las completadas acumuladas. <strong>Haz clic en una barra para ver el listado detallado.</strong>
                         </p>
                     </div>
                 </div>
             </div>
+
+            <InitiativeListModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={modalTitle}
+                initiatives={modalInitiatives}
+            />
         </div>
+    );
+};
+
     );
 };
