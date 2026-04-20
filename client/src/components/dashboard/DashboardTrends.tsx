@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
+import { TrendingUp, Sparkles, AlertCircle, Search, List } from 'lucide-react';
 import { clsx } from 'clsx';
 import { InitiativeListModal } from './InitiativeListModal';
 
@@ -120,9 +120,6 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             );
                         })}
                     </div>
-                    <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800 text-[10px] text-indigo-500 font-bold text-center animate-pulse">
-                        Clic para ver detalle
-                    </div>
                 </div>
             );
         }
@@ -170,28 +167,38 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                 </div>
 
                 <div className="flex items-center space-x-3 self-start md:self-auto bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700/50">
-                    <div 
-                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-colors"
+                    <button 
+                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-all group flex items-center gap-3"
                         onClick={() => {
                             setModalTitle(`Portafolio: Volumen Total Actual`);
                             setModalInitiatives(lastData?.createdList || []);
                             setIsModalOpen(true);
                         }}
                     >
-                        <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Volumen Total</div>
-                        <div className="text-lg font-black text-indigo-500 leading-none mt-1">{totalCreated}</div>
-                    </div>
-                    <div 
-                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-colors"
+                        <div className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-full group-hover:scale-110 transition-transform">
+                            <Search size={16} />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Volumen Total</div>
+                            <div className="text-lg font-black text-indigo-500 leading-none mt-1">{totalCreated}</div>
+                        </div>
+                    </button>
+                    <button 
+                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-all group flex items-center gap-3"
                         onClick={() => {
                             setModalTitle(`Iniciativas: Total Completadas`);
                             setModalInitiatives(lastData?.completedList || []);
                             setIsModalOpen(true);
                         }}
                     >
-                        <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Completadas</div>
-                        <div className="text-lg font-black text-emerald-500 leading-none mt-1">{totalCompleted}</div>
-                    </div>
+                        <div className="text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-full group-hover:scale-110 transition-transform">
+                            <List size={16} />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Completadas</div>
+                            <div className="text-lg font-black text-emerald-500 leading-none mt-1">{totalCompleted}</div>
+                        </div>
+                    </button>
                     <div className="px-3 pr-4 text-right">
                         <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Tasa (Win)</div>
                         <div className="text-lg font-black text-gray-800 dark:text-gray-200 flex items-center leading-none mt-1">
@@ -209,11 +216,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                         data={data} 
                         margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                         onClick={(data: any) => {
-                            // Determine which piece of data was clicked
                             if (data && data.activePayload && data.activePayload.length > 0) {
-                                // If they clicked the bar specifically, or generally the month column
-                                // For simplicity/UX, we treat a general click on the month column as "show completed"
-                                // unless we can distinguish better. Recharts Bar onClick is more specific.
                                 handleBarClick(data);
                             }
                         }}
@@ -274,35 +277,31 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
             <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center mb-3 text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
                     <Sparkles size={14} className="mr-2" />
-                    Análisis de Progreso
+                    Auditoría de Portafolio
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
                         <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Crecimiento del Portafolio:</strong>
-                            {totalCreated > 0 
-                                ? `Durante este periodo, se han acumulado un total de ${totalCreated} iniciativas, reflejando el volumen actual de carga de trabajo e innovación.` 
-                                : `El portafolio de iniciativas actualmente se encuentra sin peticiones registradas.`}
+                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Análisis de Volumen:</strong>
+                            Se han registrado {totalCreated} iniciativas en total. Haz clic en el indicador púrpura superior para ver el listado detallado del portafolio.
                         </p>
                     </div>
                     
                     <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
                         <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Tasa de Finalización:</strong>
-                            {totalCompleted > 0 
-                                ? `El equipo ha entregado satisfactoriamente ${totalCompleted} iniciativas, logrando resolver el ${completionRate}% del volumen total acumulado.` 
-                                : `Aún no se registran iniciativas finalizadas durante este ciclo de trabajo.`}
+                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Métrica de Éxito:</strong>
+                            {totalCompleted} iniciativas entregadas ({completionRate}%). Usa el botón de lista verde arriba para auditar las entregas.
                         </p>
                     </div>
 
                     <div className={clsx(
                         "p-3 rounded-lg border transition-colors",
-                        totalCreated > 0 ? "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/50" : "bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800/70"
+                        "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/50"
                     )}>
                         <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Guía Visual de Tendencias:</strong>
-                            Las columnas verdes muestran las completadas acumuladas. <strong>Haz clic en una barra para ver el listado detallado.</strong>
+                            <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Tip de Interacción:</strong>
+                            Selecciona cualquier **barra verde** del gráfico para ver el detalle acumulado de ese mes específico.
                         </p>
                     </div>
                 </div>
