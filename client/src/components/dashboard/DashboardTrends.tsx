@@ -208,7 +208,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                     <ComposedChart 
                         data={data} 
                         margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                        onClick={(data) => {
+                        onClick={(data: any) => {
                             // Determine which piece of data was clicked
                             if (data && data.activePayload && data.activePayload.length > 0) {
                                 // If they clicked the bar specifically, or generally the month column
@@ -254,6 +254,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             fill="url(#colorVolumen)" 
                             activeDot={{ r: 6, strokeWidth: 0, fill: '#8B5CF6' }}
                             strokeDasharray="5 5"
+                            onClick={handleAreaClick}
                         />
                         
                         <Bar 
