@@ -321,6 +321,7 @@ export const CredentialsPage = () => {
                                         { id: '/initiative-value', label: 'Impacto & Valor' },
                                         { id: '/timeline', label: 'Timeline de Iniciativas' },
                                         { id: '/comparative', label: 'Vista Comparativa' },
+                                        { id: '/risks', label: 'Riesgos & Blockers' },
                                         { id: '/support', label: 'Soporte y Mantenimiento' }
                                     ].map(page => (
                                         <label key={page.id} className="flex items-center space-x-3 cursor-pointer">

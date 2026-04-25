@@ -16,6 +16,7 @@ import dashboardRouter from './routes/dashboard';
 import kpiSummaryRouter from './routes/kpi-summary';
 import commentsRouter from './routes/comments';
 import activityRouter from './routes/activity';
+import risksRouter from './routes/risks';
 import { query } from './db';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/initiative-value', initiativeValueRouter);
 app.use('/api/kpi-summary', kpiSummaryRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/activity', activityRouter);
+app.use('/api/risks', risksRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {
@@ -96,6 +98,22 @@ const initDb = async () => {
       );
       CREATE INDEX IF NOT EXISTS idx_comments_initiative ON initiative_comments(initiative_id);
       CREATE INDEX IF NOT EXISTS idx_comments_created ON initiative_comments(created_at DESC);
+    `);
+    // Create initiative_risks table
+    await query(`
+      CREATE TABLE IF NOT EXISTS initiative_risks (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        initiative_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT DEFAULT '',
+        severity VARCHAR(50) DEFAULT 'Medio',
+        status VARCHAR(50) DEFAULT 'Abierto',
+        mitigation TEXT DEFAULT '',
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_risks_initiative ON initiative_risks(initiative_id);
     `);
     console.log('✅ Database tables ready');
   } catch (err) {
