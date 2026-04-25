@@ -31,6 +31,9 @@ const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: Re
   }
 
   if (requiredPage && user) {
+    // Admin bypasses specific page check for main pages
+    if (user.role === 'admin') return children;
+
     // If user has no allowed_pages set, give them access to the main pages by default including support
     const allowed = user.allowed_pages || ['/', '/dashboard', '/one-pager', '/initiative-value', '/support'];
     if (!allowed.includes(requiredPage)) {
