@@ -194,11 +194,8 @@ const SortableInitiativeRow = ({
                                         <TagsEditor
                                             initiativeId={initiative.id}
                                             tags={initiative.tags || []}
-                                            onTagsChanged={(newTags) => {
-                                                // Update parent state so UI reflects immediately
-                                                if (typeof setEditingInitiative === 'function') {
-                                                    // We need to update initiatives state directly
-                                                }
+                                            onTagsChanged={(_newTags) => {
+                                                // Tags are persisted inline by TagsEditor via PATCH
                                             }}
                                             readOnly={!(user?.role === 'admin' || user?.role === 'editor') || isPresentationMode}
                                         />
