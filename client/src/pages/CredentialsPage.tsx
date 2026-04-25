@@ -28,7 +28,7 @@ export const CredentialsPage = () => {
         email: '',
         password: '',
         role: 'viewer' as 'admin' | 'editor' | 'viewer',
-        allowed_pages: ['/', '/dashboard', '/one-pager'] as string[]
+        allowed_pages: ['/', '/dashboard', '/one-pager', '/initiative-value', '/support'] as string[]
     });
 
     const fetchUsers = async () => {
@@ -60,7 +60,7 @@ export const CredentialsPage = () => {
                 email: user.email,
                 password: '', // Password empty on edit unless changing
                 role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/dashboard', '/one-pager', '/support']
+                allowed_pages: user.allowed_pages || ['/', '/dashboard', '/one-pager', '/initiative-value', '/support']
             });
         } else {
             setEditingUser(null);
@@ -68,7 +68,7 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/dashboard', '/one-pager', '/support']
+                allowed_pages: ['/', '/dashboard', '/one-pager', '/initiative-value', '/support']
             });
         }
         setIsModalOpen(true);
@@ -318,6 +318,7 @@ export const CredentialsPage = () => {
                                         { id: '/', label: 'Roadmap de Iniciativas' },
                                         { id: '/dashboard', label: 'Dashboard Transformación' },
                                         { id: '/one-pager', label: 'One Pager' },
+                                        { id: '/initiative-value', label: 'Impacto & Valor' },
                                         { id: '/support', label: 'Soporte y Mantenimiento' }
                                     ].map(page => (
                                         <label key={page.id} className="flex items-center space-x-3 cursor-pointer">
