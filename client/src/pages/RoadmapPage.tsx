@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { RoadmapTable } from '../components/roadmap/RoadmapTable';
 import { RoadmapSummary } from '../components/roadmap/RoadmapSummary';
+import { RoadmapKPIs } from '../components/roadmap/RoadmapKPIs';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { useAuth } from '../context/AuthContext';
 import type { Step } from 'react-joyride';
@@ -19,6 +20,10 @@ export const RoadmapPage = () => {
             disableBeacon: true,
         },
         {
+            target: '.tour-roadmap-kpis',
+            content: 'Estos indicadores resumen el estado del portafolio: iniciativas totales, entregadas, en curso, retrasadas y más.',
+        },
+        {
             target: '.tour-roadmap-summary',
             content: 'Este resumen te permite identificar rápidamente la carga de trabajo por cada área.',
         },
@@ -31,6 +36,10 @@ export const RoadmapPage = () => {
             target: '.tour-target-title-roadmap',
             content: 'Bienvenido al Roadmap de Iniciativas. Aquí puedes consultar la planificación estratégica del año.',
             disableBeacon: true,
+        },
+        {
+            target: '.tour-roadmap-kpis',
+            content: 'Estos indicadores resumen el estado general del portafolio de iniciativas.',
         },
         {
             target: '.tour-roadmap-summary',
@@ -63,6 +72,10 @@ export const RoadmapPage = () => {
                 tourKey={`roadmapTourCompleted_${user?.role || 'user'}`}
                 runTour={runTour}
             />
+
+            <div className="tour-roadmap-kpis">
+                <RoadmapKPIs />
+            </div>
 
             <div className="tour-roadmap-summary">
                 <RoadmapSummary />

@@ -13,6 +13,7 @@ import supportRouter from './routes/support';
 import initiativeValueRouter from './routes/initiative-value';
 import usersRouter from './routes/users';
 import dashboardRouter from './routes/dashboard';
+import kpiSummaryRouter from './routes/kpi-summary';
 import { query } from './db';
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/support', supportRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/initiative-value', initiativeValueRouter);
+app.use('/api/kpi-summary', kpiSummaryRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {
@@ -75,7 +77,11 @@ const initDb = async () => {
       );
       CREATE INDEX IF NOT EXISTS idx_initiative_value_initiative ON initiative_value(initiative_id);
     `);
-    console.log('✅ Dashboard layouts table ready');
+    // Add tags column to initiatives (if not exists)
+    await query(`
+      ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+    `);
+    console.log('✅ Database tables ready');
   } catch (err) {
     console.error('❌ Failed to initialize dashboard layout table:', err);
   }

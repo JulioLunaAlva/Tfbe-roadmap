@@ -27,6 +27,9 @@ interface FiltersProps {
     uniqueValues: string[];
     selectedValue: string[];
     setSelectedValue: (v: string[]) => void;
+    uniqueTags: string[];
+    selectedTag: string[];
+    setSelectedTag: (v: string[]) => void;
     searchTerm: string;
     setSearchTerm: (v: string) => void;
     hasActiveFilters: boolean;
@@ -61,6 +64,9 @@ export const RoadmapFilters = ({
     uniqueValues,
     selectedValue,
     setSelectedValue,
+    uniqueTags,
+    selectedTag,
+    setSelectedTag,
     searchTerm,
     setSearchTerm,
     hasActiveFilters,
@@ -163,6 +169,15 @@ export const RoadmapFilters = ({
                 selectedValues={selectedValue}
                 onChange={setSelectedValue}
                 placeholder="Todos"
+            />
+
+            <MultiSelectDropdown
+                label="Etiquetas"
+                icon={<Filter size={14} />}
+                options={uniqueTags}
+                selectedValues={selectedTag}
+                onChange={setSelectedTag}
+                placeholder="Todas"
             />
 
             {/* Actions at the end of the grid */}

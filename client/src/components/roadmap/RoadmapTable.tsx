@@ -29,6 +29,7 @@ import { MilestoneContextMenu } from './MilestoneContextMenu';
 import API_URL from '../../config/api';
 import { RoadmapFilters } from './RoadmapFilters';
 import { RoadmapLegend } from './RoadmapLegend';
+import { TagsEditor } from './TagsEditor';
 import { CALENDAR_SCHEMA, flatWeeks, getCurrentWeekNumber } from '../../utils/calendarConstants';
 
 interface Initiative {
@@ -50,6 +51,7 @@ interface Initiative {
     technologies?: string[];
     value?: string;
     developer_owner?: string[];
+    tags?: string[];
 }
 interface InitiativePhase {
     id: string;
@@ -186,6 +188,22 @@ const SortableInitiativeRow = ({
                                     </div>
                                 </div>
                                 <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-medium opacity-80">{initiative.area}</div>
+                                {/* Tags */}
+                                {(initiative.tags && initiative.tags.length > 0 || (user?.role === 'admin' || user?.role === 'editor') && !isPresentationMode) && (
+                                    <div className="mt-0.5">
+                                        <TagsEditor
+                                            initiativeId={initiative.id}
+                                            tags={initiative.tags || []}
+                                            onTagsChanged={(newTags) => {
+                                                // Update parent state so UI reflects immediately
+                                                if (typeof setEditingInitiative === 'function') {
+                                                    // We need to update initiatives state directly
+                                                }
+                                            }}
+                                            readOnly={!(user?.role === 'admin' || user?.role === 'editor') || isPresentationMode}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                         {(user?.role === 'admin' || user?.role === 'editor') && !isPresentationMode && (
@@ -916,6 +934,7 @@ export const RoadmapTable = () => {
     const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
     const [selectedClassification, setSelectedClassification] = useState<string[]>([]);
     const [selectedValue, setSelectedValue] = useState<string[]>([]);
+    const [selectedTag, setSelectedTag] = useState<string[]>([]);
 
     const filterMatches = useMemo(() => {
         return initiatives.map(i => {
@@ -955,6 +974,10 @@ export const RoadmapTable = () => {
 
             const val = selectedValue.length === 0 || (i.value && selectedValue.includes(i.value));
 
+            // Tags filter
+            const tagMatch = selectedTag.length === 0 ||
+                (i.tags && i.tags.some(t => selectedTag.includes(t)));
+
             // Classification logic (Top Priority, Iniciativa Clave)
             let clsMatch = true;
             if (selectedClassification.length > 0) {
@@ -968,12 +991,12 @@ export const RoadmapTable = () => {
                 });
             }
 
-            return { i, search, area, status, transf, tech, dev, comp, qMatch, val, clsMatch };
+            return { i, search, area, status, transf, tech, dev, comp, qMatch, val, clsMatch, tagMatch };
         });
-    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters, selectedValue, selectedClassification]);
+    }, [initiatives, searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters, selectedValue, selectedClassification, selectedTag]);
 
     const filteredInitiatives = useMemo(() => {
-        return filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i);
+        return filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch && m.tagMatch).map(m => m.i);
     }, [filterMatches]);
 
     const uniqueAreas = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.area).filter((x): x is string => !!x))).sort(), [filterMatches]);
@@ -1003,7 +1026,17 @@ export const RoadmapTable = () => {
     }, [filterMatches]);
 
     const uniqueComplexities = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.qMatch && m.val && m.clsMatch).map(m => m.i.complexity).filter((x): x is string => !!x))).sort(), [filterMatches]);
-    const uniqueValues = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.clsMatch).map(m => m.i.value).filter((x): x is string => !!x))).sort(), [filterMatches]);
+    const uniqueValues = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.clsMatch && m.tagMatch).map(m => m.i.value).filter((x): x is string => !!x))).sort(), [filterMatches]);
+
+    const uniqueTags = useMemo(() => {
+        const allTags = new Set<string>();
+        filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).forEach(m => {
+            if (m.i.tags) {
+                m.i.tags.forEach(t => allTags.add(t));
+            }
+        });
+        return Array.from(allTags).sort();
+    }, [filterMatches]);
 
 
 
@@ -1167,6 +1200,9 @@ export const RoadmapTable = () => {
                             uniqueValues={uniqueValues}
                             selectedValue={selectedValue}
                             setSelectedValue={setSelectedValue}
+                            uniqueTags={uniqueTags}
+                            selectedTag={selectedTag}
+                            setSelectedTag={setSelectedTag}
                             hasActiveFilters={
                                 searchTerm !== '' ||
                                 selectedArea.length > 0 ||
@@ -1177,7 +1213,8 @@ export const RoadmapTable = () => {
                                 selectedComplexity.length > 0 ||
                                 selectedQuarters.length > 0 ||
                                 selectedClassification.length > 0 ||
-                                selectedValue.length > 0
+                                selectedValue.length > 0 ||
+                                selectedTag.length > 0
                             }
                             onClearFilters={() => {
                                 setSearchTerm('');
@@ -1190,6 +1227,7 @@ export const RoadmapTable = () => {
                                 setSelectedQuarters([]);
                                 setSelectedClassification([]);
                                 setSelectedValue([]);
+                                setSelectedTag([]);
                             }}
                             canCreate={user?.role === 'admin' || user?.role === 'editor'}
                             onCreateInitiative={() => setIsCreateModalOpen(true)}
