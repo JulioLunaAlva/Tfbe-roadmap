@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Layout = () => {
@@ -26,10 +26,11 @@ export const Layout = () => {
         { label: 'Roadmap', path: '/', icon: ListTodo },
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'One Pager', path: '/one-pager', icon: FileText },
+        { label: 'Impacto & Valor', path: '/initiative-value', icon: Award },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
     ].filter(item => {
         // If no allowed_pages are set (e.g., old token), default to allowing standard pages
-        if (!user?.allowed_pages) return ['/', '/dashboard', '/one-pager', '/support'].includes(item.path);
+        if (!user?.allowed_pages) return ['/', '/dashboard', '/one-pager', '/initiative-value', '/support'].includes(item.path);
         // Admin always sees everything they are allowed to plus Import / Credentials
         return user.allowed_pages.includes(item.path);
     });
@@ -158,8 +159,9 @@ export const Layout = () => {
                             {location.pathname === '/' ? 'Roadmap de Iniciativas' :
                                 location.pathname === '/dashboard' ? 'Dashboard Transformación' :
                                     location.pathname === '/one-pager' ? 'One Pager' :
-                                        location.pathname === '/support' ? 'Soporte y Mantenimiento' :
-                                            location.pathname === '/credentials' ? 'Gestión de Credenciales' : 'Importación'}
+                                        location.pathname === '/initiative-value' ? 'Impacto & Valor' :
+                                            location.pathname === '/support' ? 'Soporte y Mantenimiento' :
+                                                location.pathname === '/credentials' ? 'Gestión de Credenciales' : 'Importación'}
                         </h2>
                     </div>
 
