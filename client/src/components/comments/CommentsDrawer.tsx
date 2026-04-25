@@ -212,7 +212,7 @@ export const CommentsDrawer = ({ isOpen, onClose, initiativeId, initiativeName }
                         comments.map((comment) => {
                             const emailName = comment.user_email?.split('@')[0] || 'usuario';
                             const initial = emailName.charAt(0).toUpperCase();
-                            const isOwn = comment.user_id === user?.id;
+                            const isOwn = comment.user_email === user?.email;
                             const avatarGradient = getAvatarColor(comment.user_email || '');
 
                             return (

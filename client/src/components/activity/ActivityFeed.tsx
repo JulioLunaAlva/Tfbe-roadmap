@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Clock, User, FileText, Zap, Trash2, Edit3, PlusCircle } from 'lucide-react';
+import { Bell, Clock, Zap, Trash2, Edit3, PlusCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import API_URL from '../../config/api';
 

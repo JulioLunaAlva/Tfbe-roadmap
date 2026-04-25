@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BarChart3, ArrowUpDown, TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
+import { BarChart3, ArrowUpDown, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';

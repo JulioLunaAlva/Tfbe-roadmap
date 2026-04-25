@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, HelpCircle } from 'lucide-react';
+import { Calendar, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';

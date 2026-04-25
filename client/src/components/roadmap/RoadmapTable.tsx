@@ -116,6 +116,7 @@ const SortableInitiativeRow = ({
     isPresentationMode,
     setEditingInitiative,
     handleDeleteInitiative,
+    handleOpenComments,
     flatWeeks,
     progressMap,
     selectedCells,

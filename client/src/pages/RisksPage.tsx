@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ShieldAlert, Plus, Trash2, Edit3, X, AlertTriangle, AlertCircle, Info, CheckCircle, Clock } from 'lucide-react';
+import { ShieldAlert, Plus, Trash2, Edit3, X, AlertTriangle, AlertCircle, Info, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
