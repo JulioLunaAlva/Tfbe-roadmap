@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -30,6 +30,7 @@ import API_URL from '../../config/api';
 import { RoadmapFilters } from './RoadmapFilters';
 import { RoadmapLegend } from './RoadmapLegend';
 import { TagsEditor } from './TagsEditor';
+import { CommentsDrawer } from '../comments/CommentsDrawer';
 import { CALENDAR_SCHEMA, flatWeeks, getCurrentWeekNumber } from '../../utils/calendarConstants';
 
 interface Initiative {
@@ -206,6 +207,7 @@ const SortableInitiativeRow = ({
                         {(user?.role === 'admin' || user?.role === 'editor') && !isPresentationMode && (
                             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2 bg-[var(--bg-secondary)]/80 backdrop-blur-sm rounded p-1 shadow-sm font-normal">
                                 <button onClick={() => setEditingInitiative(initiative)} className="p-1 text-[var(--text-tertiary)] hover:text-blue-400 rounded" title="Editar Iniciativa"><Pencil size={12} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); if (typeof handleOpenComments === 'function') handleOpenComments(initiative.id, initiative.name); }} className="p-1 text-[var(--text-tertiary)] hover:text-indigo-400 rounded" title="Comentarios"><MessageCircle size={12} /></button>
                                 <button onClick={() => handleDeleteInitiative(initiative.id)} className="p-1 text-[var(--text-tertiary)] hover:text-red-400 rounded" title="Eliminar Iniciativa"><Trash2 size={12} /></button>
                             </div>
                         )}
@@ -447,6 +449,13 @@ export const RoadmapTable = () => {
 
     // Legend Highlighting
     const [highlightedStatus, setHighlightedStatus] = useState<number | null>(null);
+
+    // Comments Drawer State
+    const [commentsDrawer, setCommentsDrawer] = useState<{ isOpen: boolean; initiativeId: string; initiativeName: string }>({ isOpen: false, initiativeId: '', initiativeName: '' });
+
+    const handleOpenComments = (initId: string, initName: string) => {
+        setCommentsDrawer({ isOpen: true, initiativeId: initId, initiativeName: initName });
+    };
 
     const fetchInitiatives = async () => {
         try {
@@ -1387,6 +1396,7 @@ export const RoadmapTable = () => {
                                         isPresentationMode={isPresentationMode}
                                         setEditingInitiative={setEditingInitiative}
                                         handleDeleteInitiative={handleDeleteInitiative}
+                                        handleOpenComments={handleOpenComments}
                                         colWidths={colWidths}
                                         flatWeeks={flatWeeks}
                                         progressMap={progressMap}
@@ -1437,6 +1447,14 @@ export const RoadmapTable = () => {
                 {editingInitiative && <EditInitiativeModal initiative={editingInitiative} onClose={() => setEditingInitiative(null)} onSave={() => { fetchInitiatives(); setEditingInitiative(null); }} />}
             </div>
             {isCreateModalOpen && <CreateInitiativeModal onClose={() => setIsCreateModalOpen(false)} onSave={fetchInitiatives} />}
+
+            {/* Comments Drawer */}
+            <CommentsDrawer
+                isOpen={commentsDrawer.isOpen}
+                onClose={() => setCommentsDrawer({ isOpen: false, initiativeId: '', initiativeName: '' })}
+                initiativeId={commentsDrawer.initiativeId}
+                initiativeName={commentsDrawer.initiativeName}
+            />
         </div>
     );
 };

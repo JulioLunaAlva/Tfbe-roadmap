@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
 import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award } from 'lucide-react';
 import { clsx } from 'clsx';
+import { ActivityFeed } from '../activity/ActivityFeed';
 
 export const Layout = () => {
     const { user, logout } = useAuth();
@@ -182,6 +183,11 @@ export const Layout = () => {
                                 ))}
                             </select>
                         </div>
+
+                        <div className="h-6 w-px bg-[var(--border-color)] mx-1"></div>
+
+                        {/* Activity Feed */}
+                        <ActivityFeed />
 
                         <div className="h-6 w-px bg-[var(--border-color)] mx-1"></div>
 

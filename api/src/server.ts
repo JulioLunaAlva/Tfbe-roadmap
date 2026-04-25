@@ -14,6 +14,8 @@ import initiativeValueRouter from './routes/initiative-value';
 import usersRouter from './routes/users';
 import dashboardRouter from './routes/dashboard';
 import kpiSummaryRouter from './routes/kpi-summary';
+import commentsRouter from './routes/comments';
+import activityRouter from './routes/activity';
 import { query } from './db';
 
 const app = express();
@@ -44,6 +46,8 @@ app.use('/api/users', usersRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/initiative-value', initiativeValueRouter);
 app.use('/api/kpi-summary', kpiSummaryRouter);
+app.use('/api/comments', commentsRouter);
+app.use('/api/activity', activityRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {
@@ -80,6 +84,18 @@ const initDb = async () => {
     // Add tags column to initiatives (if not exists)
     await query(`
       ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+    `);
+    // Create initiative_comments table
+    await query(`
+      CREATE TABLE IF NOT EXISTS initiative_comments (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        initiative_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_comments_initiative ON initiative_comments(initiative_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_created ON initiative_comments(created_at DESC);
     `);
     console.log('✅ Database tables ready');
   } catch (err) {
