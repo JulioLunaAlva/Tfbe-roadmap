@@ -81,17 +81,17 @@ const KPICard = ({
             {/* Gradient accent */}
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`} />
 
-            <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5 truncate">
-                        {label}
-                    </p>
+            <div className="relative">
+                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 truncate block w-full" title={label}>
+                    {label}
+                </p>
+                <div className="flex items-end justify-between gap-1">
                     <p className="text-xl font-extrabold text-gray-800 dark:text-white tracking-tight truncate">
-                        {animatedValue}{suffix}
+                        {animatedValue}<span className="text-sm font-bold ml-0.5">{suffix}</span>
                     </p>
-                </div>
-                <div className={`p-2 rounded-xl ${iconBg} shadow-sm flex-shrink-0`}>
-                    <Icon size={18} className="text-white" />
+                    <div className={`p-1.5 rounded-lg ${iconBg} shadow-sm flex-shrink-0`}>
+                        <Icon size={14} className="text-white" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -118,7 +118,7 @@ export const RoadmapKPIs = () => {
     if (loading || !data) {
         return (
             <div className="w-full overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 min-w-[900px] lg:min-w-0">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 min-w-[760px] lg:min-w-0">
                     {Array.from({ length: 7 }).map((_, i) => (
                         <div key={i} className="h-[76px] rounded-xl bg-gray-100 dark:bg-[#1E2630] animate-pulse border border-gray-200 dark:border-gray-700/50" />
                     ))}
@@ -182,7 +182,7 @@ export const RoadmapKPIs = () => {
 
     return (
         <div className="w-full overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 min-w-[900px] lg:min-w-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 min-w-[760px] lg:min-w-0">
             {cards.map((card, i) => (
                 <KPICard
                     key={card.label}
