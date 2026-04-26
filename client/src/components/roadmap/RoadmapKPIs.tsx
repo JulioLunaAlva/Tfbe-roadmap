@@ -193,7 +193,8 @@ export const RoadmapKPIs = () => {
                     gradient={card.gradient}
                     iconBg={card.iconBg}
                     delay={i * 80}
-                ))}
+                />
+            ))}
             </div>
         </div>
     );
