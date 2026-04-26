@@ -6,10 +6,11 @@ import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
 import {
     Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
-    DollarSign, HelpCircle, Award
+    DollarSign, HelpCircle, Award, Maximize2, Presentation
 } from 'lucide-react';
 import { RichTextEditor } from '../components/common/RichTextEditor';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
+import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
 import type { Step } from 'react-joyride';
 
 interface Initiative {
@@ -162,6 +163,7 @@ export const InitiativeValuePage = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [showPresentation, setShowPresentation] = useState(false);
 
     // Derived
     const uniqueAreas = useMemo(() => {
@@ -394,6 +396,18 @@ export const InitiativeValuePage = () => {
                             <HelpCircle size={24} />
                         </button>
 
+                        {/* Preview Button */}
+                        {selectedInitiativeId && (
+                            <button
+                                onClick={() => setShowPresentation(true)}
+                                className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200 dark:border-indigo-900/50 shadow-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all font-bold text-xs"
+                                title="Vista Previa de Presentación"
+                            >
+                                <Presentation size={18} />
+                                <span>Vista Previa</span>
+                            </button>
+                        )}
+
                         {/* Save Button */}
                         {canEdit && (
                             <button
@@ -407,6 +421,22 @@ export const InitiativeValuePage = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Presentation Modal */}
+                {selectedInitiative && (
+                    <ValuePresentationModal 
+                        isOpen={showPresentation}
+                        onClose={() => setShowPresentation(false)}
+                        initiative={{
+                            name: selectedInitiative.name,
+                            area: selectedInitiative.area,
+                            champion: selectedInitiative.champion,
+                            status: selectedInitiative.status
+                        }}
+                        data={valueData}
+                        pillars={PILLARS}
+                    />
+                )}
 
                 {/* Row 2: Metadata Badges */}
                 {selectedInitiative && (
