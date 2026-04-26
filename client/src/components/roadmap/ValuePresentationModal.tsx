@@ -1,5 +1,5 @@
 
-import { X, Award, MapPin, User, Rocket, CheckCircle2 } from 'lucide-react';
+import { X, Award, MapPin, User, Rocket } from 'lucide-react';
 
 interface ValueData {
     business_value: string;
