@@ -26,26 +26,40 @@ const QUARTER_COLORS = [
     'from-amber-500/10 to-orange-500/5',
 ];
 
-const getStatusColor = (status?: string) => {
-    if (!status) return 'bg-gray-400 dark:bg-gray-600';
-    if (status === 'Entregado') return 'bg-emerald-500';
-    if (status === 'En curso' || status === 'Avance conforme plan') return 'bg-blue-500';
-    if (status === 'Retrasado' || status === 'Atraso') return 'bg-red-500';
-    if (status === 'En redefinición') return 'bg-amber-500';
-    if (status === 'Cancelado') return 'bg-rose-600';
-    return 'bg-gray-400 dark:bg-gray-600';
+const STATUS_COLORS: Record<string, { bg: string, text: string, light: string }> = {
+    'Entregado': { bg: 'bg-emerald-500', text: 'text-white', light: 'bg-emerald-100 dark:bg-emerald-900/30' },
+    'En curso': { bg: 'bg-blue-500', text: 'text-white', light: 'bg-blue-100 dark:bg-blue-900/30' },
+    'Avance conforme plan': { bg: 'bg-blue-500', text: 'text-white', light: 'bg-blue-100 dark:bg-blue-900/30' },
+    'Retrasado': { bg: 'bg-red-500', text: 'text-white', light: 'bg-red-100 dark:bg-red-900/30' },
+    'Atraso': { bg: 'bg-red-500', text: 'text-white', light: 'bg-red-100 dark:bg-red-900/30' },
+    'En redefinición': { bg: 'bg-amber-500', text: 'text-white', light: 'bg-amber-100 dark:bg-amber-900/30' },
+    'Cancelado': { bg: 'bg-rose-600', text: 'text-white', light: 'bg-rose-100 dark:bg-rose-900/30' },
+    'default': { bg: 'bg-gray-400', text: 'text-white', light: 'bg-gray-100 dark:bg-gray-800' }
 };
 
+const getStatusColor = (status?: string) => {
+    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS.default;
+};
+
+const AREA_COLORS = [
+    { border: 'border-l-violet-500', text: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500' },
+    { border: 'border-l-blue-500', text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500' },
+    { border: 'border-l-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500' },
+    { border: 'border-l-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500' },
+    { border: 'border-l-rose-500', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500' },
+    { border: 'border-l-cyan-500', text: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500' },
+    { border: 'border-l-indigo-500', text: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500' },
+    { border: 'border-l-teal-500', text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-500' },
+    { border: 'border-l-orange-500', text: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-500' },
+    { border: 'border-l-fuchsia-500', text: 'text-fuchsia-600 dark:text-fuchsia-400', bg: 'bg-fuchsia-500' },
+    { border: 'border-l-lime-500', text: 'text-lime-600 dark:text-lime-400', bg: 'bg-lime-500' },
+    { border: 'border-l-pink-500', text: 'text-pink-600 dark:text-pink-400', bg: 'bg-pink-500' },
+];
+
 const getAreaColor = (area: string) => {
-    const colors = [
-        'border-l-violet-500', 'border-l-blue-500', 'border-l-emerald-500',
-        'border-l-amber-500', 'border-l-rose-500', 'border-l-cyan-500',
-        'border-l-indigo-500', 'border-l-teal-500', 'border-l-orange-500',
-        'border-l-fuchsia-500', 'border-l-lime-500', 'border-l-pink-500',
-    ];
     let hash = 0;
     for (let i = 0; i < area.length; i++) hash = area.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
+    return AREA_COLORS[Math.abs(hash) % AREA_COLORS.length];
 };
 
 export const TimelinePage = () => {
@@ -260,40 +274,43 @@ export const TimelinePage = () => {
                     <div className="flex relative" style={{ width: 'max-content' }}>
                         {/* Names Column (Sticky Left) */}
                         <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700/50 bg-white dark:bg-[#1A2332] sticky left-0 z-20 shadow-sm">
-                            {Array.from(grouped.entries()).map(([area, inits]) => (
-                                <div key={area}>
-                                    {/* Area header */}
-                                    <div className="px-4 py-2 bg-indigo-50/50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/30">
-                                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2" />
-                                            {area}
-                                        </span>
-                                    </div>
-                                    {inits.map(init => (
-                                        <div
-                                            key={init.id}
-                                            className={`flex flex-col justify-center px-4 border-b border-gray-100 dark:border-gray-800/50 transition-colors cursor-default border-l-[3px] ${getAreaColor(init.area)} ${hoveredId === init.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#111827]/30'}`}
-                                            style={{ height: rowHeight + 12 }}
-                                            onMouseEnter={() => setHoveredId(init.id)}
-                                            onMouseLeave={() => setHoveredId(null)}
-                                        >
-                                            <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200 truncate leading-tight" title={init.name}>
-                                                {init.name}
+                            {Array.from(grouped.entries()).map(([area, inits]) => {
+                                const areaColor = getAreaColor(area);
+                                return (
+                                    <div key={area}>
+                                        {/* Area header */}
+                                        <div className={`px-4 py-2 bg-gray-50 dark:bg-gray-800/40 border-b border-gray-200 dark:border-gray-700/50`}>
+                                            <span className={`text-[10px] font-extrabold ${areaColor.text} uppercase tracking-widest flex items-center`}>
+                                                <span className={`w-2 h-2 rounded-full ${areaColor.bg} mr-2`} />
+                                                {area}
                                             </span>
-                                            {init.tags && init.tags.length > 0 && (
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {init.tags.slice(0, 2).map(tag => (
-                                                        <span key={tag} className="text-[8px] px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium truncate max-w-[80px]">
-                                                            {tag}
-                                                        </span>
-                                                    ))}
-                                                    {init.tags.length > 2 && <span className="text-[8px] text-gray-400">+{init.tags.length - 2}</span>}
-                                                </div>
-                                            )}
                                         </div>
-                                    ))}
-                                </div>
-                            ))}
+                                        {inits.map(init => (
+                                            <div
+                                                key={init.id}
+                                                className={`flex flex-col justify-center px-4 border-b border-gray-100 dark:border-gray-800/50 transition-colors cursor-default border-l-[4px] ${areaColor.border} ${hoveredId === init.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#111827]/30'}`}
+                                                style={{ height: rowHeight + 12 }}
+                                                onMouseEnter={() => setHoveredId(init.id)}
+                                                onMouseLeave={() => setHoveredId(null)}
+                                            >
+                                                <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200 truncate leading-tight" title={init.name}>
+                                                    {init.name}
+                                                </span>
+                                                {init.tags && init.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {init.tags.slice(0, 2).map(tag => (
+                                                            <span key={tag} className="text-[8px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-100 dark:border-indigo-800/50 truncate max-w-[80px]">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                        {init.tags.length > 2 && <span className="text-[8px] text-gray-400 font-bold">+{init.tags.length - 2}</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* Chart Area */}
@@ -327,11 +344,12 @@ export const TimelinePage = () => {
                             {Array.from(grouped.entries()).map(([area, inits]) => (
                                 <div key={area}>
                                     {/* Area spacer row */}
-                                    <div className="bg-indigo-50/10 dark:bg-indigo-900/5 border-b border-indigo-100 dark:border-indigo-900/10" style={{ height: 26 }} />
+                                    <div className="bg-gray-50/30 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/50" style={{ height: 26 }} />
                                     
                                     {inits.map(init => {
                                         const bar = getBarPosition(init.start_date, init.end_date);
                                         const progress = init.progress || 0;
+                                        const colors = getStatusColor(init.status);
 
                                         return (
                                             <div
@@ -343,7 +361,7 @@ export const TimelinePage = () => {
                                             >
                                                 {bar && (
                                                     <div
-                                                        className={`absolute top-2 rounded-lg shadow-md overflow-hidden transition-all duration-300 group cursor-pointer ${hoveredId === init.id ? 'scale-[1.02] z-10' : 'z-5'}`}
+                                                        className={`absolute top-2 rounded-lg shadow-sm border border-black/5 dark:border-white/5 overflow-hidden transition-all duration-300 group cursor-pointer ${hoveredId === init.id ? 'scale-[1.01] z-10 shadow-md' : 'z-5'}`}
                                                         style={{
                                                             left: bar.left,
                                                             width: bar.width,
@@ -351,25 +369,23 @@ export const TimelinePage = () => {
                                                         }}
                                                         title={`${init.name}\nInicio: ${init.start_date || 'N/A'}\nFin: ${init.end_date || 'N/A'}\nAvance: ${progress}%\nEstatus: ${init.status || 'N/A'}`}
                                                     >
-                                                        {/* Base Gradient Background */}
-                                                        <div className={`absolute inset-0 ${getStatusColor(init.status)} opacity-20`} />
+                                                        {/* Base Light Background */}
+                                                        <div className={`absolute inset-0 ${colors.light}`} />
                                                         
-                                                        {/* Progress Fill with Shimmer effect */}
+                                                        {/* Progress Fill (Solid) */}
                                                         <div
-                                                            className={`absolute inset-y-0 left-0 ${getStatusColor(init.status)} opacity-80 shadow-[0_0_15px_rgba(0,0,0,0.1)] transition-all relative overflow-hidden`}
+                                                            className={`absolute inset-y-0 left-0 ${colors.bg} transition-all`}
                                                             style={{ width: `${progress}%` }}
-                                                        >
-                                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ transform: 'translateX(-100%)' }} />
-                                                        </div>
+                                                        />
 
                                                         {/* Label Overlay */}
                                                         <div className="relative z-10 px-2 flex items-center h-full gap-2">
-                                                            {bar.width > 120 && (
-                                                                <span className="text-[10px] font-bold text-white drop-shadow-md truncate">
+                                                            {bar.width > 80 && (
+                                                                <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 truncate drop-shadow-sm">
                                                                     {init.name}
                                                                 </span>
                                                             )}
-                                                            <span className="text-[9px] font-extrabold text-white bg-black/20 px-1.5 py-0.5 rounded ml-auto flex-shrink-0">
+                                                            <span className={`text-[9px] font-extrabold ${progress > 50 ? 'text-white' : 'text-gray-700 dark:text-gray-300'} ml-auto flex-shrink-0 bg-white/20 dark:bg-black/20 px-1 rounded`}>
                                                                 {progress}%
                                                             </span>
                                                         </div>
@@ -387,14 +403,14 @@ export const TimelinePage = () => {
 
             {/* Stats & Tips */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/30 p-2 rounded-lg border border-gray-100 dark:border-gray-800/50">
+                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800/30 p-2 rounded-lg border border-gray-100 dark:border-gray-800/50 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                     <span>{filtered.length} iniciativas activas con cronograma · {initiatives.filter(i => !i.start_date && !i.end_date).length} sin fechas.</span>
                 </div>
                 <div className="flex items-center justify-end space-x-4 text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5" /> Entregado</div>
-                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5" /> En Curso</div>
-                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-red-500 mr-1.5" /> Retrasado</div>
+                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 shadow-sm" /> Entregado</div>
+                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5 shadow-sm" /> En Curso</div>
+                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-red-500 mr-1.5 shadow-sm" /> Retrasado</div>
                 </div>
             </div>
         </div>
