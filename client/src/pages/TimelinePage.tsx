@@ -217,160 +217,185 @@ export const TimelinePage = () => {
             </div>
 
             {/* Timeline Container */}
-            <div className="bg-white dark:bg-[#1E2630] rounded-xl border border-gray-200 dark:border-gray-700/50 overflow-hidden shadow-lg">
-                <div className="flex">
-                    {/* Left sidebar - Initiative names (fixed) */}
-                    <div className="w-56 flex-shrink-0 border-r border-gray-200 dark:border-gray-700/50 bg-white dark:bg-[#1A2332] z-10">
-                        {/* Month labels header placeholder */}
-                        <div className="h-12 border-b border-gray-200 dark:border-gray-700/50 flex items-center px-3">
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Iniciativa</span>
+            <div className="bg-white dark:bg-[#1E2630] rounded-xl border border-gray-200 dark:border-gray-700/50 shadow-xl overflow-hidden">
+                <div 
+                    ref={scrollContainerRef}
+                    className="overflow-auto max-h-[75vh] custom-scrollbar relative"
+                >
+                    {/* Header Row (Sticky Top) */}
+                    <div className="flex sticky top-0 z-30 bg-white dark:bg-[#1E2630] border-b border-gray-200 dark:border-gray-700/50">
+                        {/* Empty corner for initiative labels */}
+                        <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700/50 bg-gray-50/80 dark:bg-[#1A2332]/80 backdrop-blur-sm sticky left-0 z-40 h-12 flex items-center px-4">
+                            <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Iniciativa / Tags</span>
                         </div>
 
-                        {/* Names */}
-                        <div className="overflow-y-auto max-h-[65vh] custom-scrollbar">
+                        {/* Months Row */}
+                        <div className="relative flex-1 h-12" style={{ width: totalWidth }}>
+                            {MONTHS.map((month, idx) => {
+                                const monthStart = new Date(year, idx, 1);
+                                const monthEnd = new Date(year, idx + 1, 0);
+                                const startOffset = Math.ceil((monthStart.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+                                const daysInMonth = monthEnd.getDate();
+                                const quarterIdx = Math.floor(idx / 3);
+
+                                return (
+                                    <div
+                                        key={month}
+                                        className={`border-r border-gray-200 dark:border-gray-700/30 flex items-center justify-center bg-gradient-to-b ${QUARTER_COLORS[quarterIdx]}`}
+                                        style={{ 
+                                            left: startOffset * dayWidth, 
+                                            width: daysInMonth * dayWidth, 
+                                            position: 'absolute',
+                                            height: '100%'
+                                        }}
+                                    >
+                                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{month}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Content Body */}
+                    <div className="flex relative" style={{ width: 'max-content' }}>
+                        {/* Names Column (Sticky Left) */}
+                        <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700/50 bg-white dark:bg-[#1A2332] sticky left-0 z-20 shadow-sm">
                             {Array.from(grouped.entries()).map(([area, inits]) => (
                                 <div key={area}>
                                     {/* Area header */}
-                                    <div className="px-3 py-1.5 bg-gray-50 dark:bg-[#111827] border-b border-gray-100 dark:border-gray-800">
-                                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{area}</span>
+                                    <div className="px-4 py-2 bg-indigo-50/50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/30">
+                                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2" />
+                                            {area}
+                                        </span>
                                     </div>
                                     {inits.map(init => (
                                         <div
                                             key={init.id}
-                                            className={`flex items-center px-3 border-b border-gray-100 dark:border-gray-800/50 transition-colors cursor-default border-l-[3px] ${getAreaColor(init.area)} ${hoveredId === init.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#111827]/50'}`}
-                                            style={{ height: rowHeight }}
+                                            className={`flex flex-col justify-center px-4 border-b border-gray-100 dark:border-gray-800/50 transition-colors cursor-default border-l-[3px] ${getAreaColor(init.area)} ${hoveredId === init.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#111827]/30'}`}
+                                            style={{ height: rowHeight + 12 }}
                                             onMouseEnter={() => setHoveredId(init.id)}
                                             onMouseLeave={() => setHoveredId(null)}
                                         >
-                                            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 truncate" title={init.name}>
+                                            <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200 truncate leading-tight" title={init.name}>
                                                 {init.name}
                                             </span>
+                                            {init.tags && init.tags.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {init.tags.slice(0, 2).map(tag => (
+                                                        <span key={tag} className="text-[8px] px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium truncate max-w-[80px]">
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                    {init.tags.length > 2 && <span className="text-[8px] text-gray-400">+{init.tags.length - 2}</span>}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
                             ))}
                         </div>
-                    </div>
 
-                    {/* Right side - Timeline chart (scrollable) */}
-                    <div
-                        ref={scrollContainerRef}
-                        className="flex-1 overflow-x-auto overflow-y-auto max-h-[calc(65vh+48px)] custom-scrollbar"
-                    >
-                        <div style={{ width: totalWidth, minWidth: '100%' }}>
-                            {/* Month headers */}
-                            <div className="h-12 border-b border-gray-200 dark:border-gray-700/50 flex relative sticky top-0 bg-white dark:bg-[#1E2630] z-10">
-                                {MONTHS.map((month, idx) => {
-                                    const monthStart = new Date(year, idx, 1);
-                                    const monthEnd = new Date(year, idx + 1, 0);
-                                    const startOffset = Math.ceil((monthStart.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
-                                    const daysInMonth = monthEnd.getDate();
-                                    const quarterIdx = Math.floor(idx / 3);
+                        {/* Chart Area */}
+                        <div className="relative" style={{ width: totalWidth }}>
+                            {/* Today marker */}
+                            {todayOffset > 0 && todayOffset < totalDays && (
+                                <div
+                                    className="absolute top-0 bottom-0 w-px bg-red-500/50 z-10 pointer-events-none"
+                                    style={{ left: todayOffset * dayWidth }}
+                                >
+                                    <div className="absolute top-0 -left-3 bg-red-500 text-white text-[7px] font-bold px-1 py-0.5 rounded-b-sm shadow-sm">
+                                        HOY
+                                    </div>
+                                </div>
+                            )}
 
-                                    return (
-                                        <div
-                                            key={month}
-                                            className={`border-r border-gray-200 dark:border-gray-700/50 flex items-center justify-center bg-gradient-to-b ${QUARTER_COLORS[quarterIdx]}`}
-                                            style={{ left: startOffset * dayWidth, width: daysInMonth * dayWidth, position: 'absolute' }}
-                                        >
-                                            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{month}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Bars */}
-                            <div className="relative">
-                                {/* Today marker */}
-                                {todayOffset > 0 && todayOffset < totalDays && (
+                            {/* Quarter lines */}
+                            {[1, 2, 3].map(q => {
+                                const qStart = new Date(year, q * 3, 1);
+                                const offset = Math.ceil((qStart.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+                                return (
                                     <div
-                                        className="absolute top-0 bottom-0 w-0.5 bg-red-500/70 z-20"
-                                        style={{ left: todayOffset * dayWidth }}
-                                    >
-                                        <div className="absolute -top-0 -left-2.5 bg-red-500 text-white text-[7px] font-bold px-1 py-0.5 rounded-b-sm">
-                                            HOY
-                                        </div>
-                                    </div>
-                                )}
+                                        key={`q${q}`}
+                                        className="absolute top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700/50 z-0 pointer-events-none"
+                                        style={{ left: offset * dayWidth }}
+                                    />
+                                );
+                            })}
 
-                                {/* Quarter lines */}
-                                {[0, 1, 2, 3].map(q => {
-                                    const qStart = new Date(year, q * 3, 1);
-                                    const offset = Math.ceil((qStart.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
-                                    if (q === 0) return null;
-                                    return (
-                                        <div
-                                            key={`q${q}`}
-                                            className="absolute top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-600/50 z-5"
-                                            style={{ left: offset * dayWidth }}
-                                        />
-                                    );
-                                })}
+                            {/* Row backgrounds and bars */}
+                            {Array.from(grouped.entries()).map(([area, inits]) => (
+                                <div key={area}>
+                                    {/* Area spacer row */}
+                                    <div className="bg-indigo-50/10 dark:bg-indigo-900/5 border-b border-indigo-100 dark:border-indigo-900/10" style={{ height: 26 }} />
+                                    
+                                    {inits.map(init => {
+                                        const bar = getBarPosition(init.start_date, init.end_date);
+                                        const progress = init.progress || 0;
 
-                                {Array.from(grouped.entries()).map(([area, inits]) => (
-                                    <div key={area}>
-                                        {/* Area spacer */}
-                                        <div className="border-b border-gray-100 dark:border-gray-800" style={{ height: 28 }} />
-
-                                        {inits.map(init => {
-                                            const bar = getBarPosition(init.start_date, init.end_date);
-                                            const progress = init.progress || 0;
-
-                                            return (
-                                                <div
-                                                    key={init.id}
-                                                    className={`relative border-b border-gray-100 dark:border-gray-800/50 transition-colors ${hoveredId === init.id ? 'bg-indigo-50/30 dark:bg-indigo-900/5' : ''}`}
-                                                    style={{ height: rowHeight }}
-                                                    onMouseEnter={() => setHoveredId(init.id)}
-                                                    onMouseLeave={() => setHoveredId(null)}
-                                                >
-                                                    {bar && (
+                                        return (
+                                            <div
+                                                key={init.id}
+                                                className={`relative border-b border-gray-100 dark:border-gray-800/50 transition-colors ${hoveredId === init.id ? 'bg-indigo-50/30 dark:bg-indigo-900/5' : ''}`}
+                                                style={{ height: rowHeight + 12 }}
+                                                onMouseEnter={() => setHoveredId(init.id)}
+                                                onMouseLeave={() => setHoveredId(null)}
+                                            >
+                                                {bar && (
+                                                    <div
+                                                        className={`absolute top-2 rounded-lg shadow-md overflow-hidden transition-all duration-300 group cursor-pointer ${hoveredId === init.id ? 'scale-[1.02] z-10' : 'z-5'}`}
+                                                        style={{
+                                                            left: bar.left,
+                                                            width: bar.width,
+                                                            height: rowHeight,
+                                                        }}
+                                                        title={`${init.name}\nInicio: ${init.start_date || 'N/A'}\nFin: ${init.end_date || 'N/A'}\nAvance: ${progress}%\nEstatus: ${init.status || 'N/A'}`}
+                                                    >
+                                                        {/* Base Gradient Background */}
+                                                        <div className={`absolute inset-0 ${getStatusColor(init.status)} opacity-20`} />
+                                                        
+                                                        {/* Progress Fill with Shimmer effect */}
                                                         <div
-                                                            className={`absolute top-1.5 rounded-md shadow-sm overflow-hidden transition-all duration-200 group cursor-pointer ${hoveredId === init.id ? 'ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-[#1E2630]' : ''}`}
-                                                            style={{
-                                                                left: bar.left,
-                                                                width: bar.width,
-                                                                height: rowHeight - 12,
-                                                            }}
-                                                            title={`${init.name}\nInicio: ${init.start_date || 'N/A'}\nFin: ${init.end_date || 'N/A'}\nAvance: ${progress}%\nEstatus: ${init.status || 'N/A'}`}
+                                                            className={`absolute inset-y-0 left-0 ${getStatusColor(init.status)} opacity-80 shadow-[0_0_15px_rgba(0,0,0,0.1)] transition-all relative overflow-hidden`}
+                                                            style={{ width: `${progress}%` }}
                                                         >
-                                                            {/* Background */}
-                                                            <div className={`absolute inset-0 ${getStatusColor(init.status)} opacity-20`} />
-
-                                                            {/* Progress fill */}
-                                                            <div
-                                                                className={`absolute inset-y-0 left-0 ${getStatusColor(init.status)} opacity-60 transition-all`}
-                                                                style={{ width: `${progress}%` }}
-                                                            />
-
-                                                            {/* Label */}
-                                                            <div className="relative z-10 px-1.5 flex items-center h-full">
-                                                                <span className="text-[9px] font-bold text-white drop-shadow-sm truncate">
-                                                                    {bar.width > 60 ? init.name : ''}
-                                                                </span>
-                                                                {bar.width > 30 && (
-                                                                    <span className="text-[8px] font-bold text-white/80 ml-auto flex-shrink-0">
-                                                                        {progress}%
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ transform: 'translateX(-100%)' }} />
                                                         </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ))}
-                            </div>
+
+                                                        {/* Label Overlay */}
+                                                        <div className="relative z-10 px-2 flex items-center h-full gap-2">
+                                                            {bar.width > 120 && (
+                                                                <span className="text-[10px] font-bold text-white drop-shadow-md truncate">
+                                                                    {init.name}
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[9px] font-extrabold text-white bg-black/20 px-1.5 py-0.5 rounded ml-auto flex-shrink-0">
+                                                                {progress}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 px-1">
-                <span>{initiatives.filter(i => !i.start_date && !i.end_date).length} iniciativas sin fechas (no mostradas)</span>
-                <span>Usa zoom y scroll horizontal para navegar la línea de tiempo</span>
+            {/* Stats & Tips */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/30 p-2 rounded-lg border border-gray-100 dark:border-gray-800/50">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span>{filtered.length} iniciativas activas con cronograma · {initiatives.filter(i => !i.start_date && !i.end_date).length} sin fechas.</span>
+                </div>
+                <div className="flex items-center justify-end space-x-4 text-[10px] uppercase font-bold tracking-wider text-gray-400">
+                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5" /> Entregado</div>
+                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5" /> En Curso</div>
+                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-red-500 mr-1.5" /> Retrasado</div>
+                </div>
             </div>
         </div>
     );
