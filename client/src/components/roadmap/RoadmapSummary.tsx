@@ -16,9 +16,6 @@ export const RoadmapSummary = () => {
             .catch(console.error);
     }, [token, year]);
 
-    // Calculate Stats
-    const total = initiatives.length;
-
     // Calculate area counts
     const byArea = initiatives.reduce((acc, curr) => {
         const a = curr.area || 'Sin Área';
