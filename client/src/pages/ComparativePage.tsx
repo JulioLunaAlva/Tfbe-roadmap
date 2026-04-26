@@ -55,6 +55,8 @@ export const ComparativePage = () => {
     const { year } = useYear();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sortKey, setSortKey] = useState<SortKey>('progress');
+    const [sortAsc, setSortAsc] = useState(false);
     const [compareIds, setCompareIds] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterArea, setFilterArea] = useState<string | null>(null);
