@@ -179,8 +179,8 @@ export const TimelinePage = () => {
                         <Calendar size={20} className="text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Timeline de Iniciativas</h2>
-                        <p className="text-xs text-gray-400">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Timeline de Iniciativas</h2>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                             {filtered.length} iniciativas con fechas · {year}
                         </p>
                     </div>
@@ -240,7 +240,7 @@ export const TimelinePage = () => {
                     <div className="flex sticky top-0 z-30 bg-white dark:bg-[#1E2630] border-b border-gray-200 dark:border-gray-700/50">
                         {/* Empty corner for initiative labels */}
                         <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700/50 bg-gray-50/80 dark:bg-[#1A2332]/80 backdrop-blur-sm sticky left-0 z-40 h-12 flex items-center px-4">
-                            <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Iniciativa / Tags</span>
+                            <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Iniciativas</span>
                         </div>
 
                         {/* Months Row */}
@@ -279,33 +279,22 @@ export const TimelinePage = () => {
                                 return (
                                     <div key={area}>
                                         {/* Area header */}
-                                        <div className={`px-4 py-2 bg-gray-50 dark:bg-gray-800/40 border-b border-gray-200 dark:border-gray-700/50`}>
-                                            <span className={`text-[10px] font-extrabold ${areaColor.text} uppercase tracking-widest flex items-center`}>
-                                                <span className={`w-2 h-2 rounded-full ${areaColor.bg} mr-2`} />
+                                        <div className={`px-4 py-2 bg-gray-50 dark:bg-[#111827] border-b border-gray-100 dark:border-gray-800`}>
+                                            <span className={`text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center`}>
                                                 {area}
                                             </span>
                                         </div>
                                         {inits.map(init => (
                                             <div
                                                 key={init.id}
-                                                className={`flex flex-col justify-center px-4 border-b border-gray-100 dark:border-gray-800/50 transition-colors cursor-default border-l-[4px] ${areaColor.border} ${hoveredId === init.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#111827]/30'}`}
-                                                style={{ height: rowHeight + 12 }}
+                                                className={`flex items-center px-4 border-b border-gray-100 dark:border-gray-800/50 transition-colors cursor-default border-l-[3px] ${areaColor.border} ${hoveredId === init.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'hover:bg-gray-50 dark:hover:bg-[#111827]/30'}`}
+                                                style={{ height: rowHeight }}
                                                 onMouseEnter={() => setHoveredId(init.id)}
                                                 onMouseLeave={() => setHoveredId(null)}
                                             >
-                                                <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200 truncate leading-tight" title={init.name}>
+                                                <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 truncate" title={init.name}>
                                                     {init.name}
                                                 </span>
-                                                {init.tags && init.tags.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {init.tags.slice(0, 2).map(tag => (
-                                                            <span key={tag} className="text-[8px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-100 dark:border-indigo-800/50 truncate max-w-[80px]">
-                                                                {tag}
-                                                            </span>
-                                                        ))}
-                                                        {init.tags.length > 2 && <span className="text-[8px] text-gray-400 font-bold">+{init.tags.length - 2}</span>}
-                                                    </div>
-                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -344,50 +333,50 @@ export const TimelinePage = () => {
                             {Array.from(grouped.entries()).map(([area, inits]) => (
                                 <div key={area}>
                                     {/* Area spacer row */}
-                                    <div className="bg-gray-50/30 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/50" style={{ height: 26 }} />
+                                    <div className="border-b border-gray-100 dark:border-gray-800" style={{ height: 28 }} />
                                     
                                     {inits.map(init => {
                                         const bar = getBarPosition(init.start_date, init.end_date);
                                         const progress = init.progress || 0;
-                                        const colors = getStatusColor(init.status);
+                                        const statusColor = getStatusColor(init.status).bg;
 
                                         return (
                                             <div
                                                 key={init.id}
                                                 className={`relative border-b border-gray-100 dark:border-gray-800/50 transition-colors ${hoveredId === init.id ? 'bg-indigo-50/30 dark:bg-indigo-900/5' : ''}`}
-                                                style={{ height: rowHeight + 12 }}
+                                                style={{ height: rowHeight }}
                                                 onMouseEnter={() => setHoveredId(init.id)}
                                                 onMouseLeave={() => setHoveredId(null)}
                                             >
                                                 {bar && (
                                                     <div
-                                                        className={`absolute top-2 rounded-lg shadow-sm border border-black/5 dark:border-white/5 overflow-hidden transition-all duration-300 group cursor-pointer ${hoveredId === init.id ? 'scale-[1.01] z-10 shadow-md' : 'z-5'}`}
+                                                        className={`absolute top-1.5 rounded-md shadow-sm overflow-hidden transition-all duration-200 group cursor-pointer ${hoveredId === init.id ? 'ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-[#1E2630]' : ''}`}
                                                         style={{
                                                             left: bar.left,
                                                             width: bar.width,
-                                                            height: rowHeight,
+                                                            height: rowHeight - 12,
                                                         }}
                                                         title={`${init.name}\nInicio: ${init.start_date || 'N/A'}\nFin: ${init.end_date || 'N/A'}\nAvance: ${progress}%\nEstatus: ${init.status || 'N/A'}`}
                                                     >
-                                                        {/* Base Light Background */}
-                                                        <div className={`absolute inset-0 ${colors.light}`} />
+                                                        {/* Background */}
+                                                        <div className={`absolute inset-0 ${statusColor} opacity-20`} />
                                                         
-                                                        {/* Progress Fill (Solid) */}
+                                                        {/* Progress fill */}
                                                         <div
-                                                            className={`absolute inset-y-0 left-0 ${colors.bg} transition-all`}
+                                                            className={`absolute inset-y-0 left-0 ${statusColor} opacity-60 transition-all`}
                                                             style={{ width: `${progress}%` }}
                                                         />
 
-                                                        {/* Label Overlay */}
-                                                        <div className="relative z-10 px-2 flex items-center h-full gap-2">
-                                                            {bar.width > 80 && (
-                                                                <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 truncate drop-shadow-sm">
-                                                                    {init.name}
+                                                        {/* Label */}
+                                                        <div className="relative z-10 px-1.5 flex items-center h-full">
+                                                            <span className="text-[9px] font-bold text-white drop-shadow-sm truncate">
+                                                                {bar.width > 60 ? init.name : ''}
+                                                            </span>
+                                                            {bar.width > 30 && (
+                                                                <span className="text-[8px] font-bold text-white/80 ml-auto flex-shrink-0">
+                                                                    {progress}%
                                                                 </span>
                                                             )}
-                                                            <span className={`text-[9px] font-extrabold ${progress > 50 ? 'text-white' : 'text-gray-700 dark:text-gray-300'} ml-auto flex-shrink-0 bg-white/20 dark:bg-black/20 px-1 rounded`}>
-                                                                {progress}%
-                                                            </span>
                                                         </div>
                                                     </div>
                                                 )}
@@ -402,16 +391,9 @@ export const TimelinePage = () => {
             </div>
 
             {/* Stats & Tips */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800/30 p-2 rounded-lg border border-gray-100 dark:border-gray-800/50 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span>{filtered.length} iniciativas activas con cronograma · {initiatives.filter(i => !i.start_date && !i.end_date).length} sin fechas.</span>
-                </div>
-                <div className="flex items-center justify-end space-x-4 text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 shadow-sm" /> Entregado</div>
-                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5 shadow-sm" /> En Curso</div>
-                    <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-red-500 mr-1.5 shadow-sm" /> Retrasado</div>
-                </div>
+            <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 px-1 mt-2">
+                <span>{filtered.length} iniciativas activas con cronograma · {initiatives.filter(i => !i.start_date && !i.end_date).length} sin fechas.</span>
+                <span>Usa zoom y scroll horizontal para navegar la línea de tiempo</span>
             </div>
         </div>
     );
