@@ -159,8 +159,10 @@ export const RisksPage = () => {
                         <ShieldAlert size={20} className="text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Riesgos & Blockers</h2>
-                        <p className="text-xs text-gray-400">{stats.total} registros · {stats.abierto} abiertos · {year}</p>
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Riesgos & Blockers</h2>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {stats.total} registros · {stats.abierto} abiertos · {year}
+                        </p>
                     </div>
                 </div>
 
