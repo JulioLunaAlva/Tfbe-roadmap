@@ -126,8 +126,8 @@ export const ValuePresentationModal = ({ isOpen, onClose, initiative, data, pill
                                 <span className="text-base font-bold uppercase tracking-widest text-white/90">Status: {initiative.status || 'N/A'}</span>
                             </div>
                         </div>
-                        <div className="absolute bottom-24 text-gray-500 text-sm font-medium animate-pulse flex flex-col items-center gap-3">
-                            <span>Haz clic para comenzar la presentación</span>
+                        <div className="mt-16 text-gray-500 text-sm font-medium animate-pulse flex flex-col items-center gap-3">
+                            <span>Haz clic o usa las flechas para comenzar la presentación</span>
                             <div className="w-px h-12 bg-gradient-to-b from-gray-500 to-transparent" />
                         </div>
                     </div>
