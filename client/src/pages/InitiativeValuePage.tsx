@@ -6,7 +6,7 @@ import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
 import {
     Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
-    DollarSign, HelpCircle, Award, Maximize2, Presentation
+    DollarSign, HelpCircle, Award, Presentation
 } from 'lucide-react';
 import { RichTextEditor } from '../components/common/RichTextEditor';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
