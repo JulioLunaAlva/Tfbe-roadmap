@@ -75,23 +75,23 @@ const KPICard = ({
 
     return (
         <div
-            className={`relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-[#1E2630] p-4 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            className={`relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-[#1E2630] p-3 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ transitionDelay: `${delay}ms` }}
         >
             {/* Gradient accent */}
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`} />
 
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+            <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5 truncate">
                         {label}
                     </p>
-                    <p className="text-2xl font-extrabold text-gray-800 dark:text-white tracking-tight">
+                    <p className="text-xl font-extrabold text-gray-800 dark:text-white tracking-tight truncate">
                         {animatedValue}{suffix}
                     </p>
                 </div>
-                <div className={`p-2.5 rounded-xl ${iconBg} shadow-sm`}>
-                    <Icon size={20} className="text-white" />
+                <div className={`p-2 rounded-xl ${iconBg} shadow-sm flex-shrink-0`}>
+                    <Icon size={18} className="text-white" />
                 </div>
             </div>
         </div>
@@ -117,9 +117,9 @@ export const RoadmapKPIs = () => {
 
     if (loading || !data) {
         return (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 mb-4">
                 {Array.from({ length: 7 }).map((_, i) => (
-                    <div key={i} className="h-[88px] rounded-xl bg-gray-100 dark:bg-[#1E2630] animate-pulse border border-gray-200 dark:border-gray-700/50" />
+                    <div key={i} className="h-[76px] rounded-xl bg-gray-100 dark:bg-[#1E2630] animate-pulse border border-gray-200 dark:border-gray-700/50" />
                 ))}
             </div>
         );
@@ -179,7 +179,7 @@ export const RoadmapKPIs = () => {
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 mb-4">
             {cards.map((card, i) => (
                 <KPICard
                     key={card.label}
