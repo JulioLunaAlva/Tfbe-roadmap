@@ -117,10 +117,12 @@ export const RoadmapKPIs = () => {
 
     if (loading || !data) {
         return (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 mb-4">
-                {Array.from({ length: 7 }).map((_, i) => (
-                    <div key={i} className="h-[76px] rounded-xl bg-gray-100 dark:bg-[#1E2630] animate-pulse border border-gray-200 dark:border-gray-700/50" />
-                ))}
+            <div className="w-full overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 min-w-[900px] lg:min-w-0">
+                    {Array.from({ length: 7 }).map((_, i) => (
+                        <div key={i} className="h-[76px] rounded-xl bg-gray-100 dark:bg-[#1E2630] animate-pulse border border-gray-200 dark:border-gray-700/50" />
+                    ))}
+                </div>
             </div>
         );
     }
@@ -179,7 +181,8 @@ export const RoadmapKPIs = () => {
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 mb-4">
+        <div className="w-full overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 min-w-[900px] lg:min-w-0">
             {cards.map((card, i) => (
                 <KPICard
                     key={card.label}
@@ -190,8 +193,8 @@ export const RoadmapKPIs = () => {
                     gradient={card.gradient}
                     iconBg={card.iconBg}
                     delay={i * 80}
-                />
-            ))}
+                ))}
+            </div>
         </div>
     );
 };

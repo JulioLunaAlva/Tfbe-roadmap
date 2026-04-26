@@ -25,24 +25,21 @@ export const RoadmapSummary = () => {
 
     return (
         <div className="bg-white dark:bg-[#1E2630] p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 text-sm mb-6 transition-all">
-            <div className="flex flex-col gap-6">
-                {/* Area Counts Grid */}
-                <div className="flex-1">
-                    <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
-                        <h4 className="font-bold text-gray-700 dark:text-gray-300 uppercase text-[11px] tracking-wider">
-                            Iniciativas por Área
-                        </h4>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {Object.entries(byArea).sort((a, b) => a[0].localeCompare(b[0])).map(([area, count]) => (
-                            <div key={area} className="flex justify-between items-center bg-gray-50 dark:bg-gray-800/40 px-3 py-2 rounded-lg border border-gray-100 dark:border-gray-700/50 hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all">
-                                <span className="text-gray-600 dark:text-gray-400 text-xs truncate mr-2 font-medium" title={area}>{area}</span>
-                                <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md">
-                                    {String(count)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between mb-2 border-b border-gray-100 dark:border-gray-800 pb-1">
+                    <h4 className="font-bold text-gray-700 dark:text-gray-300 uppercase text-[10px] tracking-wider">
+                        Iniciativas por Área
+                    </h4>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-2">
+                    {Object.entries(byArea).sort((a, b) => a[0].localeCompare(b[0])).map(([area, count]) => (
+                        <div key={area} className="flex justify-between items-center py-1 border-b border-gray-50 dark:border-gray-800/50 last:border-0">
+                            <span className="text-gray-500 dark:text-gray-400 text-[11px] truncate mr-2" title={area}>{area}</span>
+                            <span className="font-bold text-gray-800 dark:text-gray-200 text-[11px]">
+                                {String(count)}
+                            </span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
