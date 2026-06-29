@@ -17,6 +17,7 @@ import kpiSummaryRouter from './routes/kpi-summary';
 import commentsRouter from './routes/comments';
 import activityRouter from './routes/activity';
 import risksRouter from './routes/risks';
+import dependenciesRouter from './routes/dependencies';
 import { query } from './db';
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/api/kpi-summary', kpiSummaryRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/activity', activityRouter);
 app.use('/api/risks', risksRouter);
+app.use('/api/dependencies', dependenciesRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {
@@ -114,6 +116,17 @@ const initDb = async () => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_risks_initiative ON initiative_risks(initiative_id);
+    `);
+    // Create initiative_dependencies table
+    await query(`
+      CREATE TABLE IF NOT EXISTS initiative_dependencies (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        source_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+        target_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+        dependency_type VARCHAR(50) DEFAULT 'blocks',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(source_id, target_id)
+      );
     `);
     console.log('✅ Database tables ready');
   } catch (err) {
