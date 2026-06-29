@@ -22,7 +22,7 @@ export const LoginPage = () => {
 
             if (res.ok) {
                 if (data.token) {
-                    window.location.href = `/auth/callback?token=${data.token}`;
+                    window.location.href = `${import.meta.env.BASE_URL}auth/callback?token=${data.token}`;
                 }
             } else {
                 setError(`Error ${res.status}: ${data.error || res.statusText}`);
