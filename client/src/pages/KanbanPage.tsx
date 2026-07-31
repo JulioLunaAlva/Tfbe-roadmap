@@ -29,6 +29,7 @@ interface Initiative {
     status: string;
     progress: number;
     champion: string;
+    transformation_lead: string;
 }
 
 const KANBAN_COLUMNS = [
@@ -119,6 +120,7 @@ export const KanbanPage = () => {
     const { year } = useYear();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
+    const [transformationLeadFilter, setTransformationLeadFilter] = useState<string>('');
 
     useEffect(() => {
         const fetchInitiatives = async () => {
@@ -219,13 +221,29 @@ export const KanbanPage = () => {
 
     return (
         <div className="h-full flex flex-col bg-[var(--bg-primary)] p-4 overflow-hidden">
-            <div className="mb-4 flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-sm">
-                    <KanbanSquare size={20} className="text-white" />
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-sm">
+                        <KanbanSquare size={20} className="text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-[var(--text-primary)] leading-tight">Tablero Kanban</h1>
+                        <p className="text-xs text-[var(--text-tertiary)]">Visualización ágil de iniciativas por estatus</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-xl font-bold text-[var(--text-primary)] leading-tight">Tablero Kanban</h1>
-                    <p className="text-xs text-[var(--text-tertiary)]">Visualización ágil de iniciativas por estatus</p>
+
+                {/* Filters */}
+                <div className="flex items-center gap-3">
+                    <select
+                        className="bg-white dark:bg-[#1A2332] border border-gray-200 dark:border-gray-800 text-sm rounded-lg px-3 py-1.5 text-gray-700 dark:text-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        value={transformationLeadFilter}
+                        onChange={e => setTransformationLeadFilter(e.target.value)}
+                    >
+                        <option value="">Todos los Resp. Transformación</option>
+                        {Array.from(new Set(initiatives.map(i => i.transformation_lead).filter(Boolean))).map(lead => (
+                            <option key={lead} value={lead}>{lead}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -233,7 +251,13 @@ export const KanbanPage = () => {
                 <div className="flex h-full gap-4 pb-2 items-start">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         {KANBAN_COLUMNS.map(col => {
-                            const colItems = initiatives.filter(i => (i as any).kanbanStatus === col.id);
+                            let colItems = initiatives.filter(i => (i as any).kanbanStatus === col.id);
+                            
+                            // Apply filters
+                            if (transformationLeadFilter) {
+                                colItems = colItems.filter(i => i.transformation_lead === transformationLeadFilter);
+                            }
+
                             return (
                                 <KanbanColumn 
                                     key={col.id}
