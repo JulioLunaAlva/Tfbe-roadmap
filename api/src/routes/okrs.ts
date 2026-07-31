@@ -9,13 +9,27 @@ const router = Router();
 router.get('/', authenticateToken, async (req: any, res) => {
     const { year } = req.query;
     try {
-        let sql = `SELECT * FROM okrs`;
+        let sql = `
+            SELECT o.*,
+            (
+                SELECT json_agg(json_build_object(
+                    'id', i.id,
+                    'name', i.name,
+                    'progress', i.progress,
+                    'status', i.status
+                ))
+                FROM initiative_okrs io
+                JOIN initiatives i ON io.initiative_id = i.id
+                WHERE io.okr_id = o.id
+            ) as initiatives
+            FROM okrs o
+        `;
         const params: any[] = [];
         if (year) {
-            sql += ` WHERE year = $1`;
+            sql += ` WHERE o.year = $1`;
             params.push(year);
         }
-        sql += ` ORDER BY created_at ASC`;
+        sql += ` ORDER BY o.created_at ASC`;
         const result = await query(sql, params);
         res.json(result.rows);
     } catch (err) {
