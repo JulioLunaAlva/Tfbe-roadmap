@@ -190,7 +190,7 @@ const SortableInitiativeRow = ({
                                     </span>
                                     <div className="flex items-center ml-1 space-x-1 flex-shrink-0">
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); navigate(`/impacto-valor?initiative_id=${initiative.id}`); }}
+                                            onClick={(e) => { e.stopPropagation(); navigate(`/initiative-value?initiative_id=${initiative.id}`); }}
                                             className="text-indigo-500 hover:text-indigo-400 p-0.5 rounded-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                                             title="Ver Pilares de Impacto y Valor"
                                         >
