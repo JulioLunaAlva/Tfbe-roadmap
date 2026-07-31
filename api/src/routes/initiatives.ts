@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { query } from '../db';
 import { authenticateToken, requireRole } from '../middleware';
+import { logActivity } from '../utils/activityLogger';
 
 const router = Router();
 
@@ -106,6 +107,13 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
         }
 
         await query('COMMIT');
+        
+        // Log Activity
+        await logActivity((req as any).user?.id, 'Creó Iniciativa', initiative.id, {
+            name: initiative.name,
+            entity_type: 'Iniciativa'
+        });
+
         res.status(201).json(initiative);
     } catch (err) {
         await query('ROLLBACK');
@@ -204,6 +212,13 @@ router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request
         }
 
         await query('COMMIT');
+        
+        // Log Activity
+        await logActivity((req as any).user?.id, 'Actualizó Iniciativa', id as string, {
+            name: name,
+            entity_type: 'Iniciativa'
+        });
+
         res.json(result.rows[0]);
     } catch (err) {
         await query('ROLLBACK');
@@ -247,6 +262,12 @@ router.patch('/:id/phases/:phaseId/progress', authenticateToken, requireRole('ed
         }
 
         await query('COMMIT');
+        
+        await logActivity((req as any).user?.id, 'Actualizó Fase de Iniciativa', id as string, {
+            entity_type: 'Iniciativa',
+            phase_id: phaseId
+        });
+
         res.json({ message: 'Phase updated' });
     } catch (err) {
         await query('ROLLBACK');
@@ -341,6 +362,11 @@ router.delete('/:id', authenticateToken, requireRole('editor'), async (req: Requ
         await query('DELETE FROM initiatives WHERE id = $1', [id]);
 
         await query('COMMIT');
+        
+        await logActivity((req as any).user?.id, 'Eliminó Iniciativa', id as string, {
+            entity_type: 'Iniciativa'
+        });
+
         res.json({ message: 'Initiative deleted' });
     } catch (err) {
         await query('ROLLBACK');

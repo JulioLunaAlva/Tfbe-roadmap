@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db';
 import { authenticateToken, requireRole } from '../middleware';
+import { logActivity } from '../utils/activityLogger';
 
 const router = Router();
 
@@ -112,6 +113,14 @@ router.post('/', authenticateToken, requireRole('editor'), async (req, res) => {
                 userId
             ]
         );
+
+        // Retrieve user id correctly if the middleware puts id in req.user, or fetch it based on email
+        const userRes = await query('SELECT id FROM users WHERE email = $1', [(req as any).user?.email]);
+        const dbUserId = userRes.rows[0]?.id || null;
+
+        await logActivity(dbUserId, 'Actualizó Impacto y Valor', initiative_id, {
+            entity_type: 'Iniciativa'
+        });
 
         res.json(result.rows[0]);
     } catch (error) {

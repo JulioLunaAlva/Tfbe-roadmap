@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { query } from '../db';
 import { authenticateToken, requireRole, AuthRequest } from '../middleware';
+import { logActivity } from '../utils/activityLogger';
 
 const router = Router();
 
@@ -57,12 +58,15 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: AuthReque
 
         const result = await query(queryStr, queryParams);
 
-        // NOTE: My generateToken logic put email/role in token. 
-        // I should probably fetch the User ID in middleware or just query it here.
-        // For MVP efficiency: I'll fetch user ID from email here or update middleware.
-        // Let's assume for now I put ID in token or fetch it. 
-        // Actually, I can sub-query in SQL? 
-        // VALUES (..., (SELECT id FROM users WHERE email = $7)) 
+        // Fetch user ID manually to log since middleware only has email/role attached in AuthRequest based on token
+        const userRes = await query('SELECT id FROM users WHERE email = $1', [req.user?.email]);
+        const userId = userRes.rows[0]?.id || null;
+
+        await logActivity(userId, 'Actualizó Avance Semanal', initiative_id, {
+            entity_type: 'Iniciativa',
+            week_number,
+            progress_value
+        });
 
         res.json(result.rows[0]);
     } catch (err) {
