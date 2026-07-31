@@ -6,7 +6,7 @@ import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
 import {
     Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
-    DollarSign, HelpCircle, Award, Presentation
+    DollarSign, HelpCircle, Award, Presentation, Search, ChevronDown, X as XIcon
 } from 'lucide-react';
 import { RichTextEditor } from '../components/common/RichTextEditor';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
@@ -165,6 +165,13 @@ export const InitiativeValuePage = () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [showPresentation, setShowPresentation] = useState(false);
 
+    // Combobox state
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [isComboOpen, setIsComboOpen] = useState(false);
+
+    // Pillar summary map  { initiative_id: filledCount }
+    const [pillarSummary, setPillarSummary] = useState<Record<string, number>>({});
+
     // Derived
     const uniqueAreas = useMemo(() => {
         const areas = initiatives.map(i => i.area).filter(Boolean);
@@ -181,18 +188,28 @@ export const InitiativeValuePage = () => {
         [initiatives, selectedInitiativeId]
     );
 
-    // Fetch Initiatives
+    // Fetch Initiatives + Pillar Summary
     useEffect(() => {
         const fetchInitiatives = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const data = await res.json();
+                const [initRes, summaryRes] = await Promise.all([
+                    fetch(`${API_URL}/api/initiatives?year=${year}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch(`${API_URL}/api/initiative-value/summary`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                ]);
+                const data = await initRes.json();
                 const sorted = Array.isArray(data)
                     ? data.sort((a: any, b: any) => a.name.localeCompare(b.name))
                     : [];
                 setInitiatives(sorted);
+
+                if (summaryRes.ok) {
+                    const summaryData = await summaryRes.json();
+                    setPillarSummary(summaryData || {});
+                }
             } catch (e) {
                 console.error(e);
             }
@@ -239,6 +256,18 @@ export const InitiativeValuePage = () => {
         fetchValue();
     }, [selectedInitiativeId, token]);
 
+    // Re-fetch summary after save so badges stay fresh
+    const refreshSummary = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/initiative-value/summary`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) setPillarSummary(await res.json());
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     // Save
     const handleSave = async () => {
         if (!selectedInitiativeId) return;
@@ -260,6 +289,9 @@ export const InitiativeValuePage = () => {
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Datos guardados exitosamente' });
                 setTimeout(() => setMessage(null), 3000);
+                // Update local summary optimistically with current filledCount
+                setPillarSummary(prev => ({ ...prev, [selectedInitiativeId]: filledCount }));
+                refreshSummary();
             } else {
                 const errData = await res.json().catch(() => ({}));
                 throw new Error(errData.error || 'Error desconocido');
@@ -283,6 +315,42 @@ export const InitiativeValuePage = () => {
             return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     };
+
+    // Combobox: filtered list based on search + area
+    const comboOptions = useMemo(() => {
+        const areaFiltered = selectedArea
+            ? filteredInitiatives
+            : initiatives;
+        if (!searchQuery.trim()) return areaFiltered;
+        const q = searchQuery.toLowerCase();
+        return areaFiltered.filter(i => i.name.toLowerCase().includes(q));
+    }, [initiatives, filteredInitiatives, selectedArea, searchQuery]);
+
+    // Combobox: select an initiative
+    const handleSelectInitiative = (id: string, name: string) => {
+        setSelectedInitiativeId(id);
+        setSearchQuery(name);
+        setIsComboOpen(false);
+    };
+
+    // Combobox: clear
+    const handleClearInitiative = () => {
+        setSelectedInitiativeId('');
+        setSearchQuery('');
+        setIsComboOpen(false);
+    };
+
+    // Global summary stats
+    const globalStats = useMemo(() => {
+        const total = initiatives.length;
+        const complete = initiatives.filter(i => (pillarSummary[i.id] ?? 0) === PILLARS.length).length;
+        const partial = initiatives.filter(i => {
+            const c = pillarSummary[i.id] ?? 0;
+            return c > 0 && c < PILLARS.length;
+        }).length;
+        const empty = total - complete - partial;
+        return { total, complete, partial, empty };
+    }, [initiatives, pillarSummary]);
 
     // Helper: count filled pillars
     const filledCount = useMemo(() => {
@@ -338,24 +406,88 @@ export const InitiativeValuePage = () => {
                             </select>
                         </div>
 
-                        {/* Initiative Selector */}
-                        <div className="flex-1">
+                        {/* Initiative Combobox Search */}
+                        <div className="flex-1 relative">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Iniciativa</label>
-                            <div className="relative group">
-                                <select
-                                    value={selectedInitiativeId}
-                                    onChange={(e) => setSelectedInitiativeId(e.target.value)}
-                                    className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                                    disabled={loading}
-                                >
-                                    <option value="">Seleccionar Iniciativa...</option>
-                                    {filteredInitiatives.map(i => (
-                                        <option key={i.id} value={i.id}>{i.name}</option>
-                                    ))}
-                                </select>
-                                {!selectedInitiativeId && (
-                                    <div className="absolute top-10 left-0 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-nowrap">
-                                        Selecciona una iniciativa para ver su detalle de valor
+                            <div className="relative">
+                                {/* Search input */}
+                                <div className="relative flex items-center">
+                                    <Search size={15} className="absolute left-2.5 text-gray-400 pointer-events-none" />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setIsComboOpen(true);
+                                            if (!e.target.value) setSelectedInitiativeId('');
+                                        }}
+                                        onFocus={() => setIsComboOpen(true)}
+                                        onBlur={() => setTimeout(() => setIsComboOpen(false), 150)}
+                                        placeholder="Buscar iniciativa..."
+                                        disabled={loading}
+                                        className="w-full pl-8 pr-8 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm disabled:opacity-50"
+                                    />
+                                    {searchQuery ? (
+                                        <button
+                                            onClick={handleClearInitiative}
+                                            className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                        >
+                                            <XIcon size={14} />
+                                        </button>
+                                    ) : (
+                                        <ChevronDown size={14} className="absolute right-2.5 text-gray-400 pointer-events-none" />
+                                    )}
+                                </div>
+
+                                {/* Dropdown list */}
+                                {isComboOpen && (
+                                    <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                        {comboOptions.length === 0 ? (
+                                            <div className="px-3 py-2 text-xs text-gray-400 italic">Sin resultados</div>
+                                        ) : (
+                                            comboOptions.map(i => {
+                                                const filled = pillarSummary[i.id] ?? 0;
+                                                const isSelected = i.id === selectedInitiativeId;
+                                                const badgeColor =
+                                                    filled === PILLARS.length
+                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                                        : filled > 0
+                                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                                        : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+                                                return (
+                                                    <button
+                                                        key={i.id}
+                                                        onMouseDown={() => handleSelectInitiative(i.id, i.name)}
+                                                        className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-sm ${
+                                                            isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 font-semibold' : ''
+                                                        }`}
+                                                    >
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="truncate text-gray-800 dark:text-gray-100">{i.name}</span>
+                                                            {i.area && (
+                                                                <span className="text-xs text-gray-400 truncate">{i.area}</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                            {/* mini dot bar */}
+                                                            <div className="flex gap-0.5">
+                                                                {PILLARS.map((_, idx) => (
+                                                                    <div
+                                                                        key={idx}
+                                                                        className={`w-1.5 h-1.5 rounded-full ${
+                                                                            idx < filled ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'
+                                                                        }`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${badgeColor}`}>
+                                                                {filled}/{PILLARS.length}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -493,9 +625,10 @@ export const InitiativeValuePage = () => {
                 </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State + Global Summary */}
             {!selectedInitiativeId && !loading && (
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                    {/* Hero */}
                     <div className="text-center max-w-md">
                         <div className="mx-auto w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/10">
                             <Award size={36} className="text-indigo-500 dark:text-indigo-400" />
@@ -509,6 +642,56 @@ export const InitiativeValuePage = () => {
                             a través de los 6 pilares de impacto.
                         </p>
                     </div>
+
+                    {/* Global pillar completion summary */}
+                    {globalStats.total > 0 && (
+                        <div className="w-full max-w-2xl">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Resumen global de iniciativas</p>
+                            <div className="grid grid-cols-3 gap-3">
+                                {/* Complete */}
+                                <div className="flex flex-col items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 rounded-xl p-4">
+                                    <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{globalStats.complete}</span>
+                                    <div className="flex gap-0.5 mb-0.5">
+                                        {PILLARS.map((_, i) => <div key={i} className="w-2 h-2 rounded-full bg-emerald-400" />)}
+                                    </div>
+                                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 text-center leading-tight">6/6 pilares completos</span>
+                                    <span className="text-xs text-gray-400">iniciativas</span>
+                                </div>
+                                {/* Partial */}
+                                <div className="flex flex-col items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 rounded-xl p-4">
+                                    <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{globalStats.partial}</span>
+                                    <div className="flex gap-0.5 mb-0.5">
+                                        {PILLARS.map((_, i) => <div key={i} className={`w-2 h-2 rounded-full ${i < 3 ? 'bg-amber-400' : 'bg-gray-300 dark:bg-gray-600'}`} />)}
+                                    </div>
+                                    <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 text-center leading-tight">1–5/6 pilares</span>
+                                    <span className="text-xs text-gray-400">en progreso</span>
+                                </div>
+                                {/* Empty */}
+                                <div className="flex flex-col items-center gap-1 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
+                                    <span className="text-2xl font-black text-gray-400">{globalStats.empty}</span>
+                                    <div className="flex gap-0.5 mb-0.5">
+                                        {PILLARS.map((_, i) => <div key={i} className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />)}
+                                    </div>
+                                    <span className="text-xs font-semibold text-gray-400 text-center leading-tight">0/6 sin documentar</span>
+                                    <span className="text-xs text-gray-400">pendientes</span>
+                                </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="mt-4">
+                                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                    <span>{globalStats.complete} completas de {globalStats.total}</span>
+                                    <span>{Math.round((globalStats.complete / globalStats.total) * 100)}% completado</span>
+                                </div>
+                                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-700"
+                                        style={{ width: `${(globalStats.complete / globalStats.total) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

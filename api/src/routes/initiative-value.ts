@@ -4,6 +4,36 @@ import { authenticateToken, requireRole } from '../middleware';
 
 const router = Router();
 
+// GET /api/initiative-value/summary — Returns pillar completion count per initiative
+router.get('/summary', authenticateToken, async (_req, res) => {
+    try {
+        const result = await query(
+            `SELECT
+                initiative_id,
+                (
+                    CASE WHEN business_value IS NOT NULL AND business_value != '' AND business_value != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN operational_efficiency IS NOT NULL AND operational_efficiency != '' AND operational_efficiency != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN fte_detail IS NOT NULL AND fte_detail != '' AND fte_detail != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN qualitative_benefit IS NOT NULL AND qualitative_benefit != '' AND qualitative_benefit != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN users_reached_detail IS NOT NULL AND users_reached_detail != '' AND users_reached_detail != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN estimated_savings_detail IS NOT NULL AND estimated_savings_detail != '' AND estimated_savings_detail != '<p></p>' THEN 1 ELSE 0 END
+                ) AS filled_pillars
+            FROM initiative_value`,
+            []
+        );
+
+        // Return as a map { initiative_id: filledCount }
+        const summary: Record<string, number> = {};
+        for (const row of result.rows) {
+            summary[row.initiative_id] = Number(row.filled_pillars);
+        }
+        res.json(summary);
+    } catch (error) {
+        console.error('[GET initiative-value/summary] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch summary' });
+    }
+});
+
 // GET /api/initiative-value?initiative_id=X
 router.get('/', authenticateToken, async (req, res) => {
     const { initiative_id } = req.query;
