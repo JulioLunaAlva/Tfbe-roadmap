@@ -14,6 +14,7 @@ import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
 import { exportToExcel, exportToPDF, EXPORT_PILLARS } from '../utils/exportValue';
 import type { Step } from 'react-joyride';
+import { useSearchParams } from 'react-router-dom';
 
 interface Initiative {
     id: string;
@@ -159,7 +160,17 @@ export const InitiativeValuePage = () => {
 
     // State
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
-    const [selectedInitiativeId, setSelectedInitiativeId] = useState<string>('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initIdFromUrl = searchParams.get('initiative_id');
+    const [selectedInitiativeId, setSelectedInitiativeId] = useState<string>(initIdFromUrl || '');
+
+    // Clear the URL param once it's loaded to avoid getting stuck if user changes selection
+    useEffect(() => {
+        if (initIdFromUrl && initiatives.length > 0) {
+            // Remove it from URL so subsequent clicks in the sidebar don't force it
+            setSearchParams({});
+        }
+    }, [initIdFromUrl, initiatives, setSearchParams]);
     const [selectedArea, setSelectedArea] = useState<string>('');
     const [valueData, setValueData] = useState<ValueData>({ ...EMPTY_VALUE });
     const [loading, setLoading] = useState(false);

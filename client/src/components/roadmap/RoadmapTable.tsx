@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle, FileDown, FileSpreadsheet } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle, FileDown, FileSpreadsheet, Zap } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -33,6 +33,7 @@ import { TagsEditor } from './TagsEditor';
 import { CommentsDrawer } from '../comments/CommentsDrawer';
 import { CALENDAR_SCHEMA, flatWeeks, getCurrentWeekNumber } from '../../utils/calendarConstants';
 import { exportRoadmapToExcel } from '../../utils/exportRoadmap';
+import { useNavigate } from 'react-router-dom';
 
 interface Initiative {
     id: string;
@@ -143,6 +144,8 @@ const SortableInitiativeRow = ({
         transition,
         isDragging,
     } = useSortable({ id: initiative.id });
+    
+    const navigate = useNavigate();
 
     const style = {
         transform: CSS.Translate.toString(transform),
@@ -186,6 +189,13 @@ const SortableInitiativeRow = ({
                                         {initiative.name}
                                     </span>
                                     <div className="flex items-center ml-1 space-x-1 flex-shrink-0">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); navigate(`/impacto-valor?initiative_id=${initiative.id}`); }}
+                                            className="text-indigo-500 hover:text-indigo-400 p-0.5 rounded-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+                                            title="Ver Pilares de Impacto y Valor"
+                                        >
+                                            <Zap size={14} className="fill-current" />
+                                        </button>
                                         {initiative.is_top_priority && <span title="Top Priority"><Star className="text-yellow-400 fill-current" size={14} /></span>}
                                         {initiative.is_key_initiative && <span title="Iniciativa Clave"><Lightbulb className="text-amber-500 fill-current" size={14} /></span>}
                                     </div>
