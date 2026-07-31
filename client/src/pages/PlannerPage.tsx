@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config/api';
-import { CheckSquare, Plus, Clock, User, Shield, Trash2, Edit2, CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckSquare, Plus, Clock, User, Shield, Trash2, CheckCircle2, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface PlannerTask {
     id: string;
@@ -23,7 +22,6 @@ interface PlannerTask {
 export const PlannerPage = () => {
     const { token, user } = useAuth();
     const [tasks, setTasks] = useState<PlannerTask[]>([]);
-    const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'my_tasks' | 'team_tasks'>('my_tasks');
 
     // New task form state
@@ -37,7 +35,6 @@ export const PlannerPage = () => {
     });
 
     const fetchTasks = async () => {
-        setLoading(true);
         try {
             const res = await fetch(`${API_URL}/api/planner`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -49,7 +46,6 @@ export const PlannerPage = () => {
         } catch (error) {
             console.error("Error fetching tasks:", error);
         }
-        setLoading(false);
     };
 
     useEffect(() => {

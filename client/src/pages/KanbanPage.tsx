@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
@@ -8,9 +8,9 @@ import {
     KeyboardSensor,
     PointerSensor,
     useSensor,
-    useSensors,
-    DragEndEvent
+    useSensors
 } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
     arrayMove,
     SortableContext,
@@ -92,7 +92,7 @@ const SortableItem = ({ item }: { item: Initiative }) => {
     );
 };
 
-const KanbanColumn = ({ id, label, color, items }: { id: string, label: string, color: string, items: Initiative[] }) => {
+const KanbanColumn = ({ label, color, items }: { id: string, label: string, color: string, items: Initiative[] }) => {
     return (
         <div className="flex flex-col min-w-[280px] w-[280px] h-full flex-shrink-0">
             <div className={clsx("p-3 rounded-t-lg border-t border-x font-bold text-sm text-gray-700 dark:text-gray-200 flex justify-between items-center", color)}>
