@@ -13,7 +13,7 @@ interface OKR {
 
 export const OkrsPage = () => {
     const { token, user } = useAuth();
-    const { selectedYear } = useYear();
+    const { year: selectedYear } = useYear();
     const [okrs, setOkrs] = useState<OKR[]>([]);
     const [loading, setLoading] = useState(true);
 

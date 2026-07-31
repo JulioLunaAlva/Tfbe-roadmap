@@ -33,7 +33,7 @@ interface InitiativeForm {
 
 export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
     const { token } = useAuth();
-    const { selectedYear } = useYear();
+    const { year: selectedYear } = useYear();
     const [loading, setLoading] = useState(false);
     const [availableOkrs, setAvailableOkrs] = useState<{id: string, title: string}[]>([]);
 

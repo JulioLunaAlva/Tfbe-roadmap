@@ -13,7 +13,7 @@ interface Props {
 
 export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSave }) => {
     const { token } = useAuth();
-    const { selectedYear } = useYear();
+    const { year: selectedYear } = useYear();
     const [loading, setLoading] = useState(false);
     const [availableOkrs, setAvailableOkrs] = useState<{id: string, title: string}[]>([]);
 

@@ -129,9 +129,46 @@ const initDb = async () => {
         target_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
         dependency_type VARCHAR(50) DEFAULT 'blocks',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        UNIQUE(source_id, target_id)
+    `);
+    
+    // Create planner_tasks table
+    await query(`
+      CREATE TABLE IF NOT EXISTS planner_tasks (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+        due_date TIMESTAMP WITH TIME ZONE,
+        owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        assigned_to_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        initiative_id UUID REFERENCES initiatives(id) ON DELETE CASCADE,
+        is_private BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Create okrs table
+    await query(`
+      CREATE TABLE IF NOT EXISTS okrs (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        year INTEGER NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create initiative_okrs table
+    await query(`
+      CREATE TABLE IF NOT EXISTS initiative_okrs (
+        initiative_id UUID REFERENCES initiatives(id) ON DELETE CASCADE,
+        okr_id UUID REFERENCES okrs(id) ON DELETE CASCADE,
+        PRIMARY KEY (initiative_id, okr_id)
+      );
+    `);
+    
     console.log('✅ Database tables ready');
   } catch (err) {
     console.error('❌ Failed to initialize dashboard layout table:', err);

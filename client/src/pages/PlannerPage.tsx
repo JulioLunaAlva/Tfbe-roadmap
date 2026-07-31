@@ -83,9 +83,13 @@ export const PlannerPage = () => {
                 setIsCreating(false);
                 setNewTask({ title: '', description: '', due_date: '', is_private: true, assigned_to_email: '' });
                 fetchTasks();
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.error || 'Failed to create task'}`);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            alert(`Error connecting to server: ${error.message}`);
         }
     };
 

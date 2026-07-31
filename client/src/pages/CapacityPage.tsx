@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
 import { Users, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
-import { format, differenceInDays, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface Initiative {
@@ -16,7 +16,7 @@ interface Initiative {
 
 export const CapacityPage = () => {
     const { token } = useAuth();
-    const { selectedYear } = useYear();
+    const { year: selectedYear } = useYear();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
 
