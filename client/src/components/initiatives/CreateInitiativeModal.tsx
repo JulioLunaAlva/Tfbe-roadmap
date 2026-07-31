@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useYear } from '../../context/YearContext';
+import { MultiSelectDropdown } from '../roadmap/MultiSelectDropdown';
 import API_URL from '../../config/api';
 
 interface Props {
@@ -26,11 +28,14 @@ interface InitiativeForm {
     value: string;
     developer_owner: string[];
     methodology_type: string;
+    okrs: string[];
 }
 
 export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
     const { token } = useAuth();
+    const { selectedYear } = useYear();
     const [loading, setLoading] = useState(false);
+    const [availableOkrs, setAvailableOkrs] = useState<{id: string, title: string}[]>([]);
 
     // Form State
     const [formData, setFormData] = useState<InitiativeForm>({
@@ -50,11 +55,29 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         progress: 0,
         value: '',
         developer_owner: [] as string[],
-        methodology_type: 'Hibrida'
+        methodology_type: 'Hibrida',
+        okrs: [] as string[]
     });
 
     const [techInput, setTechInput] = useState('');
     const [devInput, setDevInput] = useState('');
+
+    useEffect(() => {
+        const fetchOkrs = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/okrs?year=${selectedYear}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setAvailableOkrs(data);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        if (token) fetchOkrs();
+    }, [token, selectedYear]);
 
     // Developer Handlers
     const handleAddDev = (e: React.KeyboardEvent) => {
@@ -133,13 +156,17 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         console.log('CreateInitiativeModal - Value field specifically:', formData.value);
 
         try {
+            // Map selected OKR titles back to IDs
+            const okrIds = formData.okrs.map(title => availableOkrs.find(o => o.title === title)?.id).filter(Boolean);
+            const payload = { ...formData, okrs: okrIds };
+
             const res = await fetch(`${API_URL}/api/initiatives`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
@@ -252,6 +279,22 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
                                 <option value="Mandatorio/Compliance">Mandatorio/Compliance</option>
                                 <option value="Deferred/Not prioritized">Deferred/Not prioritized</option>
                             </select>
+                        </div>
+
+                        {/* OKRs */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                OKRs Estratégicos (Opcional)
+                            </label>
+                            <div className="bg-white dark:bg-[#2A3441] rounded-md border border-gray-300 dark:border-gray-600">
+                                <MultiSelectDropdown
+                                    label=""
+                                    options={availableOkrs.map(o => o.title)}
+                                    selectedValues={formData.okrs}
+                                    onChange={(values) => setFormData({ ...formData, okrs: values })}
+                                    placeholder="Seleccionar OKRs"
+                                />
+                            </div>
                         </div>
 
                         {/* Champion */}

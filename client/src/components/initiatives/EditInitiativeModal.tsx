@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useYear } from '../../context/YearContext';
+import { MultiSelectDropdown } from '../roadmap/MultiSelectDropdown';
 import API_URL from '../../config/api';
 
 interface Props {
@@ -11,7 +13,9 @@ interface Props {
 
 export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSave }) => {
     const { token } = useAuth();
+    const { selectedYear } = useYear();
     const [loading, setLoading] = useState(false);
+    const [availableOkrs, setAvailableOkrs] = useState<{id: string, title: string}[]>([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -31,7 +35,8 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         technologies: [] as string[],
         value: '',
         developer_owner: [] as string[],
-        methodology_type: 'Hibrida'
+        methodology_type: 'Hibrida',
+        okrs: [] as string[]
     });
 
     useEffect(() => {
@@ -53,10 +58,28 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                 technologies: initiative.technologies || [],
                 value: initiative.value || '',
                 developer_owner: Array.isArray(initiative.developer_owner) ? initiative.developer_owner : (initiative.developer_owner ? [initiative.developer_owner] : []),
-                methodology_type: initiative.methodology_type || 'Hibrida'
+                methodology_type: initiative.methodology_type || 'Hibrida',
+                okrs: initiative.okrs ? initiative.okrs.map((o: any) => o.title) : []
             });
         }
     }, [initiative]);
+
+    useEffect(() => {
+        const fetchOkrs = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/okrs?year=${selectedYear}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setAvailableOkrs(data);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        if (token) fetchOkrs();
+    }, [token, selectedYear]);
 
     // Predefined lists
     const areas: string[] = [];
@@ -147,13 +170,17 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         console.log('EditInitiativeModal - Submitting formData:', formData);
 
         try {
+            // Map selected OKR titles back to IDs
+            const okrIds = formData.okrs.map(title => availableOkrs.find(o => o.title === title)?.id).filter(Boolean);
+            const payload = { ...formData, okrs: okrIds };
+
             const res = await fetch(`${API_URL}/api/initiatives/${initiative.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
@@ -246,6 +273,22 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                             <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400 font-medium">
                                 ⚠️ Cambiar esto reiniciará las fases de la iniciativa.
                             </p>
+                        </div>
+
+                        {/* OKRs */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                OKRs Estratégicos (Opcional)
+                            </label>
+                            <div className="bg-white dark:bg-[#2A3441] rounded-md border border-gray-300 dark:border-gray-600">
+                                <MultiSelectDropdown
+                                    label=""
+                                    options={availableOkrs.map(o => o.title)}
+                                    selectedValues={formData.okrs}
+                                    onChange={(values) => setFormData({ ...formData, okrs: values })}
+                                    placeholder="Seleccionar OKRs"
+                                />
+                            </div>
                         </div>
 
                         {/* Value - NEW FIELD */}

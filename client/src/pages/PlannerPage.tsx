@@ -22,6 +22,7 @@ interface PlannerTask {
 export const PlannerPage = () => {
     const { token, user } = useAuth();
     const [tasks, setTasks] = useState<PlannerTask[]>([]);
+    const [usersList, setUsersList] = useState<{email: string}[]>([]);
     const [view, setView] = useState<'my_tasks' | 'team_tasks'>('my_tasks');
 
     // New task form state
@@ -49,7 +50,22 @@ export const PlannerPage = () => {
     };
 
     useEffect(() => {
-        if (token) fetchTasks();
+        const fetchUsersList = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/users/list`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (Array.isArray(data)) setUsersList(data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        if (token) {
+            fetchTasks();
+            fetchUsersList();
+        }
     }, [token]);
 
     const handleCreateTask = async (e: React.FormEvent) => {
@@ -224,8 +240,17 @@ export const PlannerPage = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Asignar a (Email - Opcional)</label>
-                                <input type="email" value={newTask.assigned_to_email} onChange={e => setNewTask({...newTask, assigned_to_email: e.target.value})} className="w-full rounded-md border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0D1520] text-sm py-2" placeholder="usuario@kof.com.mx" />
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Asignar a (Opcional)</label>
+                                <select 
+                                    value={newTask.assigned_to_email} 
+                                    onChange={e => setNewTask({...newTask, assigned_to_email: e.target.value})} 
+                                    className="w-full rounded-md border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0D1520] text-sm py-2"
+                                >
+                                    <option value="">Sin asignar</option>
+                                    {usersList.map(u => (
+                                        <option key={u.email} value={u.email}>{u.email}</option>
+                                    ))}
+                                </select>
                             </div>
                             
                             <div className="flex justify-end gap-2 pt-4">

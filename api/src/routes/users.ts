@@ -23,7 +23,20 @@ const requireCesar = (req: any, res: any, next: any) => {
     }
 };
 
-// Apply auth and Cesar check to all routes
+// GET /users/list - Public list of users for dropdowns
+router.get('/list', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT email FROM users ORDER BY email ASC'
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching users list:', err);
+        res.status(500).json({ error: 'Failed to fetch users list' });
+    }
+});
+
+// Apply auth and Cesar check to ALL OTHER routes
 router.use(authenticateToken, requireCesar);
 
 // GET /users - List all users

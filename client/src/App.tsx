@@ -18,6 +18,8 @@ import { RisksPage } from './pages/RisksPage';
 import { DependencyMapPage } from './pages/DependencyMapPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { PlannerPage } from './pages/PlannerPage';
+import { OkrsPage } from './pages/OkrsPage';
+import { CapacityPage } from './pages/CapacityPage';
 
 // Proteced Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: React.ReactElement, allowedRoles?: string[], requiredPage?: string }) => {
@@ -41,7 +43,7 @@ const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: Re
     if (user.role === 'admin') return children;
 
     // If user has no allowed_pages set, give them access to the main pages by default including support
-    const allowed = user.allowed_pages || ['/', '/dashboard', '/kanban', '/planner', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks', '/dependencies'];
+    const allowed = user.allowed_pages || ['/', '/dashboard', '/kanban', '/planner', '/okrs', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks', '/dependencies'];
     if (!allowed.includes(requiredPage)) {
       // Send them to the first page they ARE allowed to see, or fallback
       const fallback = allowed.length > 0 ? allowed[0] : '/';
@@ -77,6 +79,16 @@ const AppRoutes = () => {
         <Route path="planner" element={
           <ProtectedRoute requiredPage="/planner">
             <PlannerPage />
+          </ProtectedRoute>
+        } />
+        <Route path="okrs" element={
+          <ProtectedRoute requiredPage="/okrs">
+            <OkrsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="capacity" element={
+          <ProtectedRoute requiredPage="/capacity">
+            <CapacityPage />
           </ProtectedRoute>
         } />
         <Route path="one-pager" element={
