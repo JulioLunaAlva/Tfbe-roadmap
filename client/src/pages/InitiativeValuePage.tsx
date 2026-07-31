@@ -577,7 +577,7 @@ export const InitiativeValuePage = () => {
                                                         progress: selectedInitiative.progress,
                                                         technologies: selectedInitiative.technologies,
                                                     },
-                                                    valueData,
+                                                    valueData as Record<string, string>,
                                                     EXPORT_PILLARS
                                                 );
                                             }}
@@ -608,7 +608,7 @@ export const InitiativeValuePage = () => {
                                                         progress: selectedInitiative.progress,
                                                         technologies: selectedInitiative.technologies,
                                                     },
-                                                    valueData,
+                                                    valueData as Record<string, string>,
                                                     EXPORT_PILLARS
                                                 );
                                             }}

@@ -406,9 +406,7 @@ export function exportToPDF(
 
                 // Continuation mini-header
                 doc.setFillColor(pr, pg, pb);
-                doc.setGlobalAlpha(0.1);
                 doc.rect(0, 0, W, 14, 'F');
-                doc.setGlobalAlpha(1.0);
                 doc.setFontSize(8);
                 doc.setTextColor(pr, pg, pb);
                 doc.setFont('helvetica', 'bold');
