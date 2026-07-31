@@ -6,11 +6,13 @@ import { useYear } from '../context/YearContext';
 import API_URL from '../config/api';
 import {
     Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
-    DollarSign, HelpCircle, Award, Presentation, Search, ChevronDown, X as XIcon
+    DollarSign, HelpCircle, Award, Presentation, Search, ChevronDown, X as XIcon,
+    FileDown, FileSpreadsheet, FileText
 } from 'lucide-react';
 import { RichTextEditor } from '../components/common/RichTextEditor';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
+import { exportToExcel, exportToPDF, EXPORT_PILLARS } from '../utils/exportValue';
 import type { Step } from 'react-joyride';
 
 interface Initiative {
@@ -164,6 +166,7 @@ export const InitiativeValuePage = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [showPresentation, setShowPresentation] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     // Combobox state
     const [searchQuery, setSearchQuery] = useState<string>('');
@@ -538,6 +541,90 @@ export const InitiativeValuePage = () => {
                                 <Presentation size={18} />
                                 <span>Vista Previa</span>
                             </button>
+                        )}
+
+                        {/* Export Dropdown */}
+                        {selectedInitiativeId && selectedInitiative && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowExportMenu(prev => !prev)}
+                                    onBlur={() => setTimeout(() => setShowExportMenu(false), 150)}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-900/50 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all font-bold text-xs whitespace-nowrap"
+                                    title="Exportar iniciativa"
+                                >
+                                    <FileDown size={18} />
+                                    <span>Exportar</span>
+                                    <ChevronDown size={13} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {showExportMenu && (
+                                    <div className="absolute right-0 top-full mt-1.5 z-50 w-52 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                                        {/* Header */}
+                                        <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700">
+                                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Formato de exportación</p>
+                                        </div>
+
+                                        {/* Excel option */}
+                                        <button
+                                            onMouseDown={() => {
+                                                setShowExportMenu(false);
+                                                exportToExcel(
+                                                    {
+                                                        name: selectedInitiative.name,
+                                                        area: selectedInitiative.area,
+                                                        champion: selectedInitiative.champion,
+                                                        status: selectedInitiative.status,
+                                                        progress: selectedInitiative.progress,
+                                                        technologies: selectedInitiative.technologies,
+                                                    },
+                                                    valueData,
+                                                    EXPORT_PILLARS
+                                                );
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group"
+                                        >
+                                            <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/60 transition-colors">
+                                                <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Excel (.xlsx)</p>
+                                                <p className="text-xs text-gray-400">2 hojas · Resumen + Detalle</p>
+                                            </div>
+                                        </button>
+
+                                        {/* Divider */}
+                                        <div className="h-px bg-gray-100 dark:bg-gray-700 mx-3" />
+
+                                        {/* PDF option */}
+                                        <button
+                                            onMouseDown={() => {
+                                                setShowExportMenu(false);
+                                                exportToPDF(
+                                                    {
+                                                        name: selectedInitiative.name,
+                                                        area: selectedInitiative.area,
+                                                        champion: selectedInitiative.champion,
+                                                        status: selectedInitiative.status,
+                                                        progress: selectedInitiative.progress,
+                                                        technologies: selectedInitiative.technologies,
+                                                    },
+                                                    valueData,
+                                                    EXPORT_PILLARS
+                                                );
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group"
+                                        >
+                                            <div className="p-1.5 bg-rose-100 dark:bg-rose-900/40 rounded-lg group-hover:bg-rose-200 dark:group-hover:bg-rose-900/60 transition-colors">
+                                                <FileText size={16} className="text-rose-600 dark:text-rose-400" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">PDF (.pdf)</p>
+                                                <p className="text-xs text-gray-400">Portada + 1 página por pilar</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         {/* Save Button */}
