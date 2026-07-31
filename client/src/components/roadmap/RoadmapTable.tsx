@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle, FileDown, FileSpreadsheet } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -32,6 +32,7 @@ import { RoadmapLegend } from './RoadmapLegend';
 import { TagsEditor } from './TagsEditor';
 import { CommentsDrawer } from '../comments/CommentsDrawer';
 import { CALENDAR_SCHEMA, flatWeeks, getCurrentWeekNumber } from '../../utils/calendarConstants';
+import { exportRoadmapToExcel } from '../../utils/exportRoadmap';
 
 interface Initiative {
     id: string;
@@ -1006,6 +1007,20 @@ export const RoadmapTable = () => {
         return filterMatches.filter(m => m.search && m.area && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch && m.tagMatch).map(m => m.i);
     }, [filterMatches]);
 
+    const hasActiveFilters = useMemo(() =>
+        searchTerm !== '' ||
+        selectedArea.length > 0 ||
+        selectedStatus.length > 0 ||
+        selectedTransfLead.length > 0 ||
+        selectedTechnology.length > 0 ||
+        selectedDevOwner.length > 0 ||
+        selectedComplexity.length > 0 ||
+        selectedQuarters.length > 0 ||
+        selectedClassification.length > 0 ||
+        selectedValue.length > 0 ||
+        selectedTag.length > 0
+    , [searchTerm, selectedArea, selectedStatus, selectedTransfLead, selectedTechnology, selectedDevOwner, selectedComplexity, selectedQuarters, selectedClassification, selectedValue, selectedTag]);
+
     const uniqueAreas = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.status && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.area).filter((x): x is string => !!x))).sort(), [filterMatches]);
     const uniqueStatuses = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.transf && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.status).filter((x): x is string => !!x))).sort(), [filterMatches]);
     const uniqueTransfLeads = useMemo(() => Array.from(new Set(filterMatches.filter(m => m.search && m.area && m.status && m.tech && m.dev && m.comp && m.qMatch && m.val && m.clsMatch).map(m => m.i.transformation_lead).filter((x): x is string => !!x))).sort(), [filterMatches]);
@@ -1262,7 +1277,20 @@ export const RoadmapTable = () => {
                     {todayFormatted}
                 </div>
                 <div className="flex justify-end">
-                    {/* Empty for symmetry, or can hold other tools in the future */}
+                    <button
+                        onClick={() => exportRoadmapToExcel(filteredInitiatives, year, hasActiveFilters)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1E2630] text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all text-xs font-bold whitespace-nowrap group"
+                        title={hasActiveFilters ? `Exportar ${filteredInitiatives.length} iniciativas (con filtros)` : `Exportar todas las iniciativas`}
+                    >
+                        <FileSpreadsheet size={15} className="text-emerald-500" />
+                        <span>Exportar Excel</span>
+                        {hasActiveFilters && (
+                            <span className="ml-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded text-[10px] font-semibold">
+                                {filteredInitiatives.length} filtradas
+                            </span>
+                        )}
+                        <FileDown size={13} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </button>
                 </div>
             </div>
 
