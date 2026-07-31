@@ -28,7 +28,7 @@ export const CredentialsPage = () => {
         email: '',
         password: '',
         role: 'viewer' as 'admin' | 'editor' | 'viewer',
-        allowed_pages: ['/', '/dashboard', '/one-pager', '/initiative-value', '/support'] as string[]
+        allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'] as string[]
     });
 
     const fetchUsers = async () => {
@@ -60,7 +60,7 @@ export const CredentialsPage = () => {
                 email: user.email,
                 password: '', // Password empty on edit unless changing
                 role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/dashboard', '/one-pager', '/initiative-value', '/support']
+                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support']
             });
         } else {
             setEditingUser(null);
@@ -68,7 +68,7 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/dashboard', '/one-pager', '/initiative-value', '/support']
+                allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support']
             });
         }
         setIsModalOpen(true);
@@ -316,6 +316,10 @@ export const CredentialsPage = () => {
                                 <div className="space-y-2 p-3 bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-color)]">
                                     {[
                                         { id: '/', label: 'Roadmap de Iniciativas' },
+                                        { id: '/kanban', label: 'Tablero Kanban' },
+                                        { id: '/planner', label: 'Mi Planner' },
+                                        { id: '/okrs', label: 'OKRs Estratégicos' },
+                                        { id: '/capacity', label: 'Capacity Planning' },
                                         { id: '/dashboard', label: 'Dashboard Transformación' },
                                         { id: '/one-pager', label: 'One Pager' },
                                         { id: '/initiative-value', label: 'Impacto & Valor' },
