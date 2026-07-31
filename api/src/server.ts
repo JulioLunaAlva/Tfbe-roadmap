@@ -129,6 +129,8 @@ const initDb = async () => {
         target_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
         dependency_type VARCHAR(50) DEFAULT 'blocks',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(source_id, target_id)
+      );
     `);
     
     // Create planner_tasks table
