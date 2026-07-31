@@ -18,6 +18,7 @@ import commentsRouter from './routes/comments';
 import activityRouter from './routes/activity';
 import risksRouter from './routes/risks';
 import dependenciesRouter from './routes/dependencies';
+import plannerRouter from './routes/planner';
 import { query } from './db';
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/comments', commentsRouter);
 app.use('/api/activity', activityRouter);
 app.use('/api/risks', risksRouter);
 app.use('/api/dependencies', dependenciesRouter);
+app.use('/api/planner', plannerRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {

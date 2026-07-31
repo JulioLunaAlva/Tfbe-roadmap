@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, BarChart3, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, BarChart3, ShieldAlert, KanbanSquare, CheckSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
 
@@ -25,6 +25,8 @@ export const Layout = () => {
 
     const navItems = [
         { label: 'Roadmap', path: '/', icon: ListTodo },
+        { label: 'Kanban', path: '/kanban', icon: KanbanSquare },
+        { label: 'Mi Planner', path: '/planner', icon: CheckSquare },
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'One Pager', path: '/one-pager', icon: FileText },
         { label: 'Impacto & Valor', path: '/initiative-value', icon: Award },
@@ -36,7 +38,7 @@ export const Layout = () => {
         // Admin always sees all main nav items
         if (user?.role === 'admin') return true;
         // If no allowed_pages are set (e.g., old token), default to allowing standard pages
-        if (!user?.allowed_pages) return ['/', '/dashboard', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks'].includes(item.path);
+        if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks'].includes(item.path);
         return user.allowed_pages.includes(item.path);
     });
 

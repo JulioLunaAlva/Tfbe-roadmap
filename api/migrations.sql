@@ -75,3 +75,18 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   details JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Planner Tasks Table
+CREATE TABLE IF NOT EXISTS planner_tasks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+  due_date TIMESTAMP WITH TIME ZONE,
+  owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  assigned_to_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  initiative_id UUID REFERENCES initiatives(id) ON DELETE CASCADE,
+  is_private BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
