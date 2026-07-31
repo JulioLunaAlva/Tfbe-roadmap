@@ -32,6 +32,7 @@ interface ValueData {
     qualitative_benefit: string;
     users_reached_detail: string;
     estimated_savings_detail: string;
+    [key: string]: string;
 }
 
 const EMPTY_VALUE: ValueData = {
@@ -577,7 +578,7 @@ export const InitiativeValuePage = () => {
                                                         progress: selectedInitiative.progress,
                                                         technologies: selectedInitiative.technologies,
                                                     },
-                                                    valueData as Record<string, string>,
+                                                    valueData,
                                                     EXPORT_PILLARS
                                                 );
                                             }}
@@ -608,7 +609,7 @@ export const InitiativeValuePage = () => {
                                                         progress: selectedInitiative.progress,
                                                         technologies: selectedInitiative.technologies,
                                                     },
-                                                    valueData as Record<string, string>,
+                                                    valueData,
                                                     EXPORT_PILLARS
                                                 );
                                             }}
