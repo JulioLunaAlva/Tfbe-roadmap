@@ -206,7 +206,10 @@ export const Layout = () => {
                                 onChange={(e) => setYear(Number(e.target.value))}
                                 className="bg-transparent text-sm font-bold text-[var(--text-primary)] outline-none cursor-pointer"
                             >
-                                {[2024, 2025, 2026, 2027, 2028].map(y => (
+                                {Array.from(
+                                    { length: new Date().getFullYear() + 3 - 2024 + 1 },
+                                    (_, i) => 2024 + i
+                                ).map(y => (
                                     <option key={y} value={y} className="text-gray-900 bg-white dark:bg-zinc-800 dark:text-gray-100">
                                         {y}
                                     </option>
