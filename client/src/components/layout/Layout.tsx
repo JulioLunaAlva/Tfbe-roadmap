@@ -27,13 +27,13 @@ export const Layout = () => {
 
     const navItems = [
         { label: 'Roadmap', path: '/', icon: ListTodo },
+        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'Impacto & Valor', path: '/initiative-value', icon: Award },
+        { label: 'One Pager', path: '/one-pager', icon: FileText },
         { label: 'Kanban', path: '/kanban', icon: KanbanSquare },
         { label: 'Mi Planner', path: '/planner', icon: CheckSquare },
         { label: 'OKRs', path: '/okrs', icon: Target },
         { label: 'Capacity', path: '/capacity', icon: Users },
-        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { label: 'One Pager', path: '/one-pager', icon: FileText },
-        { label: 'Impacto & Valor', path: '/initiative-value', icon: Award },
         { label: 'Timeline', path: '/timeline', icon: Calendar },
         { label: 'Comparativa', path: '/comparative', icon: BarChart3 },
         { label: 'Riesgos', path: '/risks', icon: ShieldAlert },
