@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Target, Users, Lock } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Target, Users, Lock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
 import { ChangePasswordModal } from '../../pages/ChangePasswordPage';
@@ -35,6 +35,7 @@ export const Layout = () => {
         { label: 'OKRs', path: '/okrs', icon: Target },
         { label: 'Capacity', path: '/capacity', icon: Users },
         { label: 'Timeline', path: '/timeline', icon: Calendar },
+        { label: 'Calendario', path: '/calendar', icon: CalendarDays },
         { label: 'Comparativa', path: '/comparative', icon: BarChart3 },
         { label: 'Riesgos', path: '/risks', icon: ShieldAlert },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
@@ -42,7 +43,7 @@ export const Layout = () => {
         // Admin always sees all main nav items
         if (user?.role === 'admin') return true;
         // If no allowed_pages are set (e.g., old token), default to allowing standard pages
-        if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/okrs', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks'].includes(item.path);
+        if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/okrs', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks'].includes(item.path);
         return user.allowed_pages.includes(item.path);
     });
 
@@ -190,10 +191,11 @@ export const Layout = () => {
                                     location.pathname === '/one-pager' ? 'One Pager' :
                                         location.pathname === '/initiative-value' ? 'Impacto & Valor' :
                                             location.pathname === '/timeline' ? 'Timeline de Iniciativas' :
-                                                location.pathname === '/comparative' ? 'Vista Comparativa' :
-                                                    location.pathname === '/risks' ? 'Riesgos & Blockers' :
-                                                        location.pathname === '/support' ? 'Soporte y Mantenimiento' :
-                                                        location.pathname === '/credentials' ? 'Gestión de Credenciales' : 'Importación'}
+                                                location.pathname === '/calendar' ? 'Calendario de Ejecución' :
+                                                    location.pathname === '/comparative' ? 'Vista Comparativa' :
+                                                        location.pathname === '/risks' ? 'Riesgos & Blockers' :
+                                                            location.pathname === '/support' ? 'Soporte y Mantenimiento' :
+                                                                location.pathname === '/credentials' ? 'Gestión de Credenciales' : 'Importación'}
                         </h2>
                     </div>
 

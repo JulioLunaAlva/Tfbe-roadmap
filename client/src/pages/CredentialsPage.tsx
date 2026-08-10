@@ -29,7 +29,7 @@ export const CredentialsPage = () => {
         email: '',
         password: '',
         role: 'viewer' as 'admin' | 'editor' | 'viewer',
-        allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'] as string[],
+        allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'] as string[],
         must_change_password: false
     });
 
@@ -62,7 +62,7 @@ export const CredentialsPage = () => {
                 email: user.email,
                 password: '', // Password empty on edit unless changing
                 role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'],
+                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
                 must_change_password: user.must_change_password || false
             });
         } else {
@@ -71,7 +71,7 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'],
+                allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
                 must_change_password: false
             });
         }
@@ -334,6 +334,7 @@ export const CredentialsPage = () => {
                                         { id: '/one-pager', label: 'One Pager' },
                                         { id: '/initiative-value', label: 'Impacto & Valor' },
                                         { id: '/timeline', label: 'Timeline de Iniciativas' },
+                                        { id: '/calendar', label: 'Calendario de Ejecución' },
                                         { id: '/comparative', label: 'Vista Comparativa' },
                                         { id: '/risks', label: 'Riesgos & Blockers' },
                                         { id: '/support', label: 'Soporte y Mantenimiento' }

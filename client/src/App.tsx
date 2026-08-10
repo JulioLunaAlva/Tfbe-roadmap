@@ -20,6 +20,7 @@ import { KanbanPage } from './pages/KanbanPage';
 import { PlannerPage } from './pages/PlannerPage';
 import { OkrsPage } from './pages/OkrsPage';
 import { CapacityPage } from './pages/CapacityPage';
+import { CalendarPage } from './pages/CalendarPage';
 import { ForcedChangePasswordPage } from './pages/ChangePasswordPage';
 
 // Proteced Route Wrapper
@@ -118,6 +119,11 @@ const AppRoutes = () => {
         <Route path="timeline" element={
           <ProtectedRoute requiredPage="/timeline">
             <TimelinePage />
+          </ProtectedRoute>
+        } />
+        <Route path="calendar" element={
+          <ProtectedRoute requiredPage="/calendar">
+            <CalendarPage />
           </ProtectedRoute>
         } />
         <Route path="comparative" element={
