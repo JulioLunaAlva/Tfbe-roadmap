@@ -72,7 +72,7 @@ export const changePassword = async (req: Request, res: Response) => {
     let decoded: any;
     try {
         decoded = jwt.verify(token, JWT_SECRET) as any;
-    } catch {
+    } catch (_e) {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
