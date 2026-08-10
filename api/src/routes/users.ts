@@ -44,7 +44,7 @@ router.get('/', async (req, res) => {
     try {
         // Exclude password_hash for security
         const result = await pool.query(
-            'SELECT id, email, role, allowed_pages, created_at FROM users ORDER BY email ASC'
+            'SELECT id, email, role, allowed_pages, must_change_password, created_at FROM users ORDER BY email ASC'
         );
         res.json(result.rows);
     } catch (err) {
@@ -83,12 +83,12 @@ router.post('/', async (req, res) => {
 // PUT /users/:id - Update user
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { password, role, allowed_pages, email } = req.body;
+    const { password, role, allowed_pages, email, must_change_password } = req.body;
 
     try {
         let query = 'UPDATE users SET role = $1, allowed_pages = $2';
         const pages = allowed_pages || ['/', '/dashboard', '/one-pager'];
-        let values = [role, pages];
+        let values: any[] = [role, pages];
         let paramIndex = 3;
 
         if (email) {
@@ -104,7 +104,13 @@ router.put('/:id', async (req, res) => {
             paramIndex++;
         }
 
-        query += ` WHERE id = $${paramIndex} RETURNING id, email, role, allowed_pages`;
+        if (must_change_password !== undefined) {
+            query += `, must_change_password = $${paramIndex}`;
+            values.push(must_change_password);
+            paramIndex++;
+        }
+
+        query += ` WHERE id = $${paramIndex} RETURNING id, email, role, allowed_pages, must_change_password`;
         values.push(id);
 
         const result = await pool.query(query, values);

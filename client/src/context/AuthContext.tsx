@@ -10,9 +10,13 @@ interface User {
 interface AuthContextType {
     user: User | null;
     token: string | null;
+    mustChangePassword: boolean;
+    tempToken: string | null;
     login: (token: string, user: User) => void;
     logout: () => void;
     isLoading: boolean;
+    triggerMustChangePassword: (tempToken: string, email: string) => void;
+    confirmPasswordChange: (token: string, user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +25,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState(true);
+    const [mustChangePassword, setMustChangePassword] = useState(false);
+    const [tempToken, setTempToken] = useState<string | null>(null);
 
     useEffect(() => {
         const initAuth = async () => {
@@ -62,16 +68,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(newUser);
+        setMustChangePassword(false);
+        setTempToken(null);
     };
 
     const logout = () => {
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
+        setMustChangePassword(false);
+        setTempToken(null);
+    };
+
+    // Called when login API responds with must_change_password: true
+    const triggerMustChangePassword = (tmpToken: string, email: string) => {
+        setTempToken(tmpToken);
+        setMustChangePassword(true);
+        // Set a minimal user so the change-password page can display the email
+        setUser({ email, role: 'viewer' });
+    };
+
+    // Called after successful password change – completes full login
+    const confirmPasswordChange = (newToken: string, newUser: User) => {
+        login(newToken, newUser);
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+        <AuthContext.Provider value={{
+            user, token, mustChangePassword, tempToken,
+            login, logout, isLoading,
+            triggerMustChangePassword, confirmPasswordChange
+        }}>
             {children}
         </AuthContext.Provider>
     );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config/api';
-import { Plus, Edit2, Trash2, Key, Shield, User as UserIcon, X, Save, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Key, Shield, User as UserIcon, X, Save, AlertTriangle, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface User {
@@ -9,6 +9,7 @@ interface User {
     email: string;
     role: 'admin' | 'editor' | 'viewer';
     allowed_pages?: string[];
+    must_change_password?: boolean;
     created_at?: string;
 }
 
@@ -28,7 +29,8 @@ export const CredentialsPage = () => {
         email: '',
         password: '',
         role: 'viewer' as 'admin' | 'editor' | 'viewer',
-        allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'] as string[]
+        allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'] as string[],
+        must_change_password: false
     });
 
     const fetchUsers = async () => {
@@ -60,7 +62,8 @@ export const CredentialsPage = () => {
                 email: user.email,
                 password: '', // Password empty on edit unless changing
                 role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support']
+                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'],
+                must_change_password: user.must_change_password || false
             });
         } else {
             setEditingUser(null);
@@ -68,7 +71,8 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support']
+                allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support'],
+                must_change_password: false
             });
         }
         setIsModalOpen(true);
@@ -88,7 +92,8 @@ export const CredentialsPage = () => {
             const body: any = {
                 role: formData.role,
                 allowed_pages: formData.allowed_pages,
-                email: formData.email
+                email: formData.email,
+                must_change_password: formData.must_change_password
             };
             if (modalMode === 'create') {
                 body.password = formData.password;
@@ -214,6 +219,11 @@ export const CredentialsPage = () => {
                                             )}>
                                                 {u.role.toUpperCase()}
                                             </span>
+                                            {u.must_change_password && (
+                                                <span className="ml-2 px-2 py-0.5 inline-flex items-center gap-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800">
+                                                    <RefreshCw size={10} /> Cambio pendiente
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                             <button
@@ -345,6 +355,24 @@ export const CredentialsPage = () => {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* must_change_password toggle – only shown in edit mode */}
+                            {modalMode === 'edit' && (
+                                <div>
+                                    <label className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/30 transition">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.must_change_password}
+                                            onChange={(e) => setFormData({ ...formData, must_change_password: e.target.checked })}
+                                            className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
+                                        />
+                                        <div>
+                                            <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Forzar cambio de contraseña en próximo login</p>
+                                            <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">El usuario deberá crear una nueva contraseña al iniciar sesión.</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
 
                             <div className="pt-4 flex justify-end gap-3">
                                 <button

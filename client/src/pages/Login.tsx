@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, ArrowRight, AlertCircle, Lock, Bot, LineChart } from 'lucide-react';
 import API_URL from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 export const LoginPage = () => {
+    const { triggerMustChangePassword } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -21,6 +23,11 @@ export const LoginPage = () => {
             const data = await res.json().catch(() => ({ error: 'Invalid JSON response from server' }));
 
             if (res.ok) {
+                // Must change password flow
+                if (data.must_change_password && data.temp_token) {
+                    triggerMustChangePassword(data.temp_token, data.user?.email || email);
+                    return;
+                }
                 if (data.token) {
                     window.location.href = `${import.meta.env.BASE_URL}auth/callback?token=${data.token}`;
                 }

@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Target, Users } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Target, Users, Lock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
+import { ChangePasswordModal } from '../../pages/ChangePasswordPage';
 
 export const Layout = () => {
     const { user, logout } = useAuth();
     const location = useLocation();
     const { theme, toggleTheme, isSidebarOpen, toggleSidebar, isPresentationMode, togglePresentationMode } = useTheme();
     const { year, setYear } = useYear();
+    const [showChangePassword, setShowChangePassword] = useState(false);
 
     // Reset scroll on navigation
     React.useEffect(() => {
@@ -105,8 +107,8 @@ export const Layout = () => {
                         )}
                     </div>
 
-                    {/* Navigation */}
-                    <nav className="flex-1 px-3 py-6 space-y-2">
+                    {/* Navigation - scrollable */}
+                    <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar min-h-0">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = location.pathname === item.path;
@@ -131,8 +133,8 @@ export const Layout = () => {
                     </nav>
 
                     {/* User Profile */}
-                    <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]">
-                        <div className={clsx("flex items-center", isSidebarOpen ? "pb-4" : "justify-center pb-2")}>
+                    <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)] flex-shrink-0">
+                        <div className={clsx("flex items-center", isSidebarOpen ? "pb-3" : "justify-center pb-2")}>
                             <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
                                 {user?.email[0].toUpperCase()}
                             </div>
@@ -143,6 +145,19 @@ export const Layout = () => {
                                 </div>
                             )}
                         </div>
+                        {/* Change Password */}
+                        <button
+                            onClick={() => setShowChangePassword(true)}
+                            className={clsx(
+                                "flex items-center text-sm text-[var(--text-sidebar-secondary)] hover:text-[var(--text-sidebar-primary)] rounded transition-colors hover:bg-[var(--bg-sidebar-hover)] mb-1",
+                                isSidebarOpen ? "w-full px-2 py-1.5 space-x-2" : "justify-center p-2"
+                            )}
+                            title="Cambiar contraseña"
+                        >
+                            <Lock size={16} />
+                            {isSidebarOpen && <span>Cambiar contraseña</span>}
+                        </button>
+                        {/* Logout */}
                         <button
                             onClick={logout}
                             className={clsx(
@@ -156,6 +171,11 @@ export const Layout = () => {
                         </button>
                     </div>
                 </aside>
+            )}
+
+            {/* Change Password Modal */}
+            {showChangePassword && (
+                <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
             )}
 
             {/* Main Content Area */}

@@ -20,6 +20,7 @@ import { KanbanPage } from './pages/KanbanPage';
 import { PlannerPage } from './pages/PlannerPage';
 import { OkrsPage } from './pages/OkrsPage';
 import { CapacityPage } from './pages/CapacityPage';
+import { ForcedChangePasswordPage } from './pages/ChangePasswordPage';
 
 // Proteced Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: React.ReactElement, allowedRoles?: string[], requiredPage?: string }) => {
@@ -55,6 +56,13 @@ const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: Re
 };
 
 const AppRoutes = () => {
+  const { mustChangePassword } = useAuth();
+
+  // Intercept: if user must change password, show that page regardless of route
+  if (mustChangePassword) {
+    return <ForcedChangePasswordPage />;
+  }
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

@@ -171,6 +171,11 @@ const initDb = async () => {
       );
     `);
     
+    // Add must_change_password column to users (migration v10)
+    await query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;
+    `);
+    
     console.log('✅ Database tables ready');
   } catch (err) {
     console.error('❌ Failed to initialize dashboard layout table:', err);
