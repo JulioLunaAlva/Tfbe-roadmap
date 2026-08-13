@@ -50,6 +50,7 @@ INICIATIVA
 ═══════════════════════════════════════
 Nombre: ${ini.name}
 Área: ${ini.area}
+Estado Actual: ${ini.status || 'No definido'}
 Champion: ${ini.champion || 'No asignado'}
 Complejidad: ${ini.complexity || 'No definida'}
 Prioridad Alta: ${ini.is_top_priority ? 'SÍ' : 'NO'}
