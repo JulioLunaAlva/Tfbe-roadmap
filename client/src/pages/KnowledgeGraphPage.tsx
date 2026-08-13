@@ -433,7 +433,7 @@ export const KnowledgeGraphPage = () => {
                         placeholder="Buscar nodo..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-xs text-white rounded-lg pl-6 pr-2 py-1 w-32 focus:w-48 transition-all outline-none"
+                        className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-xs text-[var(--text-primary)] rounded-lg pl-6 pr-2 py-1 w-32 focus:w-48 transition-all outline-none"
                     />
                 </div>
                 <div className="h-4 w-px bg-[var(--border-color)]" />
