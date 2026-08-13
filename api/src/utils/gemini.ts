@@ -1,19 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 if (!process.env.GEMINI_API_KEY) {
     console.warn('[Gemini] GEMINI_API_KEY not set. AI features will be unavailable.');
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
-// gemini-2.0-flash: current stable model, fast and free tier
-const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    generationConfig: {
-        temperature: 0.4,      // Balanced: creative but consistent
-        maxOutputTokens: 2048,
-    },
-});
+// gemini-2.5-flash: current model (August 2026), fast and free tier
+const MODEL = 'gemini-2.5-flash';
 
 /**
  * Send a prompt to Gemini and get a text response.
@@ -23,8 +17,15 @@ export async function askGemini(prompt: string): Promise<string> {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error('GEMINI_API_KEY is not configured.');
     }
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    const response = await ai.models.generateContent({
+        model: MODEL,
+        contents: prompt,
+        config: {
+            temperature: 0.4,
+            maxOutputTokens: 2048,
+        },
+    });
+    return response.text ?? '';
 }
 
 /**
@@ -32,7 +33,7 @@ export async function askGemini(prompt: string): Promise<string> {
  * Gemini sometimes wraps JSON in markdown code fences.
  */
 export function extractJSON<T>(raw: string): T {
-    // Try to strip ```json ... ``` markdown code fences
+    // Strip ```json ... ``` markdown code fences
     const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
     const jsonStr = fenced ? fenced[1] : raw;
     const match = jsonStr.match(/\{[\s\S]*\}/);

@@ -28,41 +28,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [mustChangePassword, setMustChangePassword] = useState(false);
     const [tempToken, setTempToken] = useState<string | null>(null);
 
+    // Shared function to fetch fresh user from server
+    const refreshUser = async (currentToken: string) => {
+        try {
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timed out')), 5000)
+            );
+            const res = await Promise.race([
+                fetch(`${API_URL}/api/auth/me`, {
+                    headers: { Authorization: `Bearer ${currentToken}` }
+                }),
+                timeoutPromise
+            ]) as Response;
+
+            if (res.ok) {
+                const data = await res.json();
+                setUser(data.user);
+                return true;
+            } else {
+                logout();
+                return false;
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            logout();
+            return false;
+        }
+    };
+
+    // On mount: verify token and load fresh user + permissions from DB
     useEffect(() => {
         const initAuth = async () => {
             if (token) {
-                try {
-                    // Create a timeout promise that rejects after 5 seconds
-                    const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Request timed out')), 5000)
-                    );
-
-                    // Race between fetch and timeout
-                    const res = await Promise.race([
-                        fetch(`${API_URL}/api/auth/me`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        }),
-                        timeoutPromise
-                    ]) as Response;
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        setUser(data.user);
-                    } else {
-                        // Token invalid or expired
-                        logout();
-                    }
-                } catch (error) {
-                    console.error('Auth check failed:', error);
-                    // On timeout or network error, logout to prevent hanging
-                    logout();
-                }
+                await refreshUser(token);
             }
-            // Always finish loading
             setIsLoading(false);
         };
         initAuth();
     }, [token]);
+
+    // Refresh permissions silently when user returns to this tab
+    // This ensures permission changes take effect without requiring logout
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && token) {
+                refreshUser(token);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [token]);
+
 
     const login = (newToken: string, newUser: User) => {
         localStorage.setItem('token', newToken);
