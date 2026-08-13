@@ -76,7 +76,11 @@ export function AiInsightDrawer({ initiative, onClose }: Props) {
             setGeneratedAt(data.generated_at);
             setActiveTab('resumen');
         } catch (e: any) {
-            setError(e.message);
+            let msg = e.message || 'Error desconocido';
+            if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+                msg = 'Has alcanzado el límite de uso gratuito de Inteligencia Artificial (15 peticiones por minuto). Por favor, espera unos segundos e inténtalo de nuevo.';
+            }
+            setError(msg);
         } finally {
             setLoading(false);
         }

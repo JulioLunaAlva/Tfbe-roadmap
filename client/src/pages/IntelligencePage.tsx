@@ -93,7 +93,11 @@ export const IntelligencePage = () => {
             setStats(data.portfolio_stats);
             setGeneratedAt(data.generated_at);
         } catch (e: any) {
-            setSummaryError(e.message);
+            let msg = e.message || 'Error al generar resumen';
+            if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+                msg = 'Has alcanzado el límite de uso gratuito de Inteligencia Artificial (15 peticiones por minuto). Por favor, espera unos segundos e inténtalo de nuevo.';
+            }
+            setSummaryError(msg);
         } finally {
             setLoadingSummary(false);
         }
