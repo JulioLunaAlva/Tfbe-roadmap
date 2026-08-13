@@ -231,6 +231,7 @@ export const KnowledgeGraphPage = () => {
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const hasDraggedRef = useRef(false);
 
     // Filters & Search
     const [visibleTypes, setVisibleTypes] = useState<Set<NodeType>>(new Set(['initiative', 'okr', 'technology', 'risk', 'champion']));
@@ -326,6 +327,7 @@ export const KnowledgeGraphPage = () => {
         e.preventDefault();
         e.stopPropagation();
         setDraggingId(nodeId);
+        hasDraggedRef.current = false;
     }, []);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -334,12 +336,14 @@ export const KnowledgeGraphPage = () => {
             const x = (e.clientX - rect.left - pan.x) / zoom;
             const y = (e.clientY - rect.top - pan.y) / zoom;
             setNodePositions(prev => ({ ...prev, [draggingId]: { x, y } }));
+            hasDraggedRef.current = true;
         } else if (isPanning) {
             setPan(prev => ({
                 x: prev.x + (e.clientX - panStart.x),
                 y: prev.y + (e.clientY - panStart.y),
             }));
             setPanStart({ x: e.clientX, y: e.clientY });
+            hasDraggedRef.current = true;
         }
     }, [draggingId, isPanning, pan, panStart, zoom]);
 
@@ -353,6 +357,9 @@ export const KnowledgeGraphPage = () => {
             setIsPanning(true);
             setPanStart({ x: e.clientX, y: e.clientY });
             setSelectedNodeId(null);
+            setSearchQuery('');
+            setAiMode(false);
+            hasDraggedRef.current = false;
         }
     }, []);
 
@@ -580,7 +587,11 @@ export const KnowledgeGraphPage = () => {
                                 transform={`translate(${node.x},${node.y})`}
                                 style={{ opacity, cursor: 'pointer', transition: 'opacity 0.3s' }}
                                 onMouseDown={e => handleNodeMouseDown(e, node.id)}
-                                onClick={() => setSelectedNodeId(isSelected ? null : node.id)}
+                                onClick={() => {
+                                    if (!hasDraggedRef.current) {
+                                        setSelectedNodeId(isSelected ? null : node.id);
+                                    }
+                                }}
                             >
                                 {/* Glow */}
                                 <circle r={r + 6} fill={nodeColor} opacity={isSelected ? 0.3 : isAiHighlighted ? 0.2 : 0.08} filter={`url(#glow-${node.type})`} />
