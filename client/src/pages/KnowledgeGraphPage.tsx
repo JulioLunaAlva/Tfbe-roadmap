@@ -104,7 +104,6 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
         const id = `tech-${t.technology_id || i}`;
         if (!techMap.has(t.name)) {
             techMap.set(t.name, id);
-            const angle = (2 * Math.PI * techMap.size) / Math.max(technologies.length, 1);
             nodes.push({
                 id,
                 label: t.name,
@@ -467,7 +466,7 @@ export const KnowledgeGraphPage = () => {
                 style={{ userSelect: 'none' }}
             >
                 <defs>
-                    {Object.entries(NODE_CONFIG).map(([type, cfg]) => (
+                    {Object.entries(NODE_CONFIG).map(([type, _cfg]) => (
                         <filter key={type} id={`glow-${type}`}>
                             <feGaussianBlur stdDeviation="4" result="blur" />
                             <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
