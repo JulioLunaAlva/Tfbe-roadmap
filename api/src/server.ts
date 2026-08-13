@@ -20,6 +20,7 @@ import risksRouter from './routes/risks';
 import dependenciesRouter from './routes/dependencies';
 import plannerRouter from './routes/planner';
 import okrsRouter from './routes/okrs';
+import aiRouter from './routes/ai';
 import { query } from './db';
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/risks', risksRouter);
 app.use('/api/dependencies', dependenciesRouter);
 app.use('/api/planner', plannerRouter);
 app.use('/api/okrs', okrsRouter);
+app.use('/api/ai', aiRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {
