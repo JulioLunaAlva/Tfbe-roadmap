@@ -337,7 +337,9 @@ export const CredentialsPage = () => {
                                         { id: '/calendar', label: 'Calendario de Ejecución' },
                                         { id: '/comparative', label: 'Vista Comparativa' },
                                         { id: '/risks', label: 'Riesgos & Blockers' },
-                                        { id: '/support', label: 'Soporte y Mantenimiento' }
+                                        { id: '/support', label: 'Soporte y Mantenimiento' },
+                                        { id: '/intelligence', label: '✨ Inteligencia IA (Gemini)' },
+                                        { id: '/knowledge-graph', label: '🗺️ Grafo de Conocimiento' }
                                     ].map(page => (
                                         <label key={page.id} className="flex items-center space-x-3 cursor-pointer">
                                             <input
