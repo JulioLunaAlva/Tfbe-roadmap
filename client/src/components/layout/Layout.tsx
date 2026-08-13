@@ -38,8 +38,6 @@ export const Layout = () => {
         { label: 'Calendario', path: '/calendar', icon: CalendarDays },
         { label: 'Comparativa', path: '/comparative', icon: BarChart3 },
         { label: 'Riesgos', path: '/risks', icon: ShieldAlert },
-        { label: '✨ Inteligencia IA', path: '/intelligence', icon: Brain },
-        { label: '🗺️ Grafo Conocimiento', path: '/knowledge-graph', icon: Network },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
     ].filter(item => {
         // Admin always sees all main nav items
@@ -47,6 +45,18 @@ export const Layout = () => {
         // If no allowed_pages are set (e.g., old token), default to allowing standard pages
         if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/okrs', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks'].includes(item.path);
         return user.allowed_pages.includes(item.path);
+    });
+
+    // ── AI pages: ONLY shown when explicitly granted in allowed_pages (never by default)
+    const AI_PAGES = [
+        { label: '✨ Inteligencia IA', path: '/intelligence', icon: Brain },
+        { label: '🗺️ Grafo Conocimiento', path: '/knowledge-graph', icon: Network },
+    ];
+    AI_PAGES.forEach(page => {
+        // Admin always sees them
+        if (user?.role === 'admin') { navItems.push(page); return; }
+        // Everyone else: MUST be explicitly in allowed_pages — no default fallback
+        if (user?.allowed_pages?.includes(page.path)) navItems.push(page);
     });
 
     if (user?.role === 'admin') {
