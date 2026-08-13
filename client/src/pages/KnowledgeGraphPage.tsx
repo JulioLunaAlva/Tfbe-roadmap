@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Brain, ZoomIn, ZoomOut, Maximize2, Filter, Sparkles, Loader2, X, GitBranch } from 'lucide-react';
+import { Search, Brain, ZoomIn, ZoomOut, Maximize2, Filter, Sparkles, Loader2, X, GitBranch } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
@@ -82,6 +82,7 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
             x: cx + Math.cos(angle) * r,
             y: cy + Math.sin(angle) * r,
             meta: { ...ini, originalId: ini.id },
+            edgeCount: 0
         });
     });
 
@@ -95,6 +96,7 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
             x: cx + Math.cos(angle) * 90,
             y: cy + Math.sin(angle) * 90,
             meta: okr,
+            edgeCount: 0
         });
     });
 
@@ -111,6 +113,7 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
                 x: randomInRange(50, W - 50),
                 y: randomInRange(50, H - 50),
                 meta: t,
+                edgeCount: 0
             });
         }
     });
@@ -128,9 +131,11 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
             x: baseX,
             y: baseY,
             meta: risk,
+            edgeCount: 1
         });
         if (iniNode) {
             edges.push({ id: `e-risk-${i}`, source: nodeId, target: iniNode.id, edgeType: 'risk_link' });
+            iniNode.edgeCount = (iniNode.edgeCount || 0) + 1;
         }
     });
 
@@ -148,12 +153,16 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
                 x: randomInRange(80, W - 80),
                 y: randomInRange(80, H - 80),
                 meta: { champion: ini.champion },
+                edgeCount: 0
             });
         }
         const champId = champMap.get(ini.champion)!;
         const iniNode = nodes.find(n => n.id === `ini-${ini.id}`);
         if (iniNode) {
             edges.push({ id: `e-champ-${ini.id}`, source: champId, target: iniNode.id, edgeType: 'champion_link' });
+            iniNode.edgeCount = (iniNode.edgeCount || 0) + 1;
+            const champNode = nodes.find(n => n.id === champId);
+            if (champNode) champNode.edgeCount = (champNode.edgeCount || 0) + 1;
         }
     });
 
@@ -165,6 +174,10 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
             target: `ini-${dep.target_id}`,
             edgeType: 'dependency',
         });
+        const n1 = nodes.find(n => n.id === `ini-${dep.source_id}`);
+        const n2 = nodes.find(n => n.id === `ini-${dep.target_id}`);
+        if(n1) n1.edgeCount = (n1.edgeCount || 0) + 1;
+        if(n2) n2.edgeCount = (n2.edgeCount || 0) + 1;
     });
 
     // ── OKR edges ──
@@ -173,6 +186,9 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
             const iniNode = nodes.find(n => n.id === `ini-${iniId}`);
             if (iniNode) {
                 edges.push({ id: `e-okr-${okr.id}-${iniId}`, source: `okr-${okr.id}`, target: iniNode.id, edgeType: 'okr_link' });
+                iniNode.edgeCount = (iniNode.edgeCount || 0) + 1;
+                const okrNode = nodes.find(n => n.id === `okr-${okr.id}`);
+                if (okrNode) okrNode.edgeCount = (okrNode.edgeCount || 0) + 1;
             }
         });
     });
@@ -183,6 +199,9 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
         const iniNode = nodes.find(n => n.id === `ini-${t.initiative_id}`);
         if (techId && iniNode) {
             edges.push({ id: `e-tech-${i}`, source: techId, target: iniNode.id, edgeType: 'tech_link' });
+            iniNode.edgeCount = (iniNode.edgeCount || 0) + 1;
+            const tNode = nodes.find(n => n.id === techId);
+            if(tNode) tNode.edgeCount = (tNode.edgeCount || 0) + 1;
         }
     });
 
@@ -212,8 +231,9 @@ export const KnowledgeGraphPage = () => {
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-    // Filters
+    // Filters & Search
     const [visibleTypes, setVisibleTypes] = useState<Set<NodeType>>(new Set(['initiative', 'okr', 'technology', 'risk', 'champion']));
+    const [searchQuery, setSearchQuery] = useState('');
 
     // AI
     const [aiLoading, setAiLoading] = useState(false);
@@ -274,7 +294,7 @@ export const KnowledgeGraphPage = () => {
     const visibleNodeIds = useMemo(() => new Set(visibleNodes.map(n => n.id)), [visibleNodes]);
     const visibleEdges = useMemo(() => edges.filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)), [edges, visibleNodeIds]);
 
-    // Selected node connections
+    // Selected node connections & Search highlights
     const connectedIds = useMemo(() => {
         if (!selectedNodeId) return new Set<string>();
         const connected = new Set<string>([selectedNodeId]);
@@ -284,6 +304,12 @@ export const KnowledgeGraphPage = () => {
         });
         return connected;
     }, [selectedNodeId, visibleEdges]);
+
+    const searchHighlightedIds = useMemo(() => {
+        if (!searchQuery.trim()) return new Set<string>();
+        const q = searchQuery.toLowerCase();
+        return new Set(nodes.filter(n => n.label.toLowerCase().includes(q) || (n.meta?.champion && n.meta.champion.toLowerCase().includes(q))).map(n => n.id));
+    }, [searchQuery, nodes]);
 
     // AI highlighted nodes
     const aiHighlightedIds = useMemo(() => {
@@ -397,6 +423,20 @@ export const KnowledgeGraphPage = () => {
                 <GitBranch size={14} className="text-[var(--text-tertiary)]" />
                 <span className="text-xs font-semibold text-[var(--text-primary)] mr-1">Grafo de Conocimiento</span>
                 <div className="h-4 w-px bg-[var(--border-color)]" />
+                
+                {/* Search */}
+                <div className="relative flex items-center">
+                    <Search size={12} className="absolute left-2 text-[var(--text-tertiary)]" />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar nodo..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-xs text-white rounded-lg pl-6 pr-2 py-1 w-32 focus:w-48 transition-all outline-none"
+                    />
+                </div>
+                <div className="h-4 w-px bg-[var(--border-color)]" />
+
                 {LEGEND.map(({ type, label }) => (
                     <button
                         key={type}
@@ -465,6 +505,19 @@ export const KnowledgeGraphPage = () => {
                 onWheel={handleWheel}
                 style={{ userSelect: 'none' }}
             >
+                <style>
+                    {`
+                        @keyframes flowDash {
+                            to { stroke-dashoffset: -20; }
+                        }
+                        .edge-flow {
+                            animation: flowDash 1s linear infinite;
+                        }
+                        .edge-flow-slow {
+                            animation: flowDash 2.5s linear infinite;
+                        }
+                    `}
+                </style>
                 <defs>
                     {Object.entries(NODE_CONFIG).map(([type, _cfg]) => (
                         <filter key={type} id={`glow-${type}`}>
@@ -495,7 +548,7 @@ export const KnowledgeGraphPage = () => {
                                 strokeWidth={edge.edgeType === 'dependency' ? 1.5 : 1}
                                 strokeDasharray={cfg.dash === 'none' ? undefined : cfg.dash}
                                 markerEnd={edge.edgeType === 'dependency' ? 'url(#arrow)' : undefined}
-                                className="transition-all duration-300"
+                                className={clsx("transition-all duration-300", isConnected && edge.edgeType !== 'dependency' ? "edge-flow-slow" : "")}
                             />
                         );
                     })}
@@ -504,14 +557,21 @@ export const KnowledgeGraphPage = () => {
                     {visibleNodes.map(node => {
                         const cfg = NODE_CONFIG[node.type];
                         const isSelected = node.id === selectedNodeId;
-                        const isConnected = !selectedNodeId || connectedIds.has(node.id);
+                        const isConnected = (!selectedNodeId && !searchQuery) || connectedIds.has(node.id) || searchHighlightedIds.has(node.id);
                         const isAiHighlighted = aiMode && aiHighlightedIds.has(node.id);
                         const nodeColor = node.type === 'initiative' && node.meta?.status
                             ? (STATUS_COLORS[node.meta.status] || cfg.color)
                             : cfg.color;
 
                         const opacity = isConnected ? 1 : 0.15;
-                        const r = isSelected ? cfg.radius * 1.4 : isAiHighlighted ? cfg.radius * 1.2 : cfg.radius;
+                        
+                        // Dynamic sizing for champions based on edgeCount
+                        let baseRadius = cfg.radius;
+                        if (node.type === 'champion' && node.edgeCount) {
+                            baseRadius = Math.min(cfg.radius * 2.5, cfg.radius + (node.edgeCount * 1.5));
+                        }
+                        
+                        const r = isSelected || searchHighlightedIds.has(node.id) ? baseRadius * 1.4 : isAiHighlighted ? baseRadius * 1.2 : baseRadius;
 
                         return (
                             <g
