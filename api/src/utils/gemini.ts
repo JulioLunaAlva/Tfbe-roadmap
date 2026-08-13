@@ -6,9 +6,9 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// gemini-1.5-flash: fast, free tier, great for structured analysis
+// gemini-2.0-flash: current stable model, fast and free tier
 const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     generationConfig: {
         temperature: 0.4,      // Balanced: creative but consistent
         maxOutputTokens: 2048,
