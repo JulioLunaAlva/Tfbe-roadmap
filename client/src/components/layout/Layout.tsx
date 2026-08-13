@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Target, Users, Lock } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Target, Users, Lock, Brain, Network } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
 import { ChangePasswordModal } from '../../pages/ChangePasswordPage';
@@ -38,6 +38,8 @@ export const Layout = () => {
         { label: 'Calendario', path: '/calendar', icon: CalendarDays },
         { label: 'Comparativa', path: '/comparative', icon: BarChart3 },
         { label: 'Riesgos', path: '/risks', icon: ShieldAlert },
+        { label: '✨ Inteligencia IA', path: '/intelligence', icon: Brain },
+        { label: '🗺️ Grafo Conocimiento', path: '/knowledge-graph', icon: Network },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
     ].filter(item => {
         // Admin always sees all main nav items
@@ -195,7 +197,9 @@ export const Layout = () => {
                                                     location.pathname === '/comparative' ? 'Vista Comparativa' :
                                                         location.pathname === '/risks' ? 'Riesgos & Blockers' :
                                                             location.pathname === '/support' ? 'Soporte y Mantenimiento' :
-                                                                location.pathname === '/credentials' ? 'Gestión de Credenciales' : 'Importación'}
+                                location.pathname === '/credentials' ? 'Gestión de Credenciales' :
+                                                                location.pathname === '/intelligence' ? '✨ Inteligencia IA' :
+                                                                location.pathname === '/knowledge-graph' ? '🗺️ Grafo de Conocimiento' : 'Importación'}
                         </h2>
                     </div>
 

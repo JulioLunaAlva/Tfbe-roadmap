@@ -22,6 +22,8 @@ import { OkrsPage } from './pages/OkrsPage';
 import { CapacityPage } from './pages/CapacityPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { ForcedChangePasswordPage } from './pages/ChangePasswordPage';
+import { IntelligencePage } from './pages/IntelligencePage';
+import { KnowledgeGraphPage } from './pages/KnowledgeGraphPage';
 
 // Proteced Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: React.ReactElement, allowedRoles?: string[], requiredPage?: string }) => {
@@ -45,7 +47,7 @@ const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: Re
     if (user.role === 'admin') return children;
 
     // If user has no allowed_pages set, give them access to the main pages by default including support
-    const allowed = user.allowed_pages || ['/', '/dashboard', '/kanban', '/planner', '/okrs', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks', '/dependencies'];
+    const allowed = user.allowed_pages || ['/', '/dashboard', '/kanban', '/planner', '/okrs', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks', '/dependencies', '/intelligence', '/knowledge-graph'];
     if (!allowed.includes(requiredPage)) {
       // Send them to the first page they ARE allowed to see, or fallback
       const fallback = allowed.length > 0 ? allowed[0] : '/';
@@ -139,6 +141,16 @@ const AppRoutes = () => {
         <Route path="dependencies" element={
           <ProtectedRoute requiredPage="/dependencies">
             <DependencyMapPage />
+          </ProtectedRoute>
+        } />
+        <Route path="intelligence" element={
+          <ProtectedRoute requiredPage="/intelligence">
+            <IntelligencePage />
+          </ProtectedRoute>
+        } />
+        <Route path="knowledge-graph" element={
+          <ProtectedRoute requiredPage="/knowledge-graph">
+            <KnowledgeGraphPage />
           </ProtectedRoute>
         } />
         <Route path="import" element={
