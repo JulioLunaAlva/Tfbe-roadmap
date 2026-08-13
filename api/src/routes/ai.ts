@@ -20,7 +20,7 @@ router.post('/insights/:initiativeId', authenticateToken, async (req: Request, r
                   (SELECT json_agg(o.title) FROM initiative_okrs io JOIN okrs o ON io.okr_id = o.id WHERE io.initiative_id = i.id) as okrs,
                   (SELECT json_agg(t.name) FROM initiative_technologies it JOIN technologies t ON it.technology_id = t.id WHERE it.initiative_id = i.id) as technologies
                 FROM initiatives i WHERE i.id = $1`, [initiativeId]),
-            query(`SELECT title, severity, probability, status FROM initiative_risks WHERE initiative_id = $1 AND status != 'closed'`, [initiativeId]),
+            query(`SELECT title, severity, status FROM initiative_risks WHERE initiative_id = $1 AND status != 'closed'`, [initiativeId]),
             query(`SELECT week_number, year, progress_value, phase_id FROM weekly_progress WHERE initiative_id = $1 ORDER BY year DESC, week_number DESC LIMIT 10`, [initiativeId]),
             query(`SELECT title, status, due_date FROM planner_tasks WHERE initiative_id = $1 AND status != 'completed' LIMIT 10`, [initiativeId]),
             query(`SELECT d.dependency_type, i2.name as depends_on FROM initiative_dependencies d JOIN initiatives i2 ON d.target_id = i2.id WHERE d.source_id = $1`, [initiativeId]),
@@ -65,7 +65,7 @@ Promedio últimas 4 semanas: ${avgProgress}%
 ═══════════════════════════════════════
 RIESGOS ABIERTOS (${risks.length})
 ═══════════════════════════════════════
-${risks.map((r: any) => `  - ${r.title} | Severidad: ${r.severity} | Probabilidad: ${r.probability}`).join('\n') || '  Sin riesgos abiertos'}
+${risks.map((r: any) => `  - ${r.title} | Severidad: ${r.severity}`).join('\n') || '  Sin riesgos abiertos'}
 
 ═══════════════════════════════════════
 TAREAS PENDIENTES (${tasks.length})
