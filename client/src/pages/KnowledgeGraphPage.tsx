@@ -16,6 +16,7 @@ interface GraphNode {
     x: number;
     y: number;
     meta?: Record<string, any>;
+    edgeCount?: number;
 }
 
 interface GraphEdge {
