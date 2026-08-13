@@ -6,8 +6,8 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
-// gemini-2.5-flash: current model (August 2026), fast and free tier
-const MODEL = 'gemini-2.5-flash';
+// gemini-3.7-flash: current model (August 2026), fast and free tier
+const MODEL = 'gemini-3.7-flash';
 
 /**
  * Send a prompt to Gemini and get a text response.
