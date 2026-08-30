@@ -29,7 +29,7 @@ export const CredentialsPage = () => {
         email: '',
         password: '',
         role: 'viewer' as 'admin' | 'editor' | 'viewer',
-        allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'] as string[],
+        allowed_pages: ['/', '/kanban', '/planner', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'] as string[],
         must_change_password: false
     });
 
@@ -62,7 +62,7 @@ export const CredentialsPage = () => {
                 email: user.email,
                 password: '', // Password empty on edit unless changing
                 role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
+                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
                 must_change_password: user.must_change_password || false
             });
         } else {
@@ -71,7 +71,7 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/kanban', '/planner', '/okrs', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
+                allowed_pages: ['/', '/kanban', '/planner', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
                 must_change_password: false
             });
         }
@@ -328,7 +328,6 @@ export const CredentialsPage = () => {
                                         { id: '/', label: 'Roadmap de Iniciativas' },
                                         { id: '/kanban', label: 'Tablero Kanban' },
                                         { id: '/planner', label: 'Mi Planner' },
-                                        { id: '/okrs', label: 'OKRs Estratégicos' },
                                         { id: '/capacity', label: 'Capacity Planning' },
                                         { id: '/dashboard', label: 'Dashboard Transformación' },
                                         { id: '/one-pager', label: 'One Pager' },

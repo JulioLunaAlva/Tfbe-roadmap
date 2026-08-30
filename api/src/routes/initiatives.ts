@@ -12,7 +12,6 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
     let sql = `
     SELECT i.*, 
       (SELECT json_agg(t.name) FROM initiative_technologies it JOIN technologies t ON it.technology_id = t.id WHERE it.initiative_id = i.id) as technologies,
-      (SELECT json_agg(json_build_object('id', o.id, 'title', o.title)) FROM initiative_okrs io JOIN okrs o ON io.okr_id = o.id WHERE io.initiative_id = i.id) as okrs,
       (
         SELECT json_agg(json_build_object(
             'id', ip.id, 
@@ -51,7 +50,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 // POST /api/initiatives - Create
 router.post('/', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     console.log('POST /initiatives body:', req.body);
-    const { name, area, champion, transformation_lead, complexity, is_top_priority, is_key_initiative, year, notes, technologies, status, start_date, end_date, progress, value, methodology_type, tags, okrs } = req.body;
+    const { name, area, champion, transformation_lead, complexity, is_top_priority, is_key_initiative, year, notes, technologies, status, start_date, end_date, progress, value, methodology_type, tags } = req.body;
 
     const methodology = methodology_type || 'Hibrida';
 
@@ -107,16 +106,6 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
             }
         }
 
-        // Insert OKRs if provided
-        if (okrs && Array.isArray(okrs)) {
-            for (const okrId of okrs) {
-                await query(
-                    'INSERT INTO initiative_okrs (initiative_id, okr_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                    [initiative.id, okrId]
-                );
-            }
-        }
-
         await query('COMMIT');
         
         // Log Activity
@@ -137,7 +126,7 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     const { id } = req.params;
     console.log(`PUT /initiatives/${id} body:`, req.body);
-    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, is_key_initiative, year, value, methodology_type, tags, okrs } = req.body;
+    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, is_key_initiative, year, value, methodology_type, tags } = req.body;
 
     // Validate and normalize value field
     let normalizedValue = value || null;
@@ -185,27 +174,6 @@ router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request
             await query('DELETE FROM initiative_technologies WHERE initiative_id = $1', [id]);
             // Insert new
             for (const techId of technologies) {
-                // Ensure techId exists or insert if treating as name... 
-                // Wait, frontend sends Names? CreateInitiativeModal sends Names but backend INSERT assumes Technology ID if strictly FK?
-                // Let's check INSERT logic:
-                // INSERT INTO initiative_technologies (initiative_id, technology_id) VALUES ($1, $2)
-
-                // If the frontend sends NAMES we need to map them or ensure they exist.
-                // The current Create logic does: loop techId of technologies -> INSERT. 
-                // This implies 'technologies' array contains IDs?
-                // But CreateModal sends strings (names). 
-                // If technologies table exists, we should probably look them up or insert them locally.
-
-                // Let's assume we maintain a technologies table but allow free text if we UPSERT them.
-                // Or simply simple for now: if user sends "Python", we look for ID or insert.
-
-                // REVISION: The original Create logic was assuming IDs?? 
-                // Line 74 in original file: for (const techId of technologies) ... INSERT
-                // But in CreateModal lines 38, 83... it's string[]
-
-                // If I am sending Names, I need to resolve them to IDs first or (if strict) insert them.
-                // I'll add a helper logic here: Check if tech exists, get ID, else insert.
-
                 let tId;
                 const techRes = await query('SELECT id FROM technologies WHERE name = $1', [techId]);
                 if (techRes.rows.length > 0) {
@@ -218,16 +186,6 @@ router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request
                 await query(
                     'INSERT INTO initiative_technologies (initiative_id, technology_id) VALUES ($1, $2)',
                     [id, tId]
-                );
-            }
-        }
-
-        if (okrs && Array.isArray(okrs)) {
-            await query('DELETE FROM initiative_okrs WHERE initiative_id = $1', [id]);
-            for (const okrId of okrs) {
-                await query(
-                    'INSERT INTO initiative_okrs (initiative_id, okr_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                    [id, okrId]
                 );
             }
         }

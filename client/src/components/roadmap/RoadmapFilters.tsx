@@ -1,5 +1,7 @@
-import { Search, Filter, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Filter, Calendar, SlidersHorizontal, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import { MultiSelectDropdown } from './MultiSelectDropdown';
+import { clsx } from 'clsx';
 
 interface FiltersProps {
     areas: string[];
@@ -74,135 +76,196 @@ export const RoadmapFilters = ({
     canCreate,
     onCreateInitiative
 }: FiltersProps) => {
+    const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
+        const saved = localStorage.getItem('roadmap_advanced_filters_open');
+        return saved === 'true';
+    });
+
+    const toggleAdvanced = () => {
+        setShowAdvanced(prev => {
+            const next = !prev;
+            localStorage.setItem('roadmap_advanced_filters_open', String(next));
+            return next;
+        });
+    };
+
+    // Calculate count of secondary filters active
+    const advancedFiltersCount = [
+        selectedTransfLead.length > 0,
+        selectedTechnology.length > 0,
+        selectedDevOwner.length > 0,
+        selectedComplexity.length > 0,
+        selectedClassification.length > 0,
+        selectedValue.length > 0,
+        selectedTag.length > 0,
+    ].filter(Boolean).length;
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] items-end shadow-sm">
-            {/* Row 1 */}
-            <div className="space-y-1">
-                <label className="text-xs font-medium text-[var(--text-tertiary)]">Buscar</label>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" size={16} />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Buscar iniciativa..."
-                        className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm rounded-md pl-10 pr-4 py-2 focus:ring-1 focus:ring-[#E10600] outline-none placeholder:text-[var(--text-tertiary)]"
+        <div className="mb-4 bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--border-color)] shadow-sm space-y-3">
+            {/* ── Main Filter Bar (Row 1) ── */}
+            <div className="flex flex-wrap items-end gap-3">
+                {/* Search Bar */}
+                <div className="flex-1 min-w-[200px] space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-[var(--text-tertiary)] tracking-wider">Buscar</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" size={15} />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Buscar por iniciativa..."
+                            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-lg pl-9 pr-8 py-2 focus:ring-1 focus:ring-[#E10600] outline-none placeholder:text-[var(--text-tertiary)] h-9 transition-all"
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Primary Dropdowns */}
+                <div className="w-full sm:w-auto sm:min-w-[140px]">
+                    <MultiSelectDropdown
+                        label="Q de Término"
+                        icon={<Calendar size={13} />}
+                        options={['Q1', 'Q2', 'Q3', 'Q4']}
+                        selectedValues={selectedQuarters}
+                        onChange={setSelectedQuarters}
+                        placeholder="Todos los Qs"
                     />
                 </div>
-            </div>
 
-            <MultiSelectDropdown
-                label="Q de Término"
-                icon={<Calendar size={14} />}
-                options={['Q1', 'Q2', 'Q3', 'Q4']}
-                selectedValues={selectedQuarters}
-                onChange={setSelectedQuarters}
-                placeholder="Todos los Qs"
-            />
+                <div className="w-full sm:w-auto sm:min-w-[170px]">
+                    <MultiSelectDropdown
+                        label="Área"
+                        icon={<Filter size={13} />}
+                        options={areas}
+                        selectedValues={selectedArea}
+                        onChange={setSelectedArea}
+                        placeholder="Todas las Áreas"
+                    />
+                </div>
 
-            <MultiSelectDropdown
-                label="Área"
-                icon={<Filter size={14} />}
-                options={areas}
-                selectedValues={selectedArea}
-                onChange={setSelectedArea}
-                placeholder="Todas las Áreas"
-            />
+                <div className="w-full sm:w-auto sm:min-w-[150px]">
+                    <MultiSelectDropdown
+                        label="Estatus"
+                        options={statuses}
+                        selectedValues={selectedStatus}
+                        onChange={setSelectedStatus}
+                        placeholder="Todos los Estatus"
+                    />
+                </div>
 
-            <MultiSelectDropdown
-                label="Estatus"
-                options={statuses}
-                selectedValues={selectedStatus}
-                onChange={setSelectedStatus}
-                placeholder="Todos los Estatus"
-            />
+                {/* Advanced Filters Toggle Button */}
+                <button
+                    type="button"
+                    onClick={toggleAdvanced}
+                    className={clsx(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all h-9 flex-shrink-0",
+                        showAdvanced || advancedFiltersCount > 0
+                            ? "bg-red-50 dark:bg-red-900/20 text-[#E10600] border-red-200 dark:border-red-800/40"
+                            : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:bg-[var(--border-color)]"
+                    )}
+                    title="Ver más filtros de segmentación"
+                >
+                    <SlidersHorizontal size={13} />
+                    <span>Filtros</span>
+                    {advancedFiltersCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[#E10600] text-white font-bold">
+                            {advancedFiltersCount}
+                        </span>
+                    )}
+                    {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
 
-            {/* Row 2 */}
-            <MultiSelectDropdown
-                label="Resp. Transformación"
-                icon={<Filter size={14} />}
-                options={transformationLeads}
-                selectedValues={selectedTransfLead}
-                onChange={setSelectedTransfLead}
-                placeholder="Todos"
-            />
-
-            <MultiSelectDropdown
-                label="Tecnología"
-                icon={<Filter size={14} />}
-                options={technologies}
-                selectedValues={selectedTechnology}
-                onChange={setSelectedTechnology}
-                placeholder="Todas"
-            />
-
-            <MultiSelectDropdown
-                label="Dev/Owner"
-                icon={<Filter size={14} />}
-                options={developerOwners}
-                selectedValues={selectedDevOwner}
-                onChange={setSelectedDevOwner}
-                placeholder="Todos"
-            />
-
-            <MultiSelectDropdown
-                label="Complejidad"
-                options={complexities}
-                selectedValues={selectedComplexity}
-                onChange={setSelectedComplexity}
-                placeholder="Todas"
-            />
-
-            <MultiSelectDropdown
-                label="Clasificación"
-                icon={<Filter size={14} />}
-                options={['Top Priority', 'Iniciativa Clave']}
-                selectedValues={selectedClassification}
-                onChange={setSelectedClassification}
-                placeholder="Todas"
-            />
-
-            <MultiSelectDropdown
-                label="Valor"
-                icon={<Filter size={14} />}
-                options={uniqueValues}
-                selectedValues={selectedValue}
-                onChange={setSelectedValue}
-                placeholder="Todos"
-            />
-
-            <MultiSelectDropdown
-                label="Etiquetas"
-                icon={<Filter size={14} />}
-                options={uniqueTags}
-                selectedValues={selectedTag}
-                onChange={setSelectedTag}
-                placeholder="Todas"
-            />
-
-            {/* Actions at the end of the grid */}
-            <div className="flex justify-end items-center space-x-4 col-span-1 md:col-span-2 lg:col-span-2 mt-2">
+                {/* Clear Active Filters Button */}
                 {hasActiveFilters && (
                     <button
                         onClick={onClearFilters}
-                        className="text-[var(--text-tertiary)] hover:text-[#E10600] text-sm flex items-center transition-colors px-2 py-2"
+                        className="text-xs text-[var(--text-tertiary)] hover:text-[#E10600] flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors h-9 flex-shrink-0 font-medium"
                         title="Limpiar todos los filtros"
                     >
-                        <Search size={14} className="mr-1 opacity-0 w-0" /> {/* Hidden icon for alignment if needed, or use a real icon */}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                        Limpiar Filtros
+                        <X size={13} />
+                        <span className="hidden md:inline">Limpiar</span>
                     </button>
                 )}
+
+                {/* Action: Create Initiative Button */}
                 {canCreate && (
                     <button
                         onClick={onCreateInitiative}
-                        className="flex justify-center items-center space-x-2 px-4 py-2 bg-[#E10600] text-white rounded-md hover:bg-red-700 shadow-sm text-sm font-bold transition-transform transform hover:scale-105 h-10 w-full md:w-auto"
+                        className="ml-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-[#E10600] hover:bg-red-700 text-white rounded-lg shadow-md shadow-red-900/20 text-xs font-bold transition-transform hover:scale-102 h-9 flex-shrink-0"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                        <Plus size={15} />
                         <span>Nueva Iniciativa</span>
                     </button>
                 )}
             </div>
+
+            {/* ── Advanced Filter Panel (Row 2 Collapsible) ── */}
+            {showAdvanced && (
+                <div className="pt-3 border-t border-[var(--border-color)] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 animate-in fade-in duration-200">
+                    <MultiSelectDropdown
+                        label="Resp. Transformación"
+                        options={transformationLeads}
+                        selectedValues={selectedTransfLead}
+                        onChange={setSelectedTransfLead}
+                        placeholder="Todos"
+                    />
+
+                    <MultiSelectDropdown
+                        label="Tecnología"
+                        options={technologies}
+                        selectedValues={selectedTechnology}
+                        onChange={setSelectedTechnology}
+                        placeholder="Todas"
+                    />
+
+                    <MultiSelectDropdown
+                        label="Dev / Owner"
+                        options={developerOwners}
+                        selectedValues={selectedDevOwner}
+                        onChange={setSelectedDevOwner}
+                        placeholder="Todos"
+                    />
+
+                    <MultiSelectDropdown
+                        label="Complejidad"
+                        options={complexities}
+                        selectedValues={selectedComplexity}
+                        onChange={setSelectedComplexity}
+                        placeholder="Todas"
+                    />
+
+                    <MultiSelectDropdown
+                        label="Clasificación"
+                        options={['Top Priority', 'Iniciativa Clave']}
+                        selectedValues={selectedClassification}
+                        onChange={setSelectedClassification}
+                        placeholder="Todas"
+                    />
+
+                    <MultiSelectDropdown
+                        label="Valor"
+                        options={uniqueValues}
+                        selectedValues={selectedValue}
+                        onChange={setSelectedValue}
+                        placeholder="Todos"
+                    />
+
+                    <MultiSelectDropdown
+                        label="Etiquetas"
+                        options={uniqueTags}
+                        selectedValues={selectedTag}
+                        onChange={setSelectedTag}
+                        placeholder="Todas"
+                    />
+                </div>
+            )}
         </div>
     );
 };

@@ -102,15 +102,11 @@
             nodes: [
                 { id: 'ini-1', label: 'Migración Cloud ERP', type: 'initiative', meta: { champion: 'Ana Garcia', area: 'Finanzas' } },
                 { id: 'ini-2', label: 'Automatización de Nómina', type: 'initiative', meta: { champion: 'Luis Perez', area: 'RRHH' } },
-                { id: 'okr-1', label: 'OKR: Reducir costos operativos 15%', type: 'okr' },
-                { id: 'okr-2', label: 'OKR: Eficiencia de procesos', type: 'okr' },
                 { id: 'tech-1', label: 'AWS', type: 'technology' },
                 { id: 'tech-2', label: 'Python', type: 'technology' },
                 { id: 'risk-1', label: 'Retraso de proveedor', type: 'risk' }
             ],
             edges: [
-                { source: 'ini-1', target: 'okr-1', type: 'okr_link' },
-                { source: 'ini-2', target: 'okr-2', type: 'okr_link' },
                 { source: 'ini-1', target: 'tech-1', type: 'tech_link' },
                 { source: 'ini-2', target: 'tech-2', type: 'tech_link' },
                 { source: 'risk-1', target: 'ini-1', type: 'risk_link' },
@@ -121,13 +117,11 @@
         // ─── 2. CONFIGURACIÓN VISUAL ───────────────────────────────
         const config = {
             initiative: { color: '#3B82F6', radius: 22 },
-            okr: { color: '#93C5FD', radius: 16 },
             technology: { color: '#06B6D4', radius: 12 },
             risk: { color: '#F97316', radius: 10 }
         };
 
         const edgeColors = {
-            okr_link: '#3B82F6',
             tech_link: '#06B6D4',
             risk_link: '#F97316',
             dependency: '#94a3b8'

@@ -7,7 +7,7 @@ import { AiInsightDrawer } from '../components/ai/AiInsightDrawer';
 import API_URL from '../config/api';
 
 // ── Types ─────────────────────────────────────────────────
-type NodeType = 'initiative' | 'okr' | 'technology' | 'risk' | 'champion';
+type NodeType = 'initiative' | 'technology' | 'risk' | 'champion';
 
 interface GraphNode {
     id: string;
@@ -23,7 +23,7 @@ interface GraphEdge {
     id: string;
     source: string;
     target: string;
-    edgeType: 'dependency' | 'okr_link' | 'tech_link' | 'risk_link' | 'champion_link';
+    edgeType: 'dependency' | 'tech_link' | 'risk_link' | 'champion_link';
 }
 
 interface GeminiGraphInsight {
@@ -37,7 +37,6 @@ interface GeminiGraphInsight {
 // ── Constants ──────────────────────────────────────────────
 const NODE_CONFIG: Record<NodeType, { color: string; glow: string; radius: number; shape: 'circle' | 'diamond' | 'square' }> = {
     initiative: { color: '#3B82F6', glow: '#3B82F655', radius: 22, shape: 'circle' },
-    okr: { color: '#93C5FD', glow: '#93C5FD44', radius: 16, shape: 'diamond' },
     technology: { color: '#06B6D4', glow: '#06B6D433', radius: 11, shape: 'circle' },
     risk: { color: '#F97316', glow: '#F9731633', radius: 10, shape: 'circle' },
     champion: { color: '#A78BFA', glow: '#A78BFA33', radius: 13, shape: 'circle' },
@@ -45,7 +44,6 @@ const NODE_CONFIG: Record<NodeType, { color: string; glow: string; radius: numbe
 
 const EDGE_CONFIG: Record<string, { stroke: string; opacity: number; dash: string }> = {
     dependency: { stroke: '#E2E8F0', opacity: 0.35, dash: 'none' },
-    okr_link: { stroke: '#3B82F6', opacity: 0.3, dash: '4 3' },
     tech_link: { stroke: '#06B6D4', opacity: 0.22, dash: '2 4' },
     risk_link: { stroke: '#F97316', opacity: 0.4, dash: '3 3' },
     champion_link: { stroke: '#A78BFA', opacity: 0.25, dash: '4 3' },
@@ -65,7 +63,7 @@ function randomInRange(min: number, max: number) {
     return min + Math.random() * (max - min);
 }
 
-function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks: any[], technologies: any[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
+function buildGraph(initiatives: any[], dependencies: any[], risks: any[], technologies: any[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
 
@@ -83,20 +81,6 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
             x: cx + Math.cos(angle) * r,
             y: cy + Math.sin(angle) * r,
             meta: { ...ini, originalId: ini.id },
-            edgeCount: 0
-        });
-    });
-
-    // ── OKR nodes (inner ring) ──
-    okrs.forEach((okr, i) => {
-        const angle = (2 * Math.PI * i) / Math.max(okrs.length, 1);
-        nodes.push({
-            id: `okr-${okr.id}`,
-            label: okr.title,
-            type: 'okr',
-            x: cx + Math.cos(angle) * 90,
-            y: cy + Math.sin(angle) * 90,
-            meta: okr,
             edgeCount: 0
         });
     });
@@ -181,19 +165,6 @@ function buildGraph(initiatives: any[], dependencies: any[], okrs: any[], risks:
         if(n2) n2.edgeCount = (n2.edgeCount || 0) + 1;
     });
 
-    // ── OKR edges ──
-    okrs.forEach((okr) => {
-        (okr.initiatives || []).forEach((iniId: string) => {
-            const iniNode = nodes.find(n => n.id === `ini-${iniId}`);
-            if (iniNode) {
-                edges.push({ id: `e-okr-${okr.id}-${iniId}`, source: `okr-${okr.id}`, target: iniNode.id, edgeType: 'okr_link' });
-                iniNode.edgeCount = (iniNode.edgeCount || 0) + 1;
-                const okrNode = nodes.find(n => n.id === `okr-${okr.id}`);
-                if (okrNode) okrNode.edgeCount = (okrNode.edgeCount || 0) + 1;
-            }
-        });
-    });
-
     // ── Tech edges ──
     technologies.forEach((t, i) => {
         const techId = techMap.get(t.name);
@@ -218,7 +189,6 @@ export const KnowledgeGraphPage = () => {
     // Data
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [dependencies, setDependencies] = useState<any[]>([]);
-    const [okrs, setOkrs] = useState<any[]>([]);
     const [risks, setRisks] = useState<any[]>([]);
     const [technologies, setTechnologies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -234,7 +204,7 @@ export const KnowledgeGraphPage = () => {
     const hasDraggedRef = useRef(false);
 
     // Filters & Search
-    const [visibleTypes, setVisibleTypes] = useState<Set<NodeType>>(new Set(['initiative', 'okr', 'technology', 'risk', 'champion']));
+    const [visibleTypes, setVisibleTypes] = useState<Set<NodeType>>(new Set(['initiative', 'technology', 'risk', 'champion']));
     const [searchQuery, setSearchQuery] = useState('');
 
     // AI
@@ -250,19 +220,11 @@ export const KnowledgeGraphPage = () => {
         Promise.all([
             fetch(`${API_URL}/api/initiatives?year=${year}`, { headers }).then(r => r.json()),
             fetch(`${API_URL}/api/dependencies?year=${year}`, { headers }).then(r => r.json()),
-            fetch(`${API_URL}/api/okrs?year=${year}`, { headers }).then(r => r.json()),
             fetch(`${API_URL}/api/risks?year=${year}`, { headers }).then(r => r.json()),
-        ]).then(([inits, deps, okrData, riskData]) => {
+        ]).then(([inits, deps, riskData]) => {
             const safeInits = Array.isArray(inits) ? inits : [];
             setInitiatives(safeInits);
             setDependencies(Array.isArray(deps) ? deps : []);
-            // Attach initiative IDs to OKRs from initiatives' okrs field
-            const okrList = Array.isArray(okrData) ? okrData : [];
-            const enrichedOkrs = okrList.map((okr: any) => ({
-                ...okr,
-                initiatives: safeInits.filter((i: any) => i.okrs?.some((o: any) => o.id === okr.id)).map((i: any) => i.id),
-            }));
-            setOkrs(enrichedOkrs);
             setRisks(Array.isArray(riskData) ? riskData.slice(0, 15) : []);
             // Extract technologies from initiatives
             const techs: any[] = [];
@@ -278,8 +240,8 @@ export const KnowledgeGraphPage = () => {
 
     // Build graph
     const { nodes: baseNodes, edges } = useMemo(
-        () => buildGraph(initiatives, dependencies, okrs, risks, technologies),
-        [initiatives, dependencies, okrs, risks, technologies]
+        () => buildGraph(initiatives, dependencies, risks, technologies),
+        [initiatives, dependencies, risks, technologies]
     );
 
     // Apply saved positions
@@ -417,7 +379,6 @@ export const KnowledgeGraphPage = () => {
 
     const LEGEND: { type: NodeType; label: string }[] = [
         { type: 'initiative', label: 'Iniciativa' },
-        { type: 'okr', label: 'OKR' },
         { type: 'technology', label: 'Tecnología' },
         { type: 'risk', label: 'Riesgo' },
         { type: 'champion', label: 'Champion' },
@@ -607,23 +568,13 @@ export const KnowledgeGraphPage = () => {
                                 )}
 
                                 {/* Node body */}
-                                {node.type === 'okr' ? (
-                                    <polygon
-                                        points={`0,${-r} ${r},0 0,${r} ${-r},0`}
-                                        fill={nodeColor}
-                                        fillOpacity={0.85}
-                                        stroke={nodeColor}
-                                        strokeWidth={1.5}
-                                    />
-                                ) : (
-                                    <circle
-                                        r={r}
-                                        fill={nodeColor}
-                                        fillOpacity={0.75}
-                                        stroke={nodeColor}
-                                        strokeWidth={isSelected ? 2 : 1}
-                                    />
-                                )}
+                                <circle
+                                    r={r}
+                                    fill={nodeColor}
+                                    fillOpacity={0.75}
+                                    stroke={nodeColor}
+                                    strokeWidth={isSelected ? 2 : 1}
+                                />
 
                                 {/* Risk icon */}
                                 {node.type === 'risk' && (

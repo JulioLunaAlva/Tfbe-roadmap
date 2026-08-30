@@ -19,7 +19,6 @@ import activityRouter from './routes/activity';
 import risksRouter from './routes/risks';
 import dependenciesRouter from './routes/dependencies';
 import plannerRouter from './routes/planner';
-import okrsRouter from './routes/okrs';
 import aiRouter from './routes/ai';
 import { query } from './db';
 
@@ -45,7 +44,6 @@ app.use('/api/milestones', milestonesRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/db', dbStatusRouter);
 app.use('/api/one-pagers', onePagerRouter);
-app.use('/api/one-pagers', onePagerRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/dashboard', dashboardRouter);
@@ -56,7 +54,6 @@ app.use('/api/activity', activityRouter);
 app.use('/api/risks', risksRouter);
 app.use('/api/dependencies', dependenciesRouter);
 app.use('/api/planner', plannerRouter);
-app.use('/api/okrs', okrsRouter);
 app.use('/api/ai', aiRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists

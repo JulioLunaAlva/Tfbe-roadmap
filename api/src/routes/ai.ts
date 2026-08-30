@@ -17,7 +17,6 @@ router.post('/insights/:initiativeId', authenticateToken, async (req: Request, r
         const [initResult, risksResult, progressResult, tasksResult, depsResult] = await Promise.all([
             query(`
                 SELECT i.*,
-                  (SELECT json_agg(o.title) FROM initiative_okrs io JOIN okrs o ON io.okr_id = o.id WHERE io.initiative_id = i.id) as okrs,
                   (SELECT json_agg(t.name) FROM initiative_technologies it JOIN technologies t ON it.technology_id = t.id WHERE it.initiative_id = i.id) as technologies
                 FROM initiatives i WHERE i.id = $1`, [initiativeId]),
             query(`SELECT title, severity, status FROM initiative_risks WHERE initiative_id = $1 AND status != 'closed'`, [initiativeId]),
@@ -54,7 +53,6 @@ Estado Actual: ${ini.status || 'No definido'}
 Champion: ${ini.champion || 'No asignado'}
 Complejidad: ${ini.complexity || 'No definida'}
 Prioridad Alta: ${ini.is_top_priority ? 'SÍ' : 'NO'}
-OKRs alineados: ${JSON.stringify(ini.okrs) || 'Ninguno'}
 Tecnologías: ${JSON.stringify(ini.technologies) || 'No especificadas'}
 
 ═══════════════════════════════════════
@@ -104,7 +102,7 @@ Usa el siguiente formato exacto:
       "plazo": "Inmediato | Esta semana | Próximas 2 semanas"
     }
   ],
-  "prediccion": "Qué pasará si no se actúa en los próximos 14 días, con impacto en OKRs si aplica.",
+  "prediccion": "Qué pasará si no se actúa en los próximos 14 días.",
   "patron_detectado": "Nombre del patrón si aplica: Bloqueo Sistémico | Deuda Técnica Acumulada | Subdimensionamiento | Champion Sobrecargado | Ninguno"
 }
 `;
@@ -141,9 +139,8 @@ router.get('/portfolio-summary', authenticateToken, async (req: Request, res: Re
     const year = req.query.year || new Date().getFullYear();
 
     try {
-        const [initsResult, okrsResult, risksResult, progressResult] = await Promise.all([
+        const [initsResult, risksResult, progressResult] = await Promise.all([
             query(`SELECT name, area, complexity, is_top_priority, champion FROM initiatives WHERE year = $1 ORDER BY is_top_priority DESC`, [year]),
-            query(`SELECT title FROM okrs WHERE year = $1`, [year]),
             query(`SELECT COUNT(*) as total FROM initiative_risks WHERE status = 'open'`),
             query(`
                 SELECT AVG(wp.progress_value) as avg_progress
@@ -155,7 +152,6 @@ router.get('/portfolio-summary', authenticateToken, async (req: Request, res: Re
         ]);
 
         const initiatives = initsResult.rows;
-        const okrs = okrsResult.rows;
         const openRisks = parseInt(risksResult.rows[0]?.total || '0');
         const avgProgress = Math.round(progressResult.rows[0]?.avg_progress || 0);
         const topPriority = initiatives.filter((i: any) => i.is_top_priority);
@@ -170,7 +166,6 @@ DATOS DEL PORTAFOLIO ${year}:
 - Total iniciativas: ${initiatives.length}
 - Áreas: ${areas.join(', ')}
 - Iniciativas top priority: ${topPriority.map((i: any) => i.name).join(', ') || 'Ninguna'}
-- OKRs del año: ${okrs.map((o: any) => o.title).join(' | ') || 'Sin OKRs definidos'}
 - Riesgos abiertos: ${openRisks}
 - Progreso promedio del portafolio: ${avgProgress}%
 
@@ -218,14 +213,8 @@ router.get('/graph-insights', authenticateToken, async (req: Request, res: Respo
     const year = req.query.year || new Date().getFullYear();
 
     try {
-        const [initsResult, okrLinksResult, risksResult, depsResult, techResult] = await Promise.all([
+        const [initsResult, risksResult, depsResult, techResult] = await Promise.all([
             query(`SELECT id, name, area, complexity, is_top_priority, champion FROM initiatives WHERE year = $1`, [year]),
-            query(`
-                SELECT i.id, i.name, COUNT(io.okr_id) as okr_count
-                FROM initiatives i
-                LEFT JOIN initiative_okrs io ON i.id = io.initiative_id
-                WHERE i.year = $1
-                GROUP BY i.id, i.name`, [year]),
             query(`
                 SELECT initiative_id, COUNT(*) as risk_count
                 FROM initiative_risks WHERE status = 'open'
@@ -237,13 +226,10 @@ router.get('/graph-insights', authenticateToken, async (req: Request, res: Respo
         ]);
 
         const initiatives = initsResult.rows;
-        const okrLinks = okrLinksResult.rows;
         const risks = risksResult.rows;
         const deps = depsResult.rows;
         const techs = techResult.rows;
 
-        // Find initiatives with no OKR alignment
-        const noOkr = okrLinks.filter((i: any) => parseInt(i.okr_count) === 0).map((i: any) => i.name);
         // Find initiatives with multiple risks
         const highRisk = risks.filter((r: any) => parseInt(r.risk_count) >= 2).map((r: any) => r.initiative_id);
         const highRiskNames = initiatives.filter((i: any) => highRisk.includes(i.id)).map((i: any) => i.name);
@@ -261,7 +247,6 @@ Identifica patrones, riesgos estructurales y oportunidades.
 DATOS DEL GRAFO:
 - Total nodos (iniciativas): ${initiatives.length}
 - Total conexiones (dependencias): ${deps.length}
-- Iniciativas SIN alineación a OKRs: ${noOkr.join(', ') || 'Ninguna'}
 - Iniciativas con múltiples riesgos abiertos: ${highRiskNames.join(', ') || 'Ninguna'}
 - Champions con 3+ iniciativas: ${overloadedChampions.join(', ') || 'Ninguno'}
 - Áreas representadas: ${[...new Set(initiatives.map((i: any) => i.area))].join(', ')}
@@ -293,7 +278,6 @@ Responde con JSON:
             graph_stats: {
                 total_nodes: initiatives.length,
                 total_edges: deps.length,
-                no_okr_count: noOkr.length,
                 high_risk_count: highRiskNames.length,
                 overloaded_champions: overloadedChampions.length,
             },
