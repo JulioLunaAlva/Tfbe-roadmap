@@ -146,7 +146,7 @@ export const AreasAdminPage: React.FC = () => {
 
     const AreaFormModal = ({ title, onSave, onClose }: { title: string; onSave: () => void; onClose: () => void }) => (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6 w-full max-w-md shadow-2xl">
                 <div className="flex justify-between items-center mb-5">
                     <h3 className="text-lg font-bold text-[var(--text-primary)]">{title}</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={20} /></button>
@@ -241,7 +241,7 @@ export const AreasAdminPage: React.FC = () => {
                     {areas.map(area => (
                         <div
                             key={area.id}
-                            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-5 hover:border-indigo-500/50 transition-all"
+                            className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 hover:border-indigo-500/50 transition-all"
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
@@ -273,13 +273,13 @@ export const AreasAdminPage: React.FC = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => openEditModal(area)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[var(--bg-primary)] hover:bg-[var(--bg-hover)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] transition-colors"
                                 >
                                     <Pencil size={12} /> Editar
                                 </button>
                                 <button
                                     onClick={() => openUsersPanel(area)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[var(--bg-primary)] hover:bg-[var(--bg-hover)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] transition-colors"
                                 >
                                     <Users size={12} /> Usuarios
                                 </button>
@@ -303,7 +303,7 @@ export const AreasAdminPage: React.FC = () => {
             {showUsersPanel && selectedArea && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     <div className="absolute inset-0 bg-black/50" onClick={() => setShowUsersPanel(false)} />
-                    <div className="relative bg-[var(--bg-card)] border-l border-[var(--border-color)] w-full max-w-md h-full overflow-y-auto shadow-2xl">
+                    <div className="relative bg-[var(--bg-secondary)] border-l border-[var(--border-color)] w-full max-w-md h-full overflow-y-auto shadow-2xl">
                         <div className="p-5 border-b border-[var(--border-color)]">
                             <div className="flex justify-between items-start">
                                 <div>
