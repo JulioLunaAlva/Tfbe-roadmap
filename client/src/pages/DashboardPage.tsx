@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import { Zap, HelpCircle } from 'lucide-react';
 import {
     DndContext,
@@ -48,6 +49,7 @@ export const DashboardPage = () => {
     const { token } = useAuth();
     const { user } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
@@ -215,14 +217,14 @@ export const DashboardPage = () => {
 
     useEffect(() => {
         setLoading(true);
-        fetch(`${API_URL}/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => {
                 setInitiatives(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     const transformationLeads = useMemo(() => {
         const leads = new Set<string>();

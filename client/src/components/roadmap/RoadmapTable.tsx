@@ -21,6 +21,7 @@ import { clsx } from 'clsx';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
+import { useArea } from '../../context/AreaContext';
 import { ProgressEditPopover } from './ProgressEditPopover';
 import { BulkProgressEditPopover } from './BulkProgressEditPopover';
 import { CreateInitiativeModal } from '../initiatives/CreateInitiativeModal';
@@ -422,6 +423,7 @@ export const RoadmapTable = () => {
     const [progressMap, setProgressMap] = useState<Record<string, Progress>>({});
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [loading, setLoading] = useState(true);
 
     // Milestones State
@@ -471,7 +473,7 @@ export const RoadmapTable = () => {
 
     const fetchInitiatives = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
+            const res = await fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();

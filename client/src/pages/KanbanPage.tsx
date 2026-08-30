@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 import {
     DndContext,
@@ -118,6 +119,7 @@ const KanbanColumn = ({ label, color, items }: { id: string, label: string, colo
 export const KanbanPage = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
     const [transformationLeadFilter, setTransformationLeadFilter] = useState<string>('');
@@ -126,7 +128,7 @@ export const KanbanPage = () => {
         const fetchInitiatives = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
+                const res = await fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -144,7 +146,7 @@ export const KanbanPage = () => {
             setLoading(false);
         };
         if (token) fetchInitiatives();
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ShieldAlert, Plus, Trash2, Edit3, X, AlertTriangle, AlertCircle, Info, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 
 interface Risk {
@@ -51,6 +52,7 @@ const formatDate = (d: string) => new Date(d).toLocaleDateString('es-ES', { day:
 export const RisksPage = () => {
     const { token, user } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [risks, setRisks] = useState<Risk[]>([]);
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,13 +76,13 @@ export const RisksPage = () => {
         if (!token) return;
         Promise.all([
             fetch(`${API_URL}/api/risks?year=${year}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-            fetch(`${API_URL}/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+            fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
         ]).then(([risksData, initsData]) => {
             setRisks(Array.isArray(risksData) ? risksData : []);
             setInitiatives(Array.isArray(initsData) ? initsData : []);
             setLoading(false);
         }).catch(() => setLoading(false));
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     const filtered = useMemo(() => {
         let data = risks;

@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import { CALENDAR_SCHEMA, getCurrentWeekNumber } from '../utils/calendarConstants';
 import API_URL from '../config/api';
 import { Save, AlertTriangle, CheckCircle2, ArrowRight, HelpCircle } from 'lucide-react';
@@ -29,6 +30,7 @@ interface Initiative {
 export const OnePagerPage = () => {
     const { user, token } = useAuth();
     const { year, setYear } = useYear();
+    const { areaQueryParam } = useArea();
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
@@ -112,7 +114,7 @@ export const OnePagerPage = () => {
     useEffect(() => {
         const fetchInitiatives = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
+                const res = await fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -125,7 +127,7 @@ export const OnePagerPage = () => {
         };
 
         if (token) fetchInitiatives();
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     // Set Default Month/Week based on current date
     useEffect(() => {

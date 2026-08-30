@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useYear } from '../../context/YearContext';
+import { useArea } from '../../context/AreaContext';
 import API_URL from '../../config/api';
 import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
 
 export const RoadmapSummary = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [isExpanded, setIsExpanded] = useState<boolean>(() => {
         const saved = localStorage.getItem('roadmap_summary_expanded');
@@ -15,11 +17,11 @@ export const RoadmapSummary = () => {
 
     useEffect(() => {
         if (!token) return;
-        fetch(`${API_URL}/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => Array.isArray(data) ? setInitiatives(data) : setInitiatives([]))
             .catch(console.error);
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     const toggleExpanded = () => {
         setIsExpanded(prev => {

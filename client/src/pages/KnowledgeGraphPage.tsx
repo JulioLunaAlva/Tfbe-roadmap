@@ -3,6 +3,7 @@ import { Search, Brain, ZoomIn, ZoomOut, Maximize2, Filter, Sparkles, Loader2, X
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import { AiInsightDrawer } from '../components/ai/AiInsightDrawer';
 import API_URL from '../config/api';
 
@@ -184,6 +185,7 @@ function buildGraph(initiatives: any[], dependencies: any[], risks: any[], techn
 export const KnowledgeGraphPage = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const svgRef = useRef<SVGSVGElement>(null);
 
     // Data
@@ -218,7 +220,7 @@ export const KnowledgeGraphPage = () => {
         if (!token) return;
         const headers = { Authorization: `Bearer ${token}` };
         Promise.all([
-            fetch(`${API_URL}/api/initiatives?year=${year}`, { headers }).then(r => r.json()),
+            fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, { headers }).then(r => r.json()),
             fetch(`${API_URL}/api/dependencies?year=${year}`, { headers }).then(r => r.json()),
             fetch(`${API_URL}/api/risks?year=${year}`, { headers }).then(r => r.json()),
         ]).then(([inits, deps, riskData]) => {

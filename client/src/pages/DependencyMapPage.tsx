@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { GitBranch, Plus, Trash2, X, Link2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 
 interface Initiative {
@@ -54,6 +55,7 @@ const getAreaHue = (area: string) => {
 export const DependencyMapPage = () => {
     const { token, user } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [dependencies, setDependencies] = useState<Dependency[]>([]);
     const [loading, setLoading] = useState(true);
@@ -71,14 +73,14 @@ export const DependencyMapPage = () => {
     useEffect(() => {
         if (!token) return;
         Promise.all([
-            fetch(`${API_URL}/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+            fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
             fetch(`${API_URL}/api/dependencies?year=${year}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
         ]).then(([inits, deps]) => {
             setInitiatives(Array.isArray(inits) ? inits : []);
             setDependencies(Array.isArray(deps) ? deps : []);
             setLoading(false);
         }).catch(() => setLoading(false));
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     // Calculate node positions using simple force-directed layout
     const nodes = useMemo(() => {

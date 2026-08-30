@@ -23,6 +23,8 @@ import { CalendarPage } from './pages/CalendarPage';
 import { ForcedChangePasswordPage } from './pages/ChangePasswordPage';
 import { IntelligencePage } from './pages/IntelligencePage';
 import { KnowledgeGraphPage } from './pages/KnowledgeGraphPage';
+import { AreaProvider } from './context/AreaContext';
+import { AreasAdminPage } from './pages/AreasAdminPage';
 
 // Proteced Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: React.ReactElement, allowedRoles?: string[], requiredPage?: string }) => {
@@ -152,6 +154,11 @@ const AppRoutes = () => {
             <ImportPage />
           </ProtectedRoute>
         } />
+        <Route path="areas" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AreasAdminPage />
+          </ProtectedRoute>
+        } />
       </Route>
     </Routes>
   );
@@ -161,11 +168,13 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
-        <ThemeProvider>
-          <YearProvider>
-            <AppRoutes />
-          </YearProvider>
-        </ThemeProvider>
+        <AreaProvider>
+          <ThemeProvider>
+            <YearProvider>
+              <AppRoutes />
+            </YearProvider>
+          </ThemeProvider>
+        </AreaProvider>
       </AuthProvider>
     </BrowserRouter>
   );

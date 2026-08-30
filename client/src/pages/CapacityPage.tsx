@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 import { Users, AlertTriangle, CheckCircle2, TrendingUp, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -19,6 +20,7 @@ interface Initiative {
 export const CapacityPage = () => {
     const { token } = useAuth();
     const { year: selectedYear } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -26,7 +28,7 @@ export const CapacityPage = () => {
         const fetchInitiatives = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`${API_URL}/api/initiatives?year=${selectedYear}`, {
+                const res = await fetch(`${API_URL}/api/initiatives?year=${selectedYear}${areaQueryParam}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -39,7 +41,7 @@ export const CapacityPage = () => {
             setLoading(false);
         };
         if (token) fetchInitiatives();
-    }, [token, selectedYear]);
+    }, [token, selectedYear, areaQueryParam]);
 
     // Process data to group by developer
     const developerData = useMemo(() => {

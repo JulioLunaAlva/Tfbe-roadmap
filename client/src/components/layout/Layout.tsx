@@ -3,10 +3,11 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Users, Lock, Brain, Network } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, Bot, LineChart, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Users, Lock, Brain, Network, Building2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
 import { ChangePasswordModal } from '../../pages/ChangePasswordPage';
+import { AreaSwitcher } from './AreaSwitcher';
 
 export const Layout = () => {
     const { user, logout } = useAuth();
@@ -62,6 +63,7 @@ export const Layout = () => {
         // Admin gets import implicitly if they have role admin, 
         // or we can also strictly check allowed_pages:
         navItems.push({ label: 'Import', path: '/import', icon: Upload });
+        navItems.push({ label: 'Gestión de Áreas', path: '/areas', icon: Building2 as any });
     }
 
     // Restriction for Credentials: Only Cesar
@@ -121,6 +123,7 @@ export const Layout = () => {
 
                     {/* Navigation - scrollable */}
                     <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar min-h-0">
+                        <AreaSwitcher />
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = location.pathname === item.path;

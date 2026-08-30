@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/initiatives - List all (with filters)
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
-    const { year, area, complexity, is_top_priority } = req.query;
+    const { year, area, complexity, is_top_priority, business_area_id } = req.query;
 
     let sql = `
     SELECT i.*, 
@@ -34,6 +34,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
     if (year) { sql += ` AND i.year = $${pIdx++}`; params.push(year); }
     if (area) { sql += ` AND i.area = $${pIdx++}`; params.push(area); }
+    if (business_area_id) { sql += ` AND i.business_area_id = $${pIdx++}`; params.push(business_area_id); }
     // Add other filters as needed
 
     sql += ` ORDER BY i.custom_order ASC, i.is_top_priority DESC, i.created_at DESC`;
@@ -50,7 +51,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 // POST /api/initiatives - Create
 router.post('/', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     console.log('POST /initiatives body:', req.body);
-    const { name, area, champion, transformation_lead, complexity, is_top_priority, is_key_initiative, year, notes, technologies, status, start_date, end_date, progress, value, methodology_type, tags } = req.body;
+    const { name, area, champion, transformation_lead, complexity, is_top_priority, is_key_initiative, year, notes, technologies, status, start_date, end_date, progress, value, methodology_type, tags, business_area_id } = req.body;
 
     const methodology = methodology_type || 'Hibrida';
 
@@ -65,9 +66,9 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 
         // Insert Initiative
         const resInit = await query(
-            `INSERT INTO initiatives (name, area, champion, transformation_lead, developer_owner, complexity, is_top_priority, is_key_initiative, year, notes, status, start_date, end_date, progress, value, methodology_type, tags) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
-            [name, area, champion, transformation_lead, req.body.developer_owner, complexity, is_top_priority || false, is_key_initiative || false, year, notes, status, start_date, end_date, progress || 0, value, methodology, tags || []]
+            `INSERT INTO initiatives (name, area, champion, transformation_lead, developer_owner, complexity, is_top_priority, is_key_initiative, year, notes, status, start_date, end_date, progress, value, methodology_type, tags, business_area_id) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
+            [name, area, champion, transformation_lead, req.body.developer_owner, complexity, is_top_priority || false, is_key_initiative || false, year, notes, status, start_date, end_date, progress || 0, value, methodology, tags || [], business_area_id || null]
         );
         const initiative = resInit.rows[0];
 
@@ -126,7 +127,7 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     const { id } = req.params;
     console.log(`PUT /initiatives/${id} body:`, req.body);
-    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, is_key_initiative, year, value, methodology_type, tags } = req.body;
+    const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, is_key_initiative, year, value, methodology_type, tags, business_area_id } = req.body;
 
     // Validate and normalize value field
     let normalizedValue = value || null;
@@ -147,8 +148,8 @@ router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request
         const newMethodology = methodology_type || currentMethodology;
 
         const result = await query(
-            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, developer_owner = $5, complexity = $6, status = $7, start_date = $8, end_date = $9, progress = $10, notes = $11, is_top_priority = $12, is_key_initiative = $13, year = $14, value = $15, methodology_type = $16, tags = $17 WHERE id = $18 RETURNING *',
-            [name, area, champion, transformation_lead, req.body.developer_owner, complexity, status, start_date, end_date, progress, notes, is_top_priority, is_key_initiative, year, normalizedValue, newMethodology, tags || [], id]
+            'UPDATE initiatives SET name = $1, area = $2, champion = $3, transformation_lead = $4, developer_owner = $5, complexity = $6, status = $7, start_date = $8, end_date = $9, progress = $10, notes = $11, is_top_priority = $12, is_key_initiative = $13, year = $14, value = $15, methodology_type = $16, tags = $17, business_area_id = COALESCE($18, business_area_id) WHERE id = $19 RETURNING *',
+            [name, area, champion, transformation_lead, req.body.developer_owner, complexity, status, start_date, end_date, progress, notes, is_top_priority, is_key_initiative, year, normalizedValue, newMethodology, tags || [], business_area_id || null, id]
         );
 
         // If methodology changed, replace phases

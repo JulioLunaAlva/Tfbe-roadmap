@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Search, Clock, CheckCircle2, AlertCircle, PlayCircle, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -61,6 +62,7 @@ const getStatusIcon = (status?: string) => {
 export const CalendarPage = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
 
     // Calendar state
@@ -71,7 +73,7 @@ export const CalendarPage = () => {
     useEffect(() => {
         const fetchInitiatives = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/initiatives?year=${year}`, {
+                const res = await fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error('Error fetching initiatives');
@@ -83,7 +85,7 @@ export const CalendarPage = () => {
         };
 
         if (token) fetchInitiatives();
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     // Keep currentMonth in sync with the global year context if year changes significantly
     useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BarChart3, ArrowUpDown, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 
 interface Initiative {
@@ -53,6 +54,7 @@ const getProgressBar = (progress: number) => {
 export const ComparativePage = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
     const [sortKey, setSortKey] = useState<SortKey>('progress');
@@ -88,7 +90,7 @@ export const ComparativePage = () => {
     useEffect(() => {
         if (!token) return;
         setLoading(true);
-        fetch(`${API_URL}/api/initiatives?year=${year}`, {
+        fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => res.json())
@@ -97,7 +99,7 @@ export const ComparativePage = () => {
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     const filteredAndSorted = useMemo(() => {
         let data = [...initiatives];

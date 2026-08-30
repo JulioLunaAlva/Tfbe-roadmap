@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 import {
     Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
@@ -118,6 +119,7 @@ export const InitiativeValuePage = () => {
     const { user, token } = useAuth();
     const { isPresentationMode } = useTheme();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
@@ -207,7 +209,7 @@ export const InitiativeValuePage = () => {
         const fetchInitiatives = async () => {
             try {
                 const [initRes, summaryRes] = await Promise.all([
-                    fetch(`${API_URL}/api/initiatives?year=${year}`, {
+                    fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                     fetch(`${API_URL}/api/initiative-value/summary`, {
@@ -229,7 +231,7 @@ export const InitiativeValuePage = () => {
             }
         };
         if (token) fetchInitiatives();
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     // Fetch Value Data when initiative changes
     useEffect(() => {

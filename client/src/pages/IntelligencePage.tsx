@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import { AiInsightDrawer } from '../components/ai/AiInsightDrawer';
 import API_URL from '../config/api';
 
@@ -57,6 +58,7 @@ function StatCard({ label, value, sub, color, icon }: { label: string; value: st
 export const IntelligencePage = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
 
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loadingInitiatives, setLoadingInitiatives] = useState(true);
@@ -71,7 +73,7 @@ export const IntelligencePage = () => {
     // Load initiatives on mount
     useEffect(() => {
         if (!token) return;
-        fetch(`${API_URL}/api/initiatives?year=${year}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(data => {
                 setInitiatives(Array.isArray(data) ? data : []);

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Calendar, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useYear } from '../context/YearContext';
+import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 
 interface Initiative {
@@ -65,6 +66,7 @@ const getAreaColor = (area: string) => {
 export const TimelinePage = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    const { areaQueryParam } = useArea();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
     const [zoomLevel, setZoomLevel] = useState(1); // 0.5 = compact, 1 = normal, 2 = wide
@@ -75,7 +77,7 @@ export const TimelinePage = () => {
     useEffect(() => {
         if (!token) return;
         setLoading(true);
-        fetch(`${API_URL}/api/initiatives?year=${year}`, {
+        fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => res.json())
@@ -87,7 +89,7 @@ export const TimelinePage = () => {
                 console.error(err);
                 setLoading(false);
             });
-    }, [token, year]);
+    }, [token, year, areaQueryParam]);
 
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year, 11, 31);
