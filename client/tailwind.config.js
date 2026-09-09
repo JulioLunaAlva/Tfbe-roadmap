@@ -9,12 +9,18 @@ export default {
         extend: {
             colors: {
                 brand: {
-                    red: '#F40009',
-                    black: '#1E1E1E',
-                    gray: '#F1F1F1',
-                    darkRed: '#D10008'
-                }
-            }
+                    red: '#E10600',
+                    'red-dark': '#C50005',
+                },
+            },
+            boxShadow: {
+                'card':      '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+                'card-hover':'0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)',
+                'card-dark': 'inset 0 1px 0 rgba(255,255,255,0.06)',
+            },
+            borderRadius: {
+                'card': '10px',
+            },
         },
     },
     plugins: [

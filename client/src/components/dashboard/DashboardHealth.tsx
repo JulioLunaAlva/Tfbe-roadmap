@@ -61,23 +61,23 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
     }, [total, completed, delayed, compPct, progPct, delPct]);
 
     return (
-        <div className="bg-white dark:bg-[#1A232E] rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col justify-between overflow-y-auto custom-scrollbar">
+        <div className="card h-full flex flex-col justify-between overflow-y-auto custom-scrollbar p-5">
             {/* Header: Dense Data Approach */}
             <div className="flex flex-col mb-4">
                 <div className="flex justify-between items-end mb-2">
-                    <h3 className="text-sm font-black text-gray-800 dark:text-gray-100 flex items-center tracking-wide uppercase">
-                        <BarChart3 size={16} className="mr-2 text-indigo-500" />
+                    <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 flex items-center tracking-wide uppercase">
+                        <BarChart3 size={16} className="mr-2 text-zinc-500 dark:text-zinc-400" />
                         Diagnóstico del Portafolio
                     </h3>
                     <span className={clsx("text-xs font-black px-2 py-0.5 rounded border", status.text, status.bg, status.border)}>
                         {status.title}
                     </span>
                 </div>
-                <div className="flex items-baseline space-x-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-                    <span className={clsx("text-4xl font-black tracking-tighter leading-none", status.text === 'text-gray-500' ? 'text-gray-900 dark:text-white' : status.text)}>
+                <div className="flex items-baseline space-x-2 border-b border-zinc-200 dark:border-zinc-800/60 pb-3">
+                    <span className={clsx("text-4xl font-black tracking-tighter leading-none", status.text === 'text-gray-500' ? 'text-zinc-900 dark:text-white' : status.text)}>
                         {healthScore}
                     </span>
-                    <span className="text-sm font-bold text-gray-400">/ 100 pt</span>
+                    <span className="text-sm font-bold text-zinc-400">/ 100 pt</span>
                 </div>
             </div>
 
@@ -86,13 +86,13 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
                 
                 {/* Completed Row */}
                 <div className="flex flex-col">
-                    <div className="flex justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">
+                    <div className="flex justify-between text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
                         <span className="flex items-center text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 size={12} className="mr-1" /> Completadas
                         </span>
                         <span>{completed} de {total} ({compPct}%)</span>
                     </div>
-                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-sm h-3 overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-sm h-3 overflow-hidden border border-zinc-200 dark:border-zinc-700/50">
                         <div 
                             className="bg-emerald-500 h-full transition-all duration-700"
                             style={{ width: `${compPct}%` }}
@@ -102,13 +102,13 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
 
                 {/* In Progress Row */}
                 <div className="flex flex-col">
-                    <div className="flex justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">
+                    <div className="flex justify-between text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
                         <span className="flex items-center text-blue-600 dark:text-blue-400">
                             <RefreshCw size={12} className="mr-1" /> En Progreso
                         </span>
                         <span>{inProgress} de {total} ({progPct}%)</span>
                     </div>
-                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-sm h-3 overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-sm h-3 overflow-hidden border border-zinc-200 dark:border-zinc-700/50">
                         <div 
                             className="bg-blue-500 h-full transition-all duration-700"
                             style={{ width: `${progPct}%` }}
@@ -118,13 +118,13 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
 
                 {/* Delayed Row */}
                 <div className="flex flex-col">
-                    <div className="flex justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">
+                    <div className="flex justify-between text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
                         <span className="flex items-center text-rose-600 dark:text-rose-400">
                             <ShieldAlert size={12} className="mr-1" /> Riesgo / Retraso
                         </span>
                         <span>{delayed} de {total} ({delPct}%)</span>
                     </div>
-                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-sm h-3 overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-sm h-3 overflow-hidden border border-zinc-200 dark:border-zinc-700/50">
                         <div 
                             className="bg-rose-500 h-full transition-all duration-700"
                             style={{ width: `${delPct}%` }}
@@ -134,13 +134,13 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
             </div>
 
             {/* Bottom: Explicit Text Logs (Redundant context) */}
-            <div className="bg-gray-50 dark:bg-[#151C24] border border-gray-100 dark:border-gray-800/80 rounded-md p-3">
-                <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-wider mb-2 flex items-center">
+            <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-white/[0.05] rounded-lg p-3">
+                <h4 className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500 tracking-wider mb-2 flex items-center">
                     <Box size={10} className="mr-1" /> Contexto Analítico Detallado
                 </h4>
-                <ul className="space-y-1.5 border-l-2 border-indigo-500/30 pl-2">
+                <ul className="space-y-1.5 border-l-2 border-zinc-300 dark:border-zinc-700 pl-2">
                     {diagnostics.map((log, i) => (
-                        <li key={i} className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-tight">
+                        <li key={i} className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-tight">
                             {log.includes('ALERTA') ? (
                                 <span className="text-rose-500 dark:text-rose-400 font-bold">{log}</span>
                             ) : (

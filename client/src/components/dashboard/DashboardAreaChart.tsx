@@ -12,9 +12,9 @@ const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0];
         return (
-            <div className="bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 p-3 rounded shadow-lg text-sm">
-                <p className="font-bold text-gray-800 dark:text-gray-100 mb-1">{data.name}</p>
-                <p className="text-indigo-600 dark:text-indigo-400 font-semibold">
+            <div className="bg-white dark:bg-[#161B22] border border-zinc-200 dark:border-white/[0.08] p-3 rounded-lg shadow-lg text-sm">
+                <p className="font-bold text-zinc-800 dark:text-zinc-100 mb-1">{data.name}</p>
+                <p className="text-zinc-600 dark:text-zinc-300 font-semibold">
                     {data.value} Iniciativas
                 </p>
             </div>
@@ -51,9 +51,9 @@ export const DashboardAreaChart = ({ areaData, initiatives }: AreaChartProps) =>
 
     return (
         <>
-            <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center shrink-0">
-                    <span className="w-1 h-6 bg-purple-500 rounded-full mr-3"></span>
+            <div className="card h-full flex flex-col p-6">
+                <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 mb-2 flex items-center shrink-0">
+                    <span className="w-[3px] h-5 bg-[#E10600] rounded-full mr-3"></span>
                     Iniciativas por Área
                 </h3>
 

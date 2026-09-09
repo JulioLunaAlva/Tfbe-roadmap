@@ -11,72 +11,61 @@
   --brand-white: #FFFFFF;
 
   /* --- LIGHT THEME (Default) --- */
-  /* Main Background: Light Gray */
   --bg-primary: #F4F5F7;
-  /* Cards / Table Container: White */
   --bg-secondary: #FFFFFF;
-  /* Hover / Inputs: Very Light Gray */
   --bg-tertiary: #F9FAFB;
 
   /* Sidebar: ALWAYS BRAND BLACK */
   --bg-sidebar: #0F0F10;
   --text-sidebar-primary: #FFFFFF;
   --text-sidebar-secondary: #9CA3AF;
-  --bg-sidebar-hover: #27272A;
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.06);
 
   /* Text Colors */
   --text-primary: #111827;
-  /* Gray 900 */
   --text-secondary: #4B5563;
-  /* Gray 600 */
   --text-tertiary: #6B7280;
-  /* Gray 500 */
 
-  /* Borders / Grid Lines */
-  --border-color: #E1E3E6;
-  /* Precise User Spec */
-  --grid-line: #E1E3E6;
+  /* Borders */
+  --border-color: #E4E6EA;
+  --grid-line: #E4E6EA;
   --item-hover: #F3F4F6;
 }
 
-/* --- DARK THEME (Premium Executive - Deep Blue/Grey) --- */
+/* --- DARK THEME (Premium Executive) --- */
 .dark {
-  /* Main Background: Almost Black / Deep Blueish */
   --bg-primary: #0E1114;
+  --bg-secondary: #161B22;
+  --bg-tertiary: #1C2330;
 
-  /* Container: Dark Blue-Grey */
-  --bg-secondary: #1C232B;
-
-  /* Hover / Inputs / Phase Rows: Slightly lighter */
-  --bg-tertiary: #24303B;
-
-  /* Sidebar: Keeps Identity Black, or matches Main BG? 
-     User said "Fondo general: casi negro". Sidebar is usually BRAND BLACK #0F0F10. 
-     Keeping Sidebar as Brand Black for contrast against the blue-grey content, 
-     or matching purely? User didn't explicitly change Sidebar from #0F0F10, 
-     but said "Fondo general...". I will keep sidebar as #0F0F10 to anchor the brand.
-  */
   --bg-sidebar: #0F0F10;
 
-  /* Text Colors (High Contrast) */
+  /* Text Colors */
   --text-primary: #F9FAFB;
-  /* Gray 50 */
   --text-secondary: #9CA3AF;
-  /* Gray 400 */
   --text-tertiary: #6B7280;
-  /* Gray 500 */
 
-  /* Borders / Grid Lines */
-  --border-color: rgba(255, 255, 255, 0.04);
-  --grid-line: rgba(255, 255, 255, 0.04);
-  --item-hover: #24303B;
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.07);
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --item-hover: #1C2330;
 }
 
 body {
   @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-200;
 }
 
-/* Custom Scrollbar */
+/* ─── Reusable Card Surface ─── */
+@layer components {
+  .card {
+    @apply bg-white dark:bg-[#161B22] rounded-[10px] border border-zinc-200/80 dark:border-white/[0.07] shadow-card;
+  }
+  .card-hover {
+    @apply hover:shadow-card-hover transition-shadow duration-200;
+  }
+}
+
+/* ─── Custom Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -87,23 +76,23 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #94a3b8; /* Gray 400 - more contrast than slate 300 */
+  background: #94a3b8;
   border-radius: 6px;
   border: 3px solid var(--bg-primary);
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b; /* Gray 500 */
+  background: #64748b;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569; /* Slate 600 */
+  background: #334155;
   border: 3px solid var(--bg-primary);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #475569;
 }
 
 /* Custom class for internal scrolls */
@@ -118,6 +107,5 @@ body {
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #475569cc;
+  background: #33415599;
 }
-

@@ -28,13 +28,13 @@ export const DashboardTransfLead = ({ transfLeadData, total, initiatives }: Tran
 
     return (
         <>
-            <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full">
+            <div className="card h-full p-6">
                 <div className="mb-6">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                        <span className="w-1 h-6 bg-[#E10600] rounded-full mr-3"></span>
+                    <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 flex items-center">
+                        <span className="w-[3px] h-5 bg-[#E10600] rounded-full mr-3"></span>
                         Responsables Transformación
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-7">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 ml-7">
                         Distribución de iniciativas por responsable de transformación
                     </p>
                 </div>

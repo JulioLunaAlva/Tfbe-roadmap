@@ -59,15 +59,15 @@ export const DashboardComplexity = ({ complexityData, initiatives }: ComplexityP
 
     return (
         <>
-            <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col transition-all duration-300 hover:shadow-md">
+            <div className="card h-full flex flex-col transition-all duration-300 hover:shadow-card-hover p-6">
                 <div className="mb-6">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                    <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 flex items-center">
                         <span className="p-1.5 bg-amber-500/10 text-amber-500 rounded-lg mr-3">
                             <BarChart3 size={20} />
                         </span>
                         Mezcla de Complejidad
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-1">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 ml-1">
                         Desglose de esfuerzo y riesgo técnico del portafolio actual
                     </p>
                 </div>
@@ -112,7 +112,7 @@ export const DashboardComplexity = ({ complexityData, initiatives }: ComplexityP
                                     <div className="flex items-center space-x-4">
                                         <div className={clsx(
                                             "p-3 rounded-xl shadow-sm transition-transform group-hover:scale-110",
-                                            "bg-white dark:bg-[#111827]",
+                                            "bg-white dark:bg-[#0E1114]",
                                             config.color
                                         )}>
                                             <Icon size={24} />

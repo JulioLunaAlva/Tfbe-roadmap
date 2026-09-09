@@ -78,14 +78,14 @@ export const Layout = () => {
             {!isPresentationMode && (
                 <aside
                     className={clsx(
-                        "bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] shadow-xl flex flex-col transition-all duration-300 relative z-20",
+                        "bg-[var(--bg-sidebar)] border-r border-white/[0.06] shadow-xl flex flex-col transition-all duration-300 relative z-20",
                         isSidebarOpen ? "w-64" : "w-20"
                     )}
                 >
                     {/* Toggle Button */}
                     <button
                         onClick={toggleSidebar}
-                        className="absolute -right-3 top-10 bg-[#E10600] text-white p-1 rounded-full shadow-lg hover:bg-red-700 z-30 transition-transform hover:scale-110"
+                        className="absolute -right-3 top-10 bg-[#E10600] text-white p-1 rounded-full shadow-lg hover:bg-[#C50005] z-30 transition-transform hover:scale-110"
                     >
                         {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
                     </button>
@@ -93,7 +93,7 @@ export const Layout = () => {
                     <AreaSwitcher isSidebarOpen={isSidebarOpen} />
 
                     {/* Navigation - scrollable */}
-                    <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar min-h-0">
+                    <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar min-h-0">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = location.pathname === item.path;
@@ -104,10 +104,10 @@ export const Layout = () => {
                                     title={!isSidebarOpen ? item.label : ''}
                                     className={clsx(
                                         'flex items-center rounded-lg text-sm font-medium transition-all duration-200',
-                                        isSidebarOpen ? "px-4 py-3 space-x-3" : "justify-center py-3 px-2",
+                                        isSidebarOpen ? "px-4 py-2.5 space-x-3" : "justify-center py-2.5 px-2",
                                         isActive
-                                            ? 'bg-gradient-to-r from-[#E10600] to-red-800 text-white shadow-md shadow-red-900/20'
-                                            : 'text-[var(--text-sidebar-secondary)] hover:bg-[var(--bg-sidebar-hover)] hover:text-[var(--text-sidebar-primary)]'
+                                            ? 'bg-gradient-to-r from-[#E10600] to-[#C50005] text-white shadow-md shadow-red-900/20'
+                                            : 'text-[var(--text-sidebar-secondary)] hover:bg-white/[0.05] hover:text-[var(--text-sidebar-primary)]'
                                     )}
                                 >
                                     <Icon size={20} className="flex-shrink-0" />
@@ -118,9 +118,9 @@ export const Layout = () => {
                     </nav>
 
                     {/* User Profile */}
-                    <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)] flex-shrink-0">
+                    <div className="p-4 border-t border-white/[0.06] bg-[var(--bg-sidebar)] flex-shrink-0">
                         <div className={clsx("flex items-center", isSidebarOpen ? "pb-3" : "justify-center pb-2")}>
-                            <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-zinc-700 ring-2 ring-white/10 flex items-center justify-center text-xs font-bold text-zinc-200 flex-shrink-0">
                                 {user?.email[0].toUpperCase()}
                             </div>
                             {isSidebarOpen && (
@@ -134,7 +134,7 @@ export const Layout = () => {
                         <button
                             onClick={() => setShowChangePassword(true)}
                             className={clsx(
-                                "flex items-center text-sm text-[var(--text-sidebar-secondary)] hover:text-[var(--text-sidebar-primary)] rounded transition-colors hover:bg-[var(--bg-sidebar-hover)] mb-1",
+                                "flex items-center text-sm text-[var(--text-sidebar-secondary)] hover:text-[var(--text-sidebar-primary)] rounded transition-colors hover:bg-white/[0.05] mb-1",
                                 isSidebarOpen ? "w-full px-2 py-1.5 space-x-2" : "justify-center p-2"
                             )}
                             title="Cambiar contraseña"
@@ -146,7 +146,7 @@ export const Layout = () => {
                         <button
                             onClick={logout}
                             className={clsx(
-                                "flex items-center text-sm text-[var(--text-sidebar-secondary)] hover:text-[var(--text-sidebar-primary)] rounded transition-colors hover:bg-[var(--bg-sidebar-hover)]",
+                                "flex items-center text-sm text-[var(--text-sidebar-secondary)] hover:text-[var(--text-sidebar-primary)] rounded transition-colors hover:bg-white/[0.05]",
                                 isSidebarOpen ? "w-full px-2 py-1.5 space-x-2" : "justify-center p-2"
                             )}
                             title="Cerrar Sesión"
@@ -167,9 +167,9 @@ export const Layout = () => {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[var(--bg-primary)]">
                 {/* Top Controls Bar (Sticky) */}
-                <header className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] z-10 flex-shrink-0">
+                <header className="flex justify-between items-center px-4 py-3 border-b border-zinc-200/80 dark:border-white/[0.06] bg-white/80 dark:bg-[#0D1117]/80 backdrop-blur-sm z-10 flex-shrink-0">
                     <div className="flex items-center space-x-3">
-                        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                        <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                             {location.pathname === '/' ? 'Roadmap de Iniciativas' :
                                 location.pathname === '/dashboard' ? 'Dashboard Transformación' :
                                     location.pathname === '/one-pager' ? 'One Pager' :
@@ -216,9 +216,9 @@ export const Layout = () => {
                         <button
                             onClick={togglePresentationMode}
                             className={clsx(
-                                "flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border",
+                                "flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border",
                                 isPresentationMode
-                                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200"
+                                    ? "bg-red-50 dark:bg-red-900/20 text-[#E10600] border-red-200 dark:border-red-800/40"
                                     : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:bg-[var(--border-color)]"
                             )}
                             title={isPresentationMode ? "Salir Modo Presentación" : "Modo Presentación"}

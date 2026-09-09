@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafo de Conocimiento (Standalone)</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --text-light: #f8fafc;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            overflow: hidden;
+        }
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+        h1 { margin: 0; font-size: 1.5rem; }
+        p { margin: 5px 0 0 0; color: #94a3b8; font-size: 0.9rem; }
+        
+        #graph-container {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+        #graph-container:active { cursor: grabbing; }
+
+        .node-label {
+            font-size: 12px;
+            fill: #cbd5e1;
+            pointer-events: none;
+            user-select: none;
+        }
+        .node { cursor: pointer; transition: filter 0.2s; }
+        .node:hover { filter: brightness(1.3); }
+        
+        .panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 16px;
+            width: 300px;
+            display: none;
+            backdrop-filter: blur(8px);
+        }
+        .panel h3 { margin: 0 0 10px 0; font-size: 1.1rem; color: #fff; }
+        .panel-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            background: #334155;
+        }
+        .panel p { margin: 8px 0; color: #cbd5e1; }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: #94a3b8;
+            background: none; border: none; font-size: 16px;
+        }
+        .close-btn:hover { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🗺️ Grafo de Conocimiento</h1>
+        <p>Ejemplo standalone interactivo con HTML, CSS y Vanilla JS (SVG)</p>
+    </div>
+
+    <!-- Contenedor del SVG -->
+    <svg id="graph-container">
+        <!-- Grupo principal para soportar zoom y pan -->
+        <g id="canvas"></g>
+    </svg>
+
+    <!-- Panel Lateral -->
+    <div class="panel" id="info-panel">
+        <button class="close-btn" onclick="closePanel()">✕</button>
+        <span class="panel-badge" id="panel-type">Tipo</span>
+        <h3 id="panel-title">Título</h3>
+        <div id="panel-details"></div>
+    </div>
+
+    <script>
+        // ─── 1. DATOS DE PRUEBA ────────────────────────────────────
+        const data = {
+            nodes: [
+                { id: 'ini-1', label: 'Migración Cloud ERP', type: 'initiative', meta: { champion: 'Ana Garcia', area: 'Finanzas' } },
+                { id: 'ini-2', label: 'Automatización de Nómina', type: 'initiative', meta: { champion: 'Luis Perez', area: 'RRHH' } },
+                { id: 'okr-1', label: 'OKR: Reducir costos operativos 15%', type: 'okr' },
+                { id: 'okr-2', label: 'OKR: Eficiencia de procesos', type: 'okr' },
+                { id: 'tech-1', label: 'AWS', type: 'technology' },
+                { id: 'tech-2', label: 'Python', type: 'technology' },
+                { id: 'risk-1', label: 'Retraso de proveedor', type: 'risk' }
+            ],
+            edges: [
+                { source: 'ini-1', target: 'okr-1', type: 'okr_link' },
+                { source: 'ini-2', target: 'okr-2', type: 'okr_link' },
+                { source: 'ini-1', target: 'tech-1', type: 'tech_link' },
+                { source: 'ini-2', target: 'tech-2', type: 'tech_link' },
+                { source: 'risk-1', target: 'ini-1', type: 'risk_link' },
+                { source: 'ini-2', target: 'ini-1', type: 'dependency' }
+            ]
+        };
+
+        // ─── 2. CONFIGURACIÓN VISUAL ───────────────────────────────
+        const config = {
+            initiative: { color: '#3B82F6', radius: 22 },
+            okr: { color: '#93C5FD', radius: 16 },
+            technology: { color: '#06B6D4', radius: 12 },
+            risk: { color: '#F97316', radius: 10 }
+        };
+
+        const edgeColors = {
+            okr_link: '#3B82F6',
+            tech_link: '#06B6D4',
+            risk_link: '#F97316',
+            dependency: '#94a3b8'
+        };
+
+        // ─── 3. LÓGICA DE DIBUJO (Motor de Física Básico) ──────────
+        const svg = document.getElementById('graph-container');
+        const canvas = document.getElementById('canvas');
+        
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        // Inicializar posiciones aleatorias
+        data.nodes.forEach(node => {
+            node.x = Math.random() * width;
+            node.y = Math.random() * height;
+            node.vx = 0;
+            node.vy = 0;
+        });
+
+        // Loop de física (Force-directed layout simple)
+        function simulate() {
+            const K_SPRING = 0.05;
+            const K_REPULSION = 2000;
+            const DAMPING = 0.85;
+
+            // Fuerzas de resorte (Edges)
+            data.edges.forEach(edge => {
+                const source = data.nodes.find(n => n.id === edge.source);
+                const target = data.nodes.find(n => n.id === edge.target);
+                if (!source || !target) return;
+
+                const dx = target.x - source.x;
+                const dy = target.y - source.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                
+                const idealDist = 150;
+                const force = (dist - idealDist) * K_SPRING;
+                
+                const fx = (dx / dist) * force;
+                const fy = (dy / dist) * force;
+
+                source.vx += fx; source.vy += fy;
+                target.vx -= fx; target.vy -= fy;
+            });
+
+            // Fuerzas de repulsión (Nodes) y gravedad al centro
+            for (let i = 0; i < data.nodes.length; i++) {
+                const n1 = data.nodes[i];
+                
+                // Gravedad suave al centro
+                n1.vx += (width/2 - n1.x) * 0.005;
+                n1.vy += (height/2 - n1.y) * 0.005;
+
+                for (let j = i + 1; j < data.nodes.length; j++) {
+                    const n2 = data.nodes[j];
+                    const dx = n2.x - n1.x;
+                    const dy = n2.y - n1.y;
+                    const distSq = dx * dx + dy * dy || 1;
+                    const dist = Math.sqrt(distSq);
+
+                    if (dist < 300) {
+                        const force = K_REPULSION / distSq;
+                        const fx = (dx / dist) * force;
+                        const fy = (dy / dist) * force;
+
+                        n1.vx -= fx; n1.vy -= fy;
+                        n2.vx += fx; n2.vy += fy;
+                    }
+                }
+            }
+
+            // Aplicar velocidades
+            data.nodes.forEach(node => {
+                node.x += node.vx;
+                node.y += node.vy;
+                node.vx *= DAMPING;
+                node.vy *= DAMPING;
+            });
+
+            render();
+            requestAnimationFrame(simulate);
+        }
+
+        // ─── 4. RENDERIZADO EN SVG ───────────────────────────────
+        function render() {
+            let html = '';
+
+            // Dibujar líneas (Edges)
+            data.edges.forEach(edge => {
+                const source = data.nodes.find(n => n.id === edge.source);
+                const target = data.nodes.find(n => n.id === edge.target);
+                if (!source || !target) return;
+
+                html += `<line 
+                    x1="${source.x}" y1="${source.y}" 
+                    x2="${target.x}" y2="${target.y}" 
+                    stroke="${edgeColors[edge.type]}" 
+                    stroke-width="1.5" 
+                    stroke-opacity="0.4"
+                    stroke-dasharray="${edge.type === 'dependency' ? 'none' : '4,4'}"
+                />`;
+            });
+
+            // Dibujar Nodos
+            data.nodes.forEach(node => {
+                const conf = config[node.type];
+                
+                // Aura brillante
+                html += `<circle cx="${node.x}" cy="${node.y}" r="${conf.radius + 8}" fill="${conf.color}" opacity="0.2" />`;
+                
+                // Nodo central
+                html += `<circle class="node" onclick="openPanel('${node.id}')" cx="${node.x}" cy="${node.y}" r="${conf.radius}" fill="${conf.color}" />`;
+                
+                // Texto
+                html += `<text class="node-label" x="${node.x}" y="${node.y + conf.radius + 15}" text-anchor="middle">${node.label}</text>`;
+            });
+
+            canvas.innerHTML = html;
+        }
+
+        // ─── 5. INTERACCIÓN (Panel y Pan) ──────────────────────────
+        function openPanel(nodeId) {
+            const node = data.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            document.getElementById('info-panel').style.display = 'block';
+            document.getElementById('panel-type').textContent = node.type.toUpperCase();
+            document.getElementById('panel-type').style.background = config[node.type].color + '44';
+            document.getElementById('panel-type').style.color = config[node.type].color;
+            document.getElementById('panel-title').textContent = node.label;
+            
+            let detailsHtml = '';
+            if (node.meta) {
+                Object.entries(node.meta).forEach(([k, v]) => {
+                    detailsHtml += `<p><strong>${k}:</strong> ${v}</p>`;
+                });
+            } else {
+                detailsHtml = '<p>No hay detalles adicionales.</p>';
+            }
+            document.getElementById('panel-details').innerHTML = detailsHtml;
+        }
+
+        function closePanel() {
+            document.getElementById('info-panel').style.display = 'none';
+        }
+
+        // Pan and Zoom básico
+        let isPanning = false;
+        let startPoint = { x: 0, y: 0 };
+        let translate = { x: 0, y: 0 };
+
+        svg.addEventListener('mousedown', e => {
+            if (e.target.tagName === 'circle') return; // Si hace click en un nodo, no hacer pan
+            isPanning = true;
+            startPoint = { x: e.clientX - translate.x, y: e.clientY - translate.y };
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isPanning) return;
+            translate.x = e.clientX - startPoint.x;
+            translate.y = e.clientY - startPoint.y;
+            canvas.setAttribute('transform', `translate(${translate.x}, ${translate.y})`);
+        });
+
+        window.addEventListener('mouseup', () => isPanning = false);
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+        });
+
+        // Iniciar!
+        simulate();
+
+    </script>
+</body>
+</html>

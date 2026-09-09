@@ -469,15 +469,15 @@ export const DashboardPage = () => {
         <div className="p-2 md:p-6 max-w-[1800px] mx-auto animate-in fade-in duration-500 space-y-6">
             <div className="flex justify-between items-center mb-2 tour-target-title">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Transformación</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Visión general del portafolio del año {year}</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">Dashboard Transformación</h1>
+                    <p className="text-zinc-500 dark:text-zinc-400 mt-1">Visión general del portafolio del año {year}</p>
                 </div>
                 <button
                     onClick={() => {
                         localStorage.removeItem(`dashboardTourCompleted_${user?.role || 'user'}`);
                         setRunTour(true);
                     }}
-                    className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    className="p-2 text-zinc-400 hover:text-[#E10600] dark:hover:text-[#E10600] transition-colors"
                     title="Repetir recorrido"
                 >
                     <HelpCircle size={24} />

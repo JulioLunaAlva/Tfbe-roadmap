@@ -36,23 +36,24 @@ export const DashboardPhase = ({ phaseDataByMethodology, initiatives }: PhasePro
 
     return (
         <>
-            <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full">
+            <div className="card h-full p-6">
                 <div className="mb-4">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center mb-3">
-                        <span className="w-1 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                    <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 flex items-center mb-3">
+                        <span className="w-[3px] h-5 bg-[#E10600] rounded-full mr-3"></span>
                         Distribución por Fase
                     </h3>
 
-                    {/* Methodology Tabs */}
-                    <div className="flex gap-2">
+                    {/* Methodology Tabs — Segmented control */}
+                    <div className="flex gap-1.5 bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-lg w-fit">
                         {['Hibrida', 'Analiticos', 'Reporting'].map(m => (
                             <button
                                 key={m}
                                 onClick={() => setSelectedMethodology(m)}
-                                className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${selectedMethodology === m
-                                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-                                    }`}
+                                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 ${
+                                    selectedMethodology === m
+                                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                                }`}
                             >
                                 {m}
                             </button>
@@ -89,7 +90,7 @@ export const DashboardPhase = ({ phaseDataByMethodology, initiatives }: PhasePro
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                        <div className="h-full flex items-center justify-center text-zinc-400 dark:text-zinc-500 text-sm">
                             No hay datos de fases disponibles
                         </div>
                     )}

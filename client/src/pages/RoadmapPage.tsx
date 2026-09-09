@@ -54,13 +54,13 @@ export const RoadmapPage = () => {
     return (
         <div className="w-full px-4 space-y-6">
             <div className="flex justify-between items-center tour-target-title-roadmap">
-                <h2 className="text-xl font-bold text-slate-100">Roadmap de Iniciativas</h2>
+                <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Roadmap de Iniciativas</h2>
                 <button
                     onClick={() => {
                         localStorage.removeItem(`roadmapTourCompleted_${user?.role || 'user'}`);
                         setRunTour(true);
                     }}
-                    className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    className="p-2 text-zinc-400 hover:text-[#E10600] dark:hover:text-[#E10600] transition-colors"
                     title="Repetir recorrido"
                 >
                     <HelpCircle size={24} />

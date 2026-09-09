@@ -31,13 +31,13 @@ export const DashboardValue = ({ valueData, total, initiatives }: ValueWidgetPro
 
     return (
         <>
-            <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full">
+            <div className="card h-full p-6">
                 <div className="mb-6">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                        <span className="w-1 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                    <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 flex items-center">
+                        <span className="w-[3px] h-5 bg-[#E10600] rounded-full mr-3"></span>
                         Distribución por Valor
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-7">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 ml-7">
                         Clasificación de iniciativas según su valor estratégico
                     </p>
                 </div>
@@ -56,7 +56,7 @@ export const DashboardValue = ({ valueData, total, initiatives }: ValueWidgetPro
                                 {/* Colored top border */}
                                 <div className="h-1" style={{ backgroundColor: item.color }}></div>
 
-                                <div className="p-4 bg-white dark:bg-[#252D38]">
+                                <div className="p-4 bg-white dark:bg-[#1C2330]">
                                     {/* Icon */}
                                     <div
                                         className="w-12 h-12 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"

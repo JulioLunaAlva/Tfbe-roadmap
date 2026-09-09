@@ -153,38 +153,38 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
     };
 
     return (
-        <div className="bg-white dark:bg-[#1E2630] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col justify-between">
+        <div className="card h-full flex flex-col justify-between p-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                        <span className="w-1.5 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                    <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 flex items-center">
+                        <span className="w-[3px] h-5 bg-[#E10600] rounded-full mr-3"></span>
                         Tendencias del Portafolio
                     </h3>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 ml-4 block">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1 ml-4 block">
                         Crecimiento histórico vs Resoluciones
                     </p>
                 </div>
 
-                <div className="flex items-center space-x-3 self-start md:self-auto bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                <div className="flex items-center space-x-3 self-start md:self-auto bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-lg border border-zinc-200/80 dark:border-white/[0.06]">
                     <button 
-                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-all group flex items-center gap-3"
+                        className="px-3 text-right border-r border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/30 rounded transition-all group flex items-center gap-3"
                         onClick={() => {
                             setModalTitle(`Portafolio: Volumen Total Actual`);
                             setModalInitiatives(lastData?.createdList || []);
                             setIsModalOpen(true);
                         }}
                     >
-                        <div className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-full group-hover:scale-110 transition-transform">
+                        <div className="text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 p-2 rounded-full group-hover:scale-110 transition-transform">
                             <Search size={16} />
                         </div>
                         <div>
-                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Volumen Total</div>
-                            <div className="text-lg font-black text-indigo-500 leading-none mt-1">{totalCreated}</div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-500">Volumen Total</div>
+                            <div className="text-lg font-black text-zinc-700 dark:text-zinc-200 leading-none mt-1">{totalCreated}</div>
                         </div>
                     </button>
                     <button 
-                        className="px-3 text-right border-r border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded transition-all group flex items-center gap-3"
+                        className="px-3 text-right border-r border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/30 rounded transition-all group flex items-center gap-3"
                         onClick={() => {
                             setModalTitle(`Iniciativas: Total Completadas`);
                             setModalInitiatives(lastData?.completedList || []);
@@ -195,13 +195,13 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
                             <List size={16} />
                         </div>
                         <div>
-                            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Completadas</div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-500">Completadas</div>
                             <div className="text-lg font-black text-emerald-500 leading-none mt-1">{totalCompleted}</div>
                         </div>
                     </button>
                     <div className="px-3 pr-4 text-right">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-500">Tasa (Win)</div>
-                        <div className="text-lg font-black text-gray-800 dark:text-gray-200 flex items-center leading-none mt-1">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-500">Tasa (Win)</div>
+                        <div className="text-lg font-black text-zinc-800 dark:text-zinc-200 flex items-center leading-none mt-1">
                             {completionRate}%
                             {completionRate > 50 ? <TrendingUp size={14} className="ml-1.5 text-emerald-500" /> : <AlertCircle size={14} className="ml-1.5 text-amber-500" />}
                         </div>
@@ -274,33 +274,33 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
             </div>
 
             {/* Smart Insights Zone */}
-            <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center mb-3 text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
+            <div className="mt-8 pt-5 border-t border-zinc-200 dark:border-white/[0.06]">
+                <div className="flex items-center mb-3 text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                     <Sparkles size={14} className="mr-2" />
                     Auditoría de Portafolio
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Análisis de Volumen:</strong>
-                            Se han registrado {totalCreated} iniciativas en total. Haz clic en el indicador púrpura superior para ver el listado detallado del portafolio.
+                    <div className="bg-zinc-50 dark:bg-zinc-800/30 p-3 rounded-lg border border-zinc-200/80 dark:border-white/[0.05] hover:border-zinc-300 dark:hover:border-white/[0.08] transition-colors">
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                            <strong className="text-zinc-900 dark:text-zinc-200 block mb-1">Análisis de Volumen:</strong>
+                            Se han registrado {totalCreated} iniciativas en total. Haz clic en el indicador superior para ver el listado detallado del portafolio.
                         </p>
                     </div>
                     
-                    <div className="bg-gray-50 dark:bg-gray-800/30 p-3 rounded-lg border border-gray-100 dark:border-gray-800/70 hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-gray-900 dark:text-gray-200 block mb-1">Métrica de Éxito:</strong>
+                    <div className="bg-zinc-50 dark:bg-zinc-800/30 p-3 rounded-lg border border-zinc-200/80 dark:border-white/[0.05] hover:border-zinc-300 dark:hover:border-white/[0.08] transition-colors">
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                            <strong className="text-zinc-900 dark:text-zinc-200 block mb-1">Métrica de Éxito:</strong>
                             {totalCompleted} iniciativas entregadas ({completionRate}%). Usa el botón de lista verde arriba para auditar las entregas.
                         </p>
                     </div>
 
                     <div className={clsx(
                         "p-3 rounded-lg border transition-colors",
-                        "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/50"
+                        "bg-zinc-50 dark:bg-zinc-800/20 border-zinc-200/80 dark:border-white/[0.05] hover:border-zinc-300 dark:hover:border-white/[0.08]"
                     )}>
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                            <strong className="text-indigo-700 dark:text-indigo-400 block mb-1">Tip de Interacción:</strong>
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                            <strong className="text-zinc-700 dark:text-zinc-300 block mb-1">Tip de Interacción:</strong>
                             Selecciona cualquier **barra verde** del gráfico para ver el detalle acumulado de ese mes específico.
                         </p>
                     </div>

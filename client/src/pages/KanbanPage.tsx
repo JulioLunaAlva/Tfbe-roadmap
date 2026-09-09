@@ -34,7 +34,7 @@ interface Initiative {
 }
 
 const KANBAN_COLUMNS = [
-    { id: 'En plan', label: 'En Plan', color: 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800' },
+    { id: 'En plan', label: 'En Plan', color: 'bg-zinc-100 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-700' },
     { id: 'En Curso', label: 'En Curso', color: 'bg-cyan-100 dark:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800' },
     { id: 'Retrasado', label: 'Retrasado', color: 'bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800' },
     { id: 'Entregado', label: 'Entregado', color: 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800' }
@@ -73,12 +73,12 @@ const SortableItem = ({ item }: { item: Initiative }) => {
             {...attributes}
             {...listeners}
             className={clsx(
-                "p-3 mb-2 rounded-lg border bg-white dark:bg-[#1A2332] shadow-sm cursor-grab active:cursor-grabbing hover:border-indigo-400 transition-colors",
-                isDragging ? "opacity-50 ring-2 ring-indigo-500 scale-105" : "border-gray-200 dark:border-gray-700/50"
+                "p-3 mb-2 rounded-lg border bg-white dark:bg-[#161B22] shadow-card cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors",
+                isDragging ? "opacity-50 ring-2 ring-zinc-500 scale-105" : "border-zinc-200 dark:border-white/[0.07]"
             )}
         >
-            <h4 className="text-sm font-bold text-gray-800 dark:text-white leading-tight mb-2">{item.name}</h4>
-            <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+            <h4 className="text-sm font-bold text-zinc-800 dark:text-white leading-tight mb-2">{item.name}</h4>
+            <div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
                 <span className="font-medium truncate max-w-[120px]">{item.area}</span>
                 <div className="flex items-center gap-1">
                     <Flag size={12} className={item.progress >= 100 ? "text-emerald-500" : "text-amber-500"} />
@@ -86,7 +86,7 @@ const SortableItem = ({ item }: { item: Initiative }) => {
                 </div>
             </div>
             {item.champion && (
-                <div className="mt-2 text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded px-1.5 py-0.5 inline-block">
+                <div className="mt-2 text-[10px] text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/60 rounded px-1.5 py-0.5 inline-block">
                     {item.champion}
                 </div>
             )}
@@ -216,7 +216,7 @@ export const KanbanPage = () => {
     if (loading) {
         return (
             <div className="flex h-full items-center justify-center bg-[var(--bg-primary)]">
-                <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
+                <Loader2 className="animate-spin text-[#E10600] w-8 h-8" />
             </div>
         );
     }
@@ -225,11 +225,11 @@ export const KanbanPage = () => {
         <div className="h-full flex flex-col bg-[var(--bg-primary)] p-4 overflow-hidden">
             <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-sm">
+                    <div className="p-2 bg-gradient-to-br from-[#E10600] to-[#C50005] rounded-lg shadow-sm">
                         <KanbanSquare size={20} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-[var(--text-primary)] leading-tight">Tablero Kanban</h1>
+                        <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">Tablero Kanban</h1>
                         <p className="text-xs text-[var(--text-tertiary)]">Visualización ágil de iniciativas por estatus</p>
                     </div>
                 </div>
@@ -237,7 +237,7 @@ export const KanbanPage = () => {
                 {/* Filters */}
                 <div className="flex items-center gap-3">
                     <select
-                        className="bg-white dark:bg-[#1A2332] border border-gray-200 dark:border-gray-800 text-sm rounded-lg px-3 py-1.5 text-gray-700 dark:text-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="bg-white dark:bg-[#161B22] border border-zinc-200 dark:border-white/[0.07] text-sm rounded-lg px-3 py-1.5 text-zinc-700 dark:text-zinc-300 shadow-sm focus:ring-2 focus:ring-[#E10600]/40 outline-none"
                         value={transformationLeadFilter}
                         onChange={e => setTransformationLeadFilter(e.target.value)}
                     >
