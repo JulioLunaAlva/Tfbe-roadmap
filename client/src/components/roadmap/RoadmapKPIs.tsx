@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useYear } from '../../context/YearContext';
+import { useArea } from '../../context/AreaContext';
 import API_URL from '../../config/api';
 import {
     TrendingUp, CheckCircle2, Zap, AlertTriangle,
@@ -75,18 +76,18 @@ const KPICard = ({
 
     return (
         <div
-            className={`relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-[#1E2630] p-3 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            className={`relative overflow-hidden rounded-xl border border-zinc-200 dark:border-white/[0.07] bg-white dark:bg-[#161B22] p-3 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ transitionDelay: `${delay}ms` }}
         >
             {/* Gradient accent */}
-            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`} />
+            <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${gradient}`} />
 
             <div className="relative">
-                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 truncate block w-full" title={label}>
+                <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1 truncate block w-full" title={label}>
                     {label}
                 </p>
                 <div className="flex items-end justify-between gap-1">
-                    <p className="text-xl font-extrabold text-gray-800 dark:text-white tracking-tight truncate">
+                    <p className="text-xl font-extrabold text-zinc-800 dark:text-white tracking-tight truncate">
                         {animatedValue}<span className="text-sm font-bold ml-0.5">{suffix}</span>
                     </p>
                     <div className={`p-1.5 rounded-lg ${iconBg} shadow-sm flex-shrink-0`}>
@@ -101,84 +102,95 @@ const KPICard = ({
 export const RoadmapKPIs = () => {
     const { token } = useAuth();
     const { year } = useYear();
+    // ✅ FIX: Subscribe to the active workspace so KPIs re-fetch on area change
+    const { areaQueryParam, activeArea } = useArea();
     const [data, setData] = useState<KPIData | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // ✅ FIX: Include areaQueryParam in the dependency array AND in the fetch URL.
+    // Previously the effect only depended on [token, year], so switching workspaces
+    // (which changes areaQueryParam / activeArea.id) never triggered a re-fetch.
     useEffect(() => {
         if (!token) return;
         setLoading(true);
-        fetch(`${API_URL}/api/kpi-summary?year=${year}`, {
+        // Pass business_area_id as a query param so the backend can filter accordingly
+        fetch(`${API_URL}/api/kpi-summary?year=${year}${areaQueryParam}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
             .then(d => { setData(d); setLoading(false); })
             .catch(err => { console.error(err); setLoading(false); });
-    }, [token, year]);
+    // activeArea?.id triggers re-fetch when workspace switches, even if year stays the same
+    }, [token, year, areaQueryParam, activeArea?.id]);
+
+    // Build cards only when data changes — avoids unnecessary re-renders
+    const cards = useMemo(() => {
+        if (!data) return [];
+        return [
+            {
+                label: 'Total Iniciativas',
+                value: data.total,
+                icon: BarChart3,
+                gradient: 'from-[#E10600] to-rose-600',
+                iconBg: 'bg-gradient-to-br from-[#E10600] to-rose-700',
+            },
+            {
+                label: 'Entregadas',
+                value: data.delivered,
+                icon: CheckCircle2,
+                gradient: 'from-emerald-400 to-green-500',
+                iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
+            },
+            {
+                label: 'En Curso',
+                value: data.in_progress,
+                icon: Zap,
+                gradient: 'from-blue-400 to-cyan-500',
+                iconBg: 'bg-gradient-to-br from-blue-500 to-cyan-600',
+            },
+            {
+                label: 'Retrasadas',
+                value: data.delayed,
+                icon: AlertTriangle,
+                gradient: 'from-red-400 to-rose-500',
+                iconBg: 'bg-gradient-to-br from-red-500 to-rose-600',
+            },
+            {
+                label: 'Avance Promedio',
+                value: data.avg_progress,
+                suffix: '%',
+                icon: TrendingUp,
+                gradient: 'from-amber-400 to-orange-500',
+                iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
+            },
+            {
+                label: 'Valor Documentado',
+                value: data.value_documented,
+                icon: Award,
+                gradient: 'from-violet-400 to-fuchsia-500',
+                iconBg: 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
+            },
+            {
+                label: 'Áreas Activas',
+                value: data.areas,
+                icon: Building2,
+                gradient: 'from-teal-400 to-emerald-500',
+                iconBg: 'bg-gradient-to-br from-teal-500 to-emerald-600',
+            },
+        ];
+    }, [data]);
 
     if (loading || !data) {
         return (
             <div className="w-full overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 min-w-[760px] lg:min-w-0">
                     {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className="h-[76px] rounded-xl bg-gray-100 dark:bg-[#1E2630] animate-pulse border border-gray-200 dark:border-gray-700/50" />
+                        <div key={i} className="h-[76px] rounded-xl bg-zinc-100 dark:bg-[#161B22] animate-pulse border border-zinc-200 dark:border-white/[0.07]" />
                     ))}
                 </div>
             </div>
         );
     }
-
-    const cards = [
-        {
-            label: 'Total Iniciativas',
-            value: data.total,
-            icon: BarChart3,
-            gradient: 'from-indigo-500 to-purple-500',
-            iconBg: 'bg-gradient-to-br from-indigo-500 to-purple-600',
-        },
-        {
-            label: 'Entregadas',
-            value: data.delivered,
-            icon: CheckCircle2,
-            gradient: 'from-emerald-400 to-green-500',
-            iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
-        },
-        {
-            label: 'En Curso',
-            value: data.in_progress,
-            icon: Zap,
-            gradient: 'from-blue-400 to-cyan-500',
-            iconBg: 'bg-gradient-to-br from-blue-500 to-cyan-600',
-        },
-        {
-            label: 'Retrasadas',
-            value: data.delayed,
-            icon: AlertTriangle,
-            gradient: 'from-red-400 to-rose-500',
-            iconBg: 'bg-gradient-to-br from-red-500 to-rose-600',
-        },
-        {
-            label: 'Avance Promedio',
-            value: data.avg_progress,
-            suffix: '%',
-            icon: TrendingUp,
-            gradient: 'from-amber-400 to-orange-500',
-            iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-        },
-        {
-            label: 'Valor Documentado',
-            value: data.value_documented,
-            icon: Award,
-            gradient: 'from-violet-400 to-fuchsia-500',
-            iconBg: 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
-        },
-        {
-            label: 'Áreas Activas',
-            value: data.areas,
-            icon: Building2,
-            gradient: 'from-teal-400 to-emerald-500',
-            iconBg: 'bg-gradient-to-br from-teal-500 to-emerald-600',
-        },
-    ];
 
     return (
         <div className="w-full overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">

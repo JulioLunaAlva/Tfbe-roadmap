@@ -4,18 +4,36 @@ import { authenticateToken } from '../middleware';
 
 const router = Router();
 
-// GET /api/kpi-summary - Aggregated KPIs for the portfolio
+// GET /api/kpi-summary?year=XXXX&business_area_id=UUID
+// Returns aggregated KPIs scoped to the active portfolio (business area).
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
-    const { year } = req.query;
+    const { year, business_area_id } = req.query;
 
     try {
-        let whereClause = '';
         const params: any[] = [];
+        const conditions: string[] = [];
 
         if (year) {
-            whereClause = 'WHERE i.year = $1';
             params.push(year);
+            conditions.push(`i.year = $${params.length}`);
         }
+
+        // ✅ FIX: Filter by business_area_id so KPIs scope to the active workspace
+        if (business_area_id) {
+            params.push(business_area_id);
+            conditions.push(`i.business_area_id = $${params.length}`);
+        }
+
+        const whereClause = conditions.length > 0
+            ? `WHERE ${conditions.join(' AND ')}`
+            : '';
+
+        // Helper to build a WHERE clause that AND-appends an extra condition
+        const withExtra = (extra: string) => {
+            return conditions.length > 0
+                ? `WHERE ${conditions.join(' AND ')} AND ${extra}`
+                : `WHERE ${extra}`;
+        };
 
         // Total initiatives
         const totalRes = await query(
@@ -25,19 +43,19 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
         // Delivered count
         const deliveredRes = await query(
-            `SELECT COUNT(*) as delivered FROM initiatives i ${whereClause ? whereClause + " AND" : "WHERE"} i.status = 'Entregado'`,
+            `SELECT COUNT(*) as delivered FROM initiatives i ${withExtra("i.status = 'Entregado'")}`,
             params
         );
 
         // In progress count
         const inProgressRes = await query(
-            `SELECT COUNT(*) as in_progress FROM initiatives i ${whereClause ? whereClause + " AND" : "WHERE"} (i.status = 'En curso' OR i.status = 'Avance conforme plan')`,
+            `SELECT COUNT(*) as in_progress FROM initiatives i ${withExtra("(i.status = 'En curso' OR i.status = 'Avance conforme plan')")}`,
             params
         );
 
         // Delayed count
         const delayedRes = await query(
-            `SELECT COUNT(*) as delayed FROM initiatives i ${whereClause ? whereClause + " AND" : "WHERE"} (i.status = 'Retrasado' OR i.status = 'Atraso')`,
+            `SELECT COUNT(*) as delayed FROM initiatives i ${withExtra("(i.status = 'Retrasado' OR i.status = 'Atraso')")}`,
             params
         );
 
@@ -47,13 +65,13 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
             params
         );
 
-        // Count of initiatives with documented value (have data in initiative_value)
+        // Count of initiatives with documented value
         const valueDocRes = await query(
             `SELECT COUNT(DISTINCT iv.initiative_id) as documented
              FROM initiative_value iv
              JOIN initiatives i ON i.id = iv.initiative_id
              ${whereClause}
-             AND (iv.business_value != '' OR iv.operational_efficiency != '' OR iv.fte_detail != '' OR iv.qualitative_benefit != '' OR iv.users_reached_detail != '' OR iv.estimated_savings_detail != '')`,
+             ${conditions.length > 0 ? 'AND' : 'WHERE'} (iv.business_value != '' OR iv.operational_efficiency != '' OR iv.fte_detail != '' OR iv.qualitative_benefit != '' OR iv.users_reached_detail != '' OR iv.estimated_savings_detail != '')`,
             params
         );
 
