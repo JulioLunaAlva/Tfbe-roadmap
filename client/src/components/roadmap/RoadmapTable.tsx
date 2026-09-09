@@ -484,6 +484,8 @@ export const RoadmapTable = () => {
         }
     };
 
+    const { activeArea } = useArea();
+
     useEffect(() => {
         const load = async () => {
             setLoading(true);
@@ -491,7 +493,7 @@ export const RoadmapTable = () => {
             setLoading(false);
         };
         if (token) load();
-    }, [token, year]);
+    }, [token, year, areaQueryParam, activeArea?.id]);
 
     // Fetch Milestones
     useEffect(() => {

@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
 export const RoadmapSummary = () => {
     const { token } = useAuth();
     const { year } = useYear();
-    const { areaQueryParam } = useArea();
+    const { areaQueryParam, activeArea } = useArea();
     const [initiatives, setInitiatives] = useState<any[]>([]);
     const [isExpanded, setIsExpanded] = useState<boolean>(() => {
         const saved = localStorage.getItem('roadmap_summary_expanded');
@@ -21,7 +21,7 @@ export const RoadmapSummary = () => {
             .then(res => res.json())
             .then(data => Array.isArray(data) ? setInitiatives(data) : setInitiatives([]))
             .catch(console.error);
-    }, [token, year, areaQueryParam]);
+    }, [token, year, areaQueryParam, activeArea?.id]);
 
     const toggleExpanded = () => {
         setIsExpanded(prev => {
