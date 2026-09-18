@@ -173,7 +173,17 @@ export const InitiativeValuePage = () => {
             setSearchParams({});
         }
     }, [initIdFromUrl, initiatives, setSearchParams]);
+
+    // --- Filter state ---
     const [selectedArea, setSelectedArea] = useState<string>('');
+    // Area combobox
+    const [areaSearchQuery, setAreaSearchQuery] = useState<string>('');
+    const [isAreaComboOpen, setIsAreaComboOpen] = useState(false);
+    // Champion filter
+    const [selectedChampion, setSelectedChampion] = useState<string>('');
+    // Status filter
+    const [selectedStatus, setSelectedStatus] = useState<string>('');
+
     const [valueData, setValueData] = useState<ValueData>({ ...EMPTY_VALUE });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -181,7 +191,7 @@ export const InitiativeValuePage = () => {
     const [showPresentation, setShowPresentation] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
 
-    // Combobox state
+    // Combobox state (initiative selector)
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isComboOpen, setIsComboOpen] = useState(false);
 
@@ -194,10 +204,32 @@ export const InitiativeValuePage = () => {
         return Array.from(new Set(areas)).sort();
     }, [initiatives]);
 
+    // Area combobox filtered options
+    const areaComboOptions = useMemo(() => {
+        if (!areaSearchQuery.trim()) return uniqueAreas;
+        const q = areaSearchQuery.toLowerCase();
+        return uniqueAreas.filter(a => a.toLowerCase().includes(q));
+    }, [uniqueAreas, areaSearchQuery]);
+
+    const uniqueChampions = useMemo(() => {
+        const champs = initiatives.map(i => i.champion).filter(Boolean) as string[];
+        return Array.from(new Set(champs)).sort();
+    }, [initiatives]);
+
+    const uniqueStatuses = useMemo(() => {
+        const statuses = initiatives.map(i => i.status).filter(Boolean) as string[];
+        return Array.from(new Set(statuses)).sort();
+    }, [initiatives]);
+
+    // filteredInitiatives reacts to all active filters
     const filteredInitiatives = useMemo(() => {
-        if (!selectedArea) return initiatives;
-        return initiatives.filter(i => i.area === selectedArea);
-    }, [initiatives, selectedArea]);
+        return initiatives.filter(i => {
+            const areaMatch = !selectedArea || i.area === selectedArea;
+            const champMatch = !selectedChampion || i.champion === selectedChampion;
+            const statusMatch = !selectedStatus || i.status === selectedStatus;
+            return areaMatch && champMatch && statusMatch;
+        });
+    }, [initiatives, selectedArea, selectedChampion, selectedStatus]);
 
     const selectedInitiative = useMemo(
         () => initiatives.find(i => i.id === selectedInitiativeId),
@@ -329,18 +361,20 @@ export const InitiativeValuePage = () => {
             return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
         if (s.includes('entregado'))
             return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+        if (s.includes('on hold') || s.includes('en espera'))
+            return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
+        if (s.includes('por iniciar'))
+            return 'bg-slate-100 text-slate-600 dark:bg-slate-700/30 dark:text-slate-300';
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     };
 
-    // Combobox: filtered list based on search + area
+    // Combobox: filtered list based on search + area + champion + status
     const comboOptions = useMemo(() => {
-        const areaFiltered = selectedArea
-            ? filteredInitiatives
-            : initiatives;
-        if (!searchQuery.trim()) return areaFiltered;
+        const baseList = filteredInitiatives;
+        if (!searchQuery.trim()) return baseList;
         const q = searchQuery.toLowerCase();
-        return areaFiltered.filter(i => i.name.toLowerCase().includes(q));
-    }, [initiatives, filteredInitiatives, selectedArea, searchQuery]);
+        return baseList.filter(i => i.name.toLowerCase().includes(q));
+    }, [filteredInitiatives, searchQuery]);
 
     // Combobox: select an initiative
     const handleSelectInitiative = (id: string, name: string) => {
@@ -356,17 +390,35 @@ export const InitiativeValuePage = () => {
         setIsComboOpen(false);
     };
 
-    // Global summary stats
+    // Area combobox handlers
+    const handleSelectArea = (area: string) => {
+        setSelectedArea(area);
+        setAreaSearchQuery(area);
+        setIsAreaComboOpen(false);
+        setSelectedInitiativeId('');
+        setSearchQuery('');
+    };
+
+    const handleClearArea = () => {
+        setSelectedArea('');
+        setAreaSearchQuery('');
+        setIsAreaComboOpen(false);
+        setSelectedInitiativeId('');
+        setSearchQuery('');
+    };
+
+    // Global summary stats — reactive to filters
     const globalStats = useMemo(() => {
-        const total = initiatives.length;
-        const complete = initiatives.filter(i => (pillarSummary[i.id] ?? 0) === PILLARS.length).length;
-        const partial = initiatives.filter(i => {
+        const base = filteredInitiatives;
+        const total = base.length;
+        const complete = base.filter(i => (pillarSummary[i.id] ?? 0) === PILLARS.length).length;
+        const partial = base.filter(i => {
             const c = pillarSummary[i.id] ?? 0;
             return c > 0 && c < PILLARS.length;
         }).length;
         const empty = total - complete - partial;
         return { total, complete, partial, empty };
-    }, [initiatives, pillarSummary]);
+    }, [filteredInitiatives, pillarSummary]);
 
     // Helper: count filled pillars
     const filledCount = useMemo(() => {
@@ -404,20 +456,83 @@ export const InitiativeValuePage = () => {
                             </div>
                         </div>
 
-                        {/* Area Selector */}
-                        <div className="w-48">
+                        {/* Area Selector — Combobox con búsqueda */}
+                        <div className="w-52 relative">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Área</label>
+                            <div className="relative flex items-center">
+                                <Search size={13} className="absolute left-2.5 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={areaSearchQuery}
+                                    onChange={(e) => {
+                                        setAreaSearchQuery(e.target.value);
+                                        setIsAreaComboOpen(true);
+                                        if (!e.target.value) { setSelectedArea(''); }
+                                    }}
+                                    onFocus={() => setIsAreaComboOpen(true)}
+                                    onBlur={() => setTimeout(() => setIsAreaComboOpen(false), 150)}
+                                    placeholder="Todas las Áreas..."
+                                    className="w-full pl-8 pr-8 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                                />
+                                {areaSearchQuery ? (
+                                    <button onClick={handleClearArea} className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                        <XIcon size={14} />
+                                    </button>
+                                ) : (
+                                    <ChevronDown size={13} className="absolute right-2.5 text-gray-400 pointer-events-none" />
+                                )}
+                            </div>
+                            {isAreaComboOpen && areaComboOptions.length > 0 && (
+                                <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                    <button
+                                        onMouseDown={handleClearArea}
+                                        className="w-full text-left px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm text-gray-400 italic"
+                                    >Todas las Áreas</button>
+                                    {areaComboOptions.map(area => (
+                                        <button
+                                            key={area}
+                                            onMouseDown={() => handleSelectArea(area)}
+                                            className={`w-full text-left px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm text-gray-800 dark:text-gray-100 ${selectedArea === area ? 'bg-indigo-50 dark:bg-indigo-900/20 font-semibold' : ''}`}
+                                        >{area}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Champion Filter */}
+                        <div className="w-44">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsable</label>
                             <select
-                                value={selectedArea}
+                                value={selectedChampion}
                                 onChange={(e) => {
-                                    setSelectedArea(e.target.value);
+                                    setSelectedChampion(e.target.value);
                                     setSelectedInitiativeId('');
+                                    setSearchQuery('');
                                 }}
-                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
                             >
-                                <option value="">Todas las Áreas</option>
-                                {uniqueAreas.map(area => (
-                                    <option key={area} value={area}>{area}</option>
+                                <option value="">Todos</option>
+                                {uniqueChampions.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="w-44">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estatus</label>
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => {
+                                    setSelectedStatus(e.target.value);
+                                    setSelectedInitiativeId('');
+                                    setSearchQuery('');
+                                }}
+                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                            >
+                                <option value="">Todos</option>
+                                {uniqueStatuses.map(s => (
+                                    <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>
                         </div>

@@ -44,7 +44,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         year: new Date().getFullYear(),
         notes: '',
         technologies: [] as string[],
-        status: 'En espera',
+        status: 'On Hold',
         start_date: null,
         end_date: null,
         progress: 0,
@@ -94,7 +94,7 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
     // Predefined lists
     const areas: string[] = [];
     const complexities = ['Alta', 'Media', 'Baja'];
-    const statuses = ['En espera', 'En curso', 'Entregado', 'Cancelado', 'Retrasado', 'En redefinición'];
+    const statuses = ['On Hold', 'Por Iniciar', 'En curso', 'Entregado', 'Entregado con redefinición', 'Entregado con atraso', 'Cancelado', 'Retrasado', 'En redefinición'];
     const methodologies = ['Hibrida', 'Analiticos', 'Reporting'];
     const suggestedTechs = [
 

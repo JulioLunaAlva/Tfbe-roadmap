@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flag, Star, CheckCircle } from 'lucide-react';
+import { Flag, Star, CheckCircle, PauseCircle } from 'lucide-react';
 
 interface Props {
     highlightedStatus?: number | null;
@@ -32,6 +32,11 @@ export const RoadmapLegend: React.FC<Props> = ({ highlightedStatus = null, onHig
             <div className="flex items-center space-x-1 cursor-help" title="Hito Fecha planeada entrega">
                 <CheckCircle size={14} className="text-green-600 dark:text-green-500" />
                 <span>Fecha entrega</span>
+            </div>
+
+            <div className="flex items-center space-x-1 cursor-help" title="Hito On Hold — Iniciativa en pausa">
+                <PauseCircle size={14} className="text-yellow-500 dark:text-yellow-400" />
+                <span>On Hold</span>
             </div>
 
             <div className="h-4 w-px bg-[var(--border-color)] mx-2"></div>

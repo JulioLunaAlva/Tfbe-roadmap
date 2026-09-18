@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle, FileDown, FileSpreadsheet, Zap } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, Trash2, Pencil, Flag, CheckCircle, Lightbulb, GripVertical, MessageCircle, FileDown, FileSpreadsheet, Zap, PauseCircle } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -79,7 +79,7 @@ interface Progress {
 interface Milestone {
     id: string;
     initiative_id: string;
-    type: 'flag' | 'star' | 'check';
+    type: 'flag' | 'star' | 'check' | 'hold';
     week_number: number;
 }
 
@@ -268,10 +268,14 @@ const SortableInitiativeRow = ({
                         if (s === 'En curso' || s === 'Avance conforme plan') return 'bg-[#DFF3EA] text-[#115E59] dark:bg-[#134E4A] dark:text-[#5EEAD4]';
                         if (s === 'En redefinición') return 'bg-[#FEF3C7] text-[#92400E] dark:bg-[#451A03]/50 dark:text-[#FCD34D]';
                         if (s === 'Entregado') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+                        if (s === 'Entregado con redefinición') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300';
+                        if (s === 'Entregado con atraso') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+                        if (s === 'On Hold' || s === 'En espera') return 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
+                        if (s === 'Por Iniciar') return 'bg-slate-100 text-slate-600 dark:bg-slate-700/30 dark:text-slate-300';
                         return 'bg-[#F1F3F5] text-[#4B5563] dark:bg-[#27272A] dark:text-[#E5E7EB]';
                     })()
                 )}>
-                    {initiative.status || 'En espera'}
+                    {initiative.status || 'On Hold'}
                 </td>
                 <td className="px-2 py-2 text-[9px] border-r border-[var(--border-color)] whitespace-normal break-words text-[var(--text-secondary)] dark:text-gray-300" title={initiative.notes}>{initiative.notes}</td>
                 <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center truncate text-[var(--text-secondary)] dark:text-gray-200 font-medium" title={initiative.transformation_lead}>
@@ -537,13 +541,13 @@ export const RoadmapTable = () => {
 
     const handleContextMenu = (e: React.MouseEvent, initId: string, week: number) => {
         e.preventDefault();
-        const existing = milestones[initId]?.find(m => m.week_number === week);
+        const existingList = milestones[initId]?.filter(m => m.week_number === week) || [];
         setContextMenu({
             x: e.clientX,
             y: e.clientY,
             initiativeId: initId,
             week,
-            existingId: existing?.id
+            existingId: existingList.length > 0 ? existingList[existingList.length - 1].id : undefined
         });
     };
 
@@ -672,34 +676,72 @@ export const RoadmapTable = () => {
     };
 
     const renderMilestone = (initId: string, week: number) => {
-        const ms = milestones[initId]?.find(m => m.week_number === week);
-        if (!ms) return null;
+        const msList = milestones[initId]?.filter(m => m.week_number === week) || [];
+        if (msList.length === 0) return null;
 
-        let icon = null;
-        if (ms.type === 'flag') icon = <Flag size={12} className="text-gray-600 fill-current pointer-events-none" />;
-        if (ms.type === 'star') icon = <Star size={12} className="text-yellow-500 fill-current pointer-events-none" />;
-        if (ms.type === 'check') icon = <CheckCircle size={12} className="text-green-600 pointer-events-none" />;
+        const getIcon = (ms: Milestone) => {
+            if (ms.type === 'flag') return <Flag size={12} className="text-gray-600 fill-current pointer-events-none" />;
+            if (ms.type === 'star') return <Star size={12} className="text-yellow-500 fill-current pointer-events-none" />;
+            if (ms.type === 'check') return <CheckCircle size={12} className="text-green-600 pointer-events-none" />;
+            if (ms.type === 'hold') return <PauseCircle size={12} className="text-yellow-500 pointer-events-none" />;
+            return null;
+        };
 
-        return (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+        const renderSingleMs = (ms: Milestone, position: 'top' | 'bottom' | 'center') => {
+            const posClass = position === 'top'
+                ? 'top-1'
+                : position === 'bottom'
+                    ? 'bottom-1'
+                    : 'inset-0 flex items-center justify-center';
+
+            return (
                 <div
+                    key={ms.id}
                     className={clsx(
-                        "bg-white/90 rounded-full p-0.5 shadow-sm transition-transform cursor-grab active:cursor-grabbing hover:scale-110 pointer-events-auto",
-                        draggedMilestone?.id === ms.id ? "opacity-50" : "opacity-100"
+                        "absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none",
+                        position !== 'center' ? posClass : posClass
                     )}
-                    draggable={user?.role !== 'viewer'}
-                    onMouseDown={(e) => {
-                        // Impide que inicie un multi-select accidental
-                        e.stopPropagation();
-                    }}
-                    onDragStart={(e) => {
-                        e.stopPropagation();
-                        handleDragStart(e, ms);
-                    }}
+                    style={position === 'center' ? {} : { position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}
                 >
-                    {icon}
+                    <div
+                        className={clsx(
+                            "bg-white/90 rounded-full p-0.5 shadow-sm transition-transform cursor-grab active:cursor-grabbing hover:scale-110 pointer-events-auto",
+                            draggedMilestone?.id === ms.id ? "opacity-50" : "opacity-100"
+                        )}
+                        draggable={user?.role !== 'viewer'}
+                        onMouseDown={(e) => { e.stopPropagation(); }}
+                        onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, ms); }}
+                    >
+                        {getIcon(ms)}
+                    </div>
                 </div>
-            </div>
+            );
+        };
+
+        if (msList.length === 1) {
+            return (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <div
+                        className={clsx(
+                            "bg-white/90 rounded-full p-0.5 shadow-sm transition-transform cursor-grab active:cursor-grabbing hover:scale-110 pointer-events-auto",
+                            draggedMilestone?.id === msList[0].id ? "opacity-50" : "opacity-100"
+                        )}
+                        draggable={user?.role !== 'viewer'}
+                        onMouseDown={(e) => { e.stopPropagation(); }}
+                        onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, msList[0]); }}
+                    >
+                        {getIcon(msList[0])}
+                    </div>
+                </div>
+            );
+        }
+
+        // 2 milestones: one on top, one on bottom
+        return (
+            <>
+                {renderSingleMs(msList[0], 'top')}
+                {renderSingleMs(msList[1], 'bottom')}
+            </>
         );
     };
 
@@ -841,6 +883,7 @@ export const RoadmapTable = () => {
                     year
                 };
             });
+            checkStatusThreshold(initiativeId, val, newMap);
             return newMap;
         });
 
@@ -939,11 +982,78 @@ export const RoadmapTable = () => {
             });
             const saved: Progress = await res.json();
             const key = `${saved.initiative_id}-${saved.phase_id === null ? 0 : saved.phase_id}-${saved.week_number}`;
-            setProgressMap(prev => ({ ...prev, [key]: saved }));
+            
+            setProgressMap(prev => {
+                const newMap = { ...prev, [key]: saved };
+                checkStatusThreshold(initiativeId, val, newMap);
+                return newMap;
+            });
         } catch (e) {
             console.error(e);
             alert('Failed to save');
         }
+    };
+
+    const [statusPrompt, setStatusPrompt] = useState<{
+        isOpen: boolean;
+        initiativeId: string;
+        newStatus: string;
+        count: number;
+    } | null>(null);
+
+    const checkStatusThreshold = (initId: string, newVal: number, currentMap: Record<string, Progress>) => {
+        if (newVal === 4 || newVal === 2) {
+            const count = Object.values(currentMap).filter(p => p.initiative_id === initId && p.progress_value === newVal).length;
+            if (count > 3) {
+                const newStatus = newVal === 4 ? 'Retrasado' : 'En redefinición';
+                const currentInit = initiatives.find(i => i.id === initId);
+                if (currentInit && currentInit.status !== newStatus) {
+                    setStatusPrompt({
+                        isOpen: true,
+                        initiativeId: initId,
+                        newStatus,
+                        count
+                    });
+                }
+            }
+        }
+    };
+
+    const handleConfirmStatusChange = async (confirm: boolean) => {
+        if (!statusPrompt) return;
+        if (!confirm) {
+            setStatusPrompt(null);
+            return;
+        }
+
+        const { initiativeId, newStatus } = statusPrompt;
+        const initToUpdate = initiatives.find(i => i.id === initiativeId);
+        if (!initToUpdate) {
+            setStatusPrompt(null);
+            return;
+        }
+
+        try {
+            const payload = { ...initToUpdate, status: newStatus };
+            const res = await fetch(`${API_URL}/api/initiatives/${initiativeId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                setInitiatives(prev => prev.map(i => i.id === initiativeId ? { ...i, status: newStatus } : i));
+            } else {
+                console.error("Failed to update status");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        
+        setStatusPrompt(null);
     };
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -1488,6 +1598,32 @@ export const RoadmapTable = () => {
 
                 {contextMenu && <MilestoneContextMenu x={contextMenu.x} y={contextMenu.y} onClose={() => setContextMenu(null)} onSelect={handleAddMilestone} onDelete={handleDeleteMilestone} hasExisting={!!contextMenu.existingId} />}
                 {editingInitiative && <EditInitiativeModal initiative={editingInitiative} onClose={() => setEditingInitiative(null)} onSave={() => { fetchInitiatives(); setEditingInitiative(null); }} />}
+                
+                {statusPrompt && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setStatusPrompt(null)}>
+                        <div className="bg-white dark:bg-[#1E2630] p-6 rounded-lg shadow-2xl max-w-sm w-full border border-gray-100 dark:border-gray-800" onClick={e => e.stopPropagation()}>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Cambio de estatus sugerido</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                                Esta iniciativa tiene {statusPrompt.count} semanas marcadas con atraso. ¿Deseas cambiar el estado de la iniciativa a <strong>{statusPrompt.newStatus}</strong>?
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => handleConfirmStatusChange(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                >
+                                    No
+                                </button>
+                                <button
+                                    onClick={() => handleConfirmStatusChange(true)}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                                >
+                                    Sí, cambiar estatus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </div>
             {isCreateModalOpen && <CreateInitiativeModal onClose={() => setIsCreateModalOpen(false)} onSave={fetchInitiatives} />}
 

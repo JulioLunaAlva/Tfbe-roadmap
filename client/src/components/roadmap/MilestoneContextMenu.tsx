@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Flag, Star, CheckCircle, Trash2 } from 'lucide-react';
+import { Flag, Star, CheckCircle, Trash2, PauseCircle } from 'lucide-react';
 
 interface Props {
     x: number;
@@ -73,6 +73,14 @@ export const MilestoneContextMenu: React.FC<Props> = ({ x, y, onClose, onSelect,
             >
                 <CheckCircle size={14} className="text-green-600" />
                 <span>Fecha Entrega</span>
+            </button>
+
+            <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-gray-700"
+                onClick={() => onSelect('hold')}
+            >
+                <PauseCircle size={14} className="text-yellow-500" />
+                <span>On Hold</span>
             </button>
 
             {hasExisting && onDelete && (

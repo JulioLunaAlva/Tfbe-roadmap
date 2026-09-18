@@ -1,4 +1,4 @@
-import { X, User } from 'lucide-react';
+﻿import { X, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Initiative {
@@ -16,6 +16,36 @@ interface InitiativeListModalProps {
     title: string;
     initiatives: Initiative[];
 }
+
+// Colores unicos por estatus - badge y barra de progreso
+const getStatusStyle = (status: string): { badge: string; bar: string } => {
+    switch (status) {
+        case 'Entregado':
+            return { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', bar: 'bg-green-500' };
+        case 'Entregado con redefiniciu00f3n':
+            return { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', bar: 'bg-orange-500' };
+        case 'Entregado con atraso':
+            return { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', bar: 'bg-red-500' };
+        case 'Retrasado':
+        case 'En riesgo':
+            return { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', bar: 'bg-red-500' };
+        case 'En curso':
+        case 'Avance conforme plan':
+            return { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', bar: 'bg-blue-500' };
+        case 'En redefiniciu00f3n':
+            return { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', bar: 'bg-amber-500' };
+        case 'On Hold':
+        case 'En espera':
+            return { badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', bar: 'bg-yellow-500' };
+        case 'Por Iniciar':
+            return { badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400', bar: 'bg-slate-400' };
+        case 'Cancelado':
+        case 'Cancelada':
+            return { badge: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400', bar: 'bg-gray-400' };
+        default:
+            return { badge: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', bar: 'bg-blue-500' };
+    }
+};
 
 export const InitiativeListModal = ({ isOpen, onClose, title, initiatives }: InitiativeListModalProps) => {
     if (!isOpen) return null;
@@ -50,46 +80,42 @@ export const InitiativeListModal = ({ isOpen, onClose, title, initiatives }: Ini
                         <div className="p-8 text-center text-gray-400 text-sm">No se encontraron iniciativas.</div>
                     ) : (
                         <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                            {initiatives.map(item => (
-                                <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#252D38] transition-colors group rounded-md mx-2 my-1">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                                {item.name}
-                                            </h4>
-                                            <div className="flex items-center mt-2 text-xs text-gray-500">
-                                                <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md font-medium mr-3">
-                                                    {item.area || 'Sin Área'}
+                            {initiatives.map(item => {
+                                const style = getStatusStyle(item.status);
+                                return (
+                                    <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#252D38] transition-colors group rounded-md mx-2 my-1">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                    {item.name}
+                                                </h4>
+                                                <div className="flex items-center mt-2 text-xs text-gray-500">
+                                                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md font-medium mr-3">
+                                                        {item.area || 'Sin u00c1rea'}
+                                                    </span>
+                                                    <span className="flex items-center bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded border border-gray-100 dark:border-gray-700">
+                                                        <User size={12} className="mr-1.5" /> {item.champion}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className={clsx("text-[10px] font-bold px-2 py-1 rounded-full mb-1", style.badge)}>
+                                                    {item.status}
                                                 </span>
-                                                <span className="flex items-center bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded border border-gray-100 dark:border-gray-700">
-                                                    <User size={12} className="mr-1.5" /> {item.champion}
-                                                </span>
+                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">{item.progress}%</span>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className={clsx("text-[10px] font-bold px-2 py-1 rounded-full mb-1",
-                                                item.status === 'Entregado' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                    item.status === 'Retrasado' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                        'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                            )}>
-                                                {item.status}
-                                            </span>
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">{item.progress}%</span>
+
+                                        {/* Progress Bar */}
+                                        <div className="w-full bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden mt-3">
+                                            <div
+                                                className={clsx("h-full rounded-full transition-all duration-500", style.bar)}
+                                                style={{ width: `${item.progress}%` }}
+                                            />
                                         </div>
                                     </div>
-
-                                    {/* Progress Bar */}
-                                    <div className="w-full bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden mt-3">
-                                        <div
-                                            className={clsx("h-full rounded-full transition-all duration-500",
-                                                item.status === 'Retrasado' ? 'bg-red-500' :
-                                                    item.status === 'Entregado' ? 'bg-green-500' : 'bg-blue-500'
-                                            )}
-                                            style={{ width: `${item.progress}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

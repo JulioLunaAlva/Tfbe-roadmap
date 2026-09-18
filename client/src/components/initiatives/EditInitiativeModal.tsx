@@ -24,7 +24,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
         is_key_initiative: false,
         year: new Date().getFullYear(),
         notes: '',
-        status: 'En espera',
+        status: 'On Hold',
         start_date: null as Date | null,
         end_date: null as Date | null,
         progress: 0,
@@ -46,7 +46,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
                 is_key_initiative: initiative.is_key_initiative || false,
                 year: initiative.year,
                 notes: initiative.notes || '',
-                status: initiative.status || 'En espera',
+                status: initiative.status || 'On Hold',
                 start_date: initiative.start_date ? new Date(initiative.start_date) : null,
                 end_date: initiative.end_date ? new Date(initiative.end_date) : null,
                 progress: initiative.progress || 0,
@@ -61,7 +61,7 @@ export const EditInitiativeModal: React.FC<Props> = ({ initiative, onClose, onSa
     // Predefined lists
     const areas: string[] = [];
     const complexities = ['Alta', 'Media', 'Baja'];
-    const statuses = ['En espera', 'En curso', 'Entregado', 'Cancelado', 'Retrasado', 'En redefinición'];
+    const statuses = ['On Hold', 'Por Iniciar', 'En curso', 'Entregado', 'Entregado con redefinición', 'Entregado con atraso', 'Cancelado', 'Retrasado', 'En redefinición'];
     const methodologies = ['Hibrida', 'Analiticos', 'Reporting'];
 
     const [techInput, setTechInput] = useState('');

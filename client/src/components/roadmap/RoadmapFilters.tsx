@@ -78,7 +78,7 @@ export const RoadmapFilters = ({
 }: FiltersProps) => {
     const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
         const saved = localStorage.getItem('roadmap_advanced_filters_open');
-        return saved === 'true';
+        return saved !== null ? saved === 'true' : true;
     });
 
     const toggleAdvanced = () => {
