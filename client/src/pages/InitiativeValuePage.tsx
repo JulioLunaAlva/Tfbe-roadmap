@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
+import { MultiSelectDropdown } from '../components/roadmap/MultiSelectDropdown';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useYear } from '../context/YearContext';
@@ -226,8 +227,8 @@ export const InitiativeValuePage = () => {
     const filteredInitiatives = useMemo(() => {
         return initiatives.filter(i => {
             const areaMatch = !selectedArea || i.area === selectedArea;
-            const transfMatch = !selectedTransfLead || i.transformation_lead === selectedTransfLead;
-            const statusMatch = !selectedStatus || i.status === selectedStatus;
+            const transfMatch = selectedTransfLead.length === 0 || (i.transformation_lead && selectedTransfLead.includes(i.transformation_lead));
+            const statusMatch = selectedStatus.length === 0 || (i.status && selectedStatus.includes(i.status));
             return areaMatch && transfMatch && statusMatch;
         });
     }, [initiatives, selectedArea, selectedTransfLead, selectedStatus]);
@@ -501,41 +502,31 @@ export const InitiativeValuePage = () => {
                         </div>
 
                         {/* TransfLead Filter */}
-                        <div className="w-44">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsable</label>
-                            <select
-                                value={selectedTransfLead}
-                                onChange={(e) => {
-                                    setselectedTransfLead(e.target.value);
+                        <div className="w-44 pt-[18px]">
+                            <MultiSelectDropdown
+                                label="RESPONSABLE"
+                                options={uniqueTransfLeads}
+                                selectedValues={selectedTransfLead}
+                                onChange={(vals) => {
+                                    setselectedTransfLead(vals);
                                     setSelectedInitiativeId('');
                                     setSearchQuery('');
                                 }}
-                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
-                            >
-                                <option value="">Todos</option>
-                                {uniqueTransfLeads.map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
+                            />
                         </div>
 
                         {/* Status Filter */}
-                        <div className="w-44">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estatus</label>
-                            <select
-                                value={selectedStatus}
-                                onChange={(e) => {
-                                    setSelectedStatus(e.target.value);
+                        <div className="w-44 pt-[18px]">
+                            <MultiSelectDropdown
+                                label="ESTATUS"
+                                options={uniqueStatuses}
+                                selectedValues={selectedStatus}
+                                onChange={(vals) => {
+                                    setSelectedStatus(vals);
                                     setSelectedInitiativeId('');
                                     setSearchQuery('');
                                 }}
-                                className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
-                            >
-                                <option value="">Todos</option>
-                                {uniqueStatuses.map(s => (
-                                    <option key={s} value={s}>{s}</option>
-                                ))}
-                            </select>
+                            />
                         </div>
 
                         {/* Initiative Combobox Search */}
