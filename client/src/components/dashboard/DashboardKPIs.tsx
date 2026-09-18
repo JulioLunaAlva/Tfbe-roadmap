@@ -71,12 +71,12 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
         }
     }, [selectedKPI, initiatives, activeInitiatives]);
 
-    const cardBase = "bg-white dark:bg-[#1E2630] rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-md transition-all cursor-pointer";
+    const cardBase = "bg-white dark:bg-[#1E2630] rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-md transition-all cursor-pointer flex flex-col h-full";
 
     return (
         <>
             {/* Row 1 - existing 5 KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 auto-rows-fr">
                 {/* Total Initiatives */}
                 <div className={cardBase} onClick={() => handleKpiClick('Total Iniciativas')}>
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -172,13 +172,11 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
                         <div className="flex justify-between items-center"><span className="truncate">Plan:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{countByStatus['Entregado'] || 0}</span></div>
                         <div className="flex justify-between items-center"><span className="truncate">Con redefinición:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{countByStatus['Entregado con redefinición'] || 0}</span></div>
                         <div className="flex justify-between items-center"><span className="truncate">Con atraso:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{countByStatus['Entregado con atraso'] || 0}</span></div>
-                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800 font-medium">{total > 0 ? `${Math.round((completed / total) * 100)}% del total` : '0% del total'}</div>
+                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800 font-medium">{completionRate}% del total</div>
                     </div>
                 </div>
-            </div>
 
-            {/* Row 2 - 4 new status KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
+                {/* Row 2 - 4 new status KPIs */}
                 {/* Entregado con redefinición */}
                 <div className={cardBase} onClick={() => handleKpiClick('Entregado con redefinición')}>
                     <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">

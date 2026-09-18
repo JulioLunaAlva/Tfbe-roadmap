@@ -259,6 +259,7 @@ export const DashboardPage = () => {
     }, [initiatives, selectedLeads, selectedQuarters]);
 
     const metrics = useMemo(() => {
+        const activeForCompletion = filteredInitiatives.filter(i => i.status !== 'Cancelado' && i.status !== 'Cancelada' && i.status !== 'On Hold' && i.status !== 'En espera').length;
         const total = filteredInitiatives.length;
         const completed = filteredInitiatives.filter(i => 
             i.status === 'Entregado' || 
@@ -271,7 +272,7 @@ export const DashboardPage = () => {
             i.status === 'En redefinición' ||
             i.status === 'Avance conforme plan'
         ).length;
-        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const completionRate = activeForCompletion > 0 ? Math.round((completed / activeForCompletion) * 100) : 0;
 
         const areaCounts: Record<string, number> = {};
         filteredInitiatives.forEach(i => {
@@ -381,7 +382,7 @@ export const DashboardPage = () => {
         ];
 
         return {
-            total, completed, delayed, inProgress, completionRate,
+            total, activeForCompletion, completed, delayed, inProgress, completionRate,
             techData, phaseDataByMethodology, complexityData, areaData, valueData, transfLeadData, quartersData
         };
     }, [filteredInitiatives]);
@@ -428,7 +429,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-8'
         },
         'health': {
-            component: <DashboardHealth total={metrics.total} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} />,
+            component: <DashboardHealth total={metrics.activeForCompletion} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'trends': {
