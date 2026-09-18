@@ -4,12 +4,13 @@ import { useMemo } from 'react';
 
 interface HealthProps {
     total: number;
+    absoluteTotal?: number;
     completed: number;
     delayed: number;
     inProgress: number;
 }
 
-export const DashboardHealth = ({ total, completed, delayed, inProgress }: HealthProps) => {
+export const DashboardHealth = ({ total, absoluteTotal, completed, delayed, inProgress }: HealthProps) => {
     // Score Calculation - Explicit and deterministic
     const healthScore = useMemo(() => {
         if (total === 0) return 0;
@@ -39,7 +40,7 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
     const diagnostics = useMemo(() => {
         if (total === 0) return ['Sin iniciativas activas en el portafolio.'];
         const logs = [];
-        logs.push(`Portafolio activo con ${total} iniciativas tecnológicas en total.`);
+        logs.push(`Portafolio con ${absoluteTotal || total} iniciativas (midiendo ${total} activas para el score).`);
         
         if (delayed > 0) {
             logs.push(`ALERTA: ${delayed} iniciativa${delayed > 1 ? 's' : ''} (${delPct}%) registran un retraso contra su fecha planificada.`);
@@ -90,7 +91,7 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
                         <span className="flex items-center text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 size={12} className="mr-1" /> Completadas
                         </span>
-                        <span>{completed} de {total} ({compPct}%)</span>
+                        <span>{completed} ({compPct}%)</span>
                     </div>
                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-sm h-3 overflow-hidden border border-zinc-200 dark:border-zinc-700/50">
                         <div 
@@ -106,7 +107,7 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
                         <span className="flex items-center text-blue-600 dark:text-blue-400">
                             <RefreshCw size={12} className="mr-1" /> En Progreso
                         </span>
-                        <span>{inProgress} de {total} ({progPct}%)</span>
+                        <span>{inProgress} ({progPct}%)</span>
                     </div>
                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-sm h-3 overflow-hidden border border-zinc-200 dark:border-zinc-700/50">
                         <div 
@@ -122,7 +123,7 @@ export const DashboardHealth = ({ total, completed, delayed, inProgress }: Healt
                         <span className="flex items-center text-rose-600 dark:text-rose-400">
                             <ShieldAlert size={12} className="mr-1" /> Riesgo / Retraso
                         </span>
-                        <span>{delayed} de {total} ({delPct}%)</span>
+                        <span>{delayed} ({delPct}%)</span>
                     </div>
                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-sm h-3 overflow-hidden border border-zinc-200 dark:border-zinc-700/50">
                         <div 

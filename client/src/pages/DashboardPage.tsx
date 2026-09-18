@@ -429,7 +429,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-8'
         },
         'health': {
-            component: <DashboardHealth total={metrics.activeForCompletion} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} />,
+            component: <DashboardHealth absoluteTotal={metrics.total} total={metrics.activeForCompletion} completed={metrics.completed} delayed={metrics.delayed} inProgress={metrics.inProgress} />,
             span: 'col-span-12 lg:col-span-4'
         },
         'trends': {
