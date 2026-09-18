@@ -260,7 +260,11 @@ export const DashboardPage = () => {
 
     const metrics = useMemo(() => {
         const total = filteredInitiatives.length;
-        const completed = filteredInitiatives.filter(i => i.status === 'Entregado').length;
+        const completed = filteredInitiatives.filter(i => 
+            i.status === 'Entregado' || 
+            i.status === 'Entregado con redefinición' || 
+            i.status === 'Entregado con atraso'
+        ).length;
         const delayed = filteredInitiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo').length;
         const inProgress = filteredInitiatives.filter(i =>
             i.status === 'En curso' ||

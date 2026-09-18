@@ -33,7 +33,7 @@ const getStatusStyle = (status: string): { badge: string; bar: string } => {
         case 'Avance conforme plan':
             return { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', bar: 'bg-blue-500' };
         case 'En redefinición':
-            return { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', bar: 'bg-amber-500' };
+            return { badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', bar: 'bg-purple-500' };
         case 'On Hold':
         case 'En espera':
             return { badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', bar: 'bg-yellow-500' };

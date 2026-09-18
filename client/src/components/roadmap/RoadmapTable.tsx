@@ -266,7 +266,7 @@ const SortableInitiativeRow = ({
                         const s = initiative.status;
                         if (s === 'Retrasado' || s === 'Cancelado') return 'bg-[#FCE8E6] text-[#9F1239] dark:bg-[#3F1515] dark:text-[#FDA4AF]';
                         if (s === 'En curso' || s === 'Avance conforme plan') return 'bg-[#DFF3EA] text-[#115E59] dark:bg-[#134E4A] dark:text-[#5EEAD4]';
-                        if (s === 'En redefinición') return 'bg-[#FEF3C7] text-[#92400E] dark:bg-[#451A03]/50 dark:text-[#FCD34D]';
+                        if (s === 'En redefinición') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300';
                         if (s === 'Entregado') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
                         if (s === 'Entregado con redefinición') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300';
                         if (s === 'Entregado con atraso') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';

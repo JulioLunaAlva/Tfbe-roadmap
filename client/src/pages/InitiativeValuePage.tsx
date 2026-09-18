@@ -357,6 +357,13 @@ export const InitiativeValuePage = () => {
     const getStatusColor = (status?: string) => {
         if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
         const s = status.toLowerCase();
+        
+        // Exact or specific matches first
+        if (s === 'entregado con redefinición') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300';
+        if (s === 'entregado con atraso') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+        if (s === 'en redefinición') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300';
+        
+        // General matching
         if (s.includes('retrasado') || s.includes('cancelado'))
             return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
         if (s.includes('en curso') || s.includes('avance'))

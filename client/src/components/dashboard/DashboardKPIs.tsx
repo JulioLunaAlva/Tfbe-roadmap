@@ -53,7 +53,11 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
             case 'Riesgo / Retraso':
                 return activeInitiatives.filter(i => i.status === 'Retrasado' || i.status === 'En riesgo');
             case 'Concluidas':
-                return activeInitiatives.filter(i => i.status === 'Entregado');
+                return activeInitiatives.filter(i => 
+                    i.status === 'Entregado' || 
+                    i.status === 'Entregado con redefinición' || 
+                    i.status === 'Entregado con atraso'
+                );
             case 'Entregado con redefinición':
                 return activeInitiatives.filter(i => i.status === 'Entregado con redefinición');
             case 'Entregado con atraso':
@@ -154,18 +158,21 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <CheckCircle size={64} className="text-green-500" />
                     </div>
-                    <div className="flex items-center space-x-3 mb-4">
+                    <div className="flex items-center space-x-3 mb-2">
                         <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400">
                             <CheckCircle size={20} />
                         </div>
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Concluidas</span>
                     </div>
-                    <div className="flex items-baseline space-x-2">
+                    <div className="flex items-baseline space-x-2 mb-2">
                         <span className="text-3xl font-bold text-gray-900 dark:text-white">{completed}</span>
                         <span className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full font-medium">Entregadas</span>
                     </div>
-                    <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                        {total > 0 ? `${Math.round((completed / total) * 100)}% del total` : '0% del total'}
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
+                        <div className="flex justify-between items-center"><span className="truncate">Plan:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{countByStatus['Entregado'] || 0}</span></div>
+                        <div className="flex justify-between items-center"><span className="truncate">Con redefinición:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{countByStatus['Entregado con redefinición'] || 0}</span></div>
+                        <div className="flex justify-between items-center"><span className="truncate">Con atraso:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{countByStatus['Entregado con atraso'] || 0}</span></div>
+                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800 font-medium">{total > 0 ? `${Math.round((completed / total) * 100)}% del total` : '0% del total'}</div>
                     </div>
                 </div>
             </div>
@@ -209,17 +216,17 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
                 {/* En redefinición */}
                 <div className={cardBase} onClick={() => handleKpiClick('En redefinición')}>
                     <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <RotateCcw size={48} className="text-amber-500" />
+                        <RotateCcw size={48} className="text-purple-500" />
                     </div>
                     <div className="flex items-center space-x-2 mb-3">
-                        <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400">
+                        <div className="p-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400">
                             <RotateCcw size={16} />
                         </div>
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-tight">En redefinición</span>
                     </div>
                     <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">{countByStatus['En redefinición'] || 0}</span>
-                        <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full font-medium">Revisión</span>
+                        <span className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-full font-medium">Revisión</span>
                     </div>
                 </div>
 
