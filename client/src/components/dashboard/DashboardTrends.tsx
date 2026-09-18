@@ -47,7 +47,7 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
             });
 
             const monthCompletedInits = initiatives.filter(i => {
-                if (!i.end_date || i.status !== 'Entregado') return false;
+                if (!i.end_date || (i.status !== 'Entregado' && i.status !== 'Entregado con redefinición' && i.status !== 'Entregado con atraso')) return false;
                 const endDate = new Date(i.end_date);
                 return endDate >= monthStart && endDate <= monthEnd;
             });
@@ -93,7 +93,8 @@ export const DashboardTrends = ({ initiatives }: TrendsProps) => {
     const lastData = data[data.length - 1];
     const totalCreated = lastData?.volumenTotal || 0;
     const totalCompleted = lastData?.completadasAcum || 0;
-    const completionRate = totalCreated > 0 ? Math.round((totalCompleted / totalCreated) * 100) : 0;
+    const activeCount = initiatives.filter(i => i.status !== 'Cancelado' && i.status !== 'Cancelada' && i.status !== 'On Hold' && i.status !== 'En espera').length;
+    const completionRate = activeCount > 0 ? Math.round((totalCompleted / activeCount) * 100) : 0;
 
     // Advanced Tooltip UI
     const CustomTooltip = ({ active, payload, label }: any) => {

@@ -51,11 +51,11 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
     };
 
     const getStatusColor = (status: string) => {
-        if (status === 'Entregado') return 'bg-green-500';
+        if (status === 'Entregado' || status === 'Entregado con redefinición' || status === 'Entregado con atraso') return 'bg-green-500';
         if (status === 'Retrasado') return 'bg-red-500';
         if (status === 'En riesgo') return 'bg-orange-500';
-        if (status === 'En redefinición') return 'bg-amber-500';
-        if (status === 'En espera') return 'bg-gray-400';
+        if (status === 'En redefinición') return 'bg-purple-500';
+        if (status === 'En espera' || status === 'On Hold') return 'bg-yellow-500';
         if (status === 'Cancelado') return 'bg-stone-500';
         if (status === 'Avance conforme plan') return 'bg-blue-500';
         return 'bg-blue-500'; // En curso
@@ -169,12 +169,12 @@ export const DashboardTimeline = ({ initiatives }: TimelineProps) => {
                             Retrasado
                         </div>
                         <div className="flex items-center text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
-                            <div className="w-3 h-3 rounded bg-amber-500 mr-1.5"></div>
+                            <div className="w-3 h-3 rounded bg-purple-500 mr-1.5"></div>
                             En Redefinición
                         </div>
                         <div className="flex items-center text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
-                            <div className="w-3 h-3 rounded bg-gray-400 mr-1.5"></div>
-                            En Espera
+                            <div className="w-3 h-3 rounded bg-yellow-500 mr-1.5"></div>
+                            On Hold
                         </div>
                         <div className="flex items-center text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
                             <div className="w-3 h-3 rounded bg-stone-500 mr-1.5"></div>
