@@ -60,7 +60,7 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
                 return activeInitiatives.filter(i => i.status === 'Entregado con atraso');
             case 'Por Iniciar':
                 return activeInitiatives.filter(i => i.status === 'Por Iniciar');
-            case 'On Hold':
+            case 'En redefinición': return activeInitiatives.filter(i => i.status === 'En redefinición'); case 'On Hold':
                 return activeInitiatives.filter(i => i.status === 'On Hold' || i.status === 'En espera');
             default:
                 return [];
@@ -171,7 +171,7 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
             </div>
 
             {/* Row 2 - 4 new status KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
                 {/* Entregado con redefinición */}
                 <div className={cardBase} onClick={() => handleKpiClick('Entregado con redefinición')}>
                     <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -203,6 +203,23 @@ export const DashboardKPIs = ({ total, completed, delayed, inProgress, completio
                     <div className="flex items-baseline space-x-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">{countByStatus['Entregado con atraso'] || 0}</span>
                         <span className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full font-medium">Con Atraso</span>
+                    </div>
+                </div>
+
+                {/* En redefinición */}
+                <div className={cardBase} onClick={() => handleKpiClick('En redefinición')}>
+                    <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <RotateCcw size={48} className="text-amber-500" />
+                    </div>
+                    <div className="flex items-center space-x-2 mb-3">
+                        <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400">
+                            <RotateCcw size={16} />
+                        </div>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-tight">En redefinición</span>
+                    </div>
+                    <div className="flex items-baseline space-x-2">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">{countByStatus['En redefinición'] || 0}</span>
+                        <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full font-medium">Revisión</span>
                     </div>
                 </div>
 

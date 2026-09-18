@@ -1,4 +1,4 @@
-﻿import { X, User } from 'lucide-react';
+import { X, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Initiative {
@@ -22,7 +22,7 @@ const getStatusStyle = (status: string): { badge: string; bar: string } => {
     switch (status) {
         case 'Entregado':
             return { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', bar: 'bg-green-500' };
-        case 'Entregado con redefiniciu00f3n':
+        case 'Entregado con redefinición':
             return { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', bar: 'bg-orange-500' };
         case 'Entregado con atraso':
             return { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', bar: 'bg-red-500' };
@@ -32,7 +32,7 @@ const getStatusStyle = (status: string): { badge: string; bar: string } => {
         case 'En curso':
         case 'Avance conforme plan':
             return { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', bar: 'bg-blue-500' };
-        case 'En redefiniciu00f3n':
+        case 'En redefinición':
             return { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', bar: 'bg-amber-500' };
         case 'On Hold':
         case 'En espera':

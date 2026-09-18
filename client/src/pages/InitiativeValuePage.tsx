@@ -179,8 +179,8 @@ export const InitiativeValuePage = () => {
     // Area combobox
     const [areaSearchQuery, setAreaSearchQuery] = useState<string>('');
     const [isAreaComboOpen, setIsAreaComboOpen] = useState(false);
-    // Champion filter
-    const [selectedChampion, setSelectedChampion] = useState<string>('');
+    // TransfLead Filter
+    const [selectedTransfLead, setselectedTransfLead] = useState<string>('');
     // Status filter
     const [selectedStatus, setSelectedStatus] = useState<string>('');
 
@@ -211,8 +211,8 @@ export const InitiativeValuePage = () => {
         return uniqueAreas.filter(a => a.toLowerCase().includes(q));
     }, [uniqueAreas, areaSearchQuery]);
 
-    const uniqueChampions = useMemo(() => {
-        const champs = initiatives.map(i => i.champion).filter(Boolean) as string[];
+    const uniqueTransfLeads = useMemo(() => {
+        const champs = initiatives.map(i => i.transformation_lead).filter(Boolean) as string[];
         return Array.from(new Set(champs)).sort();
     }, [initiatives]);
 
@@ -225,11 +225,11 @@ export const InitiativeValuePage = () => {
     const filteredInitiatives = useMemo(() => {
         return initiatives.filter(i => {
             const areaMatch = !selectedArea || i.area === selectedArea;
-            const champMatch = !selectedChampion || i.champion === selectedChampion;
+            const transfMatch = !selectedTransfLead || i.transformation_lead === selectedTransfLead;
             const statusMatch = !selectedStatus || i.status === selectedStatus;
-            return areaMatch && champMatch && statusMatch;
+            return areaMatch && transfMatch && statusMatch;
         });
-    }, [initiatives, selectedArea, selectedChampion, selectedStatus]);
+    }, [initiatives, selectedArea, selectedTransfLead, selectedStatus]);
 
     const selectedInitiative = useMemo(
         () => initiatives.find(i => i.id === selectedInitiativeId),
@@ -499,20 +499,20 @@ export const InitiativeValuePage = () => {
                             )}
                         </div>
 
-                        {/* Champion Filter */}
+                        {/* TransfLead Filter */}
                         <div className="w-44">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsable</label>
                             <select
-                                value={selectedChampion}
+                                value={selectedTransfLead}
                                 onChange={(e) => {
-                                    setSelectedChampion(e.target.value);
+                                    setselectedTransfLead(e.target.value);
                                     setSelectedInitiativeId('');
                                     setSearchQuery('');
                                 }}
                                 className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
                             >
                                 <option value="">Todos</option>
-                                {uniqueChampions.map(c => (
+                                {uniqueTransfLeads.map(c => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                             </select>
@@ -792,8 +792,8 @@ export const InitiativeValuePage = () => {
                             {selectedInitiative.status || 'Sin Estatus'}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span className="font-bold">Champion:</span>
-                            <span className="text-gray-700 dark:text-gray-200">{selectedInitiative.champion || 'N/A'}</span>
+                            <span className="font-bold">Resp. Transformación:</span>
+                            <span className="text-gray-700 dark:text-gray-200">{selectedInitiative.transformation_lead || 'N/A'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <span className="font-bold">Área:</span>
