@@ -43,19 +43,19 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
         // Delivered count
         const deliveredRes = await query(
-            `SELECT COUNT(*) as delivered FROM initiatives i ${withExtra("i.status = 'Entregado'")}`,
+            `SELECT COUNT(*) as delivered FROM initiatives i ${withExtra("i.status IN ('Entregado', 'Entregado con redefinición', 'Entregado con atraso')")}`,
             params
         );
 
         // In progress count
         const inProgressRes = await query(
-            `SELECT COUNT(*) as in_progress FROM initiatives i ${withExtra("(i.status = 'En curso' OR i.status = 'Avance conforme plan')")}`,
+            `SELECT COUNT(*) as in_progress FROM initiatives i ${withExtra("(i.status IN ('En curso', 'Avance conforme plan', 'En redefinición'))")}`,
             params
         );
 
         // Delayed count
         const delayedRes = await query(
-            `SELECT COUNT(*) as delayed FROM initiatives i ${withExtra("(i.status = 'Retrasado' OR i.status = 'Atraso')")}`,
+            `SELECT COUNT(*) as delayed FROM initiatives i ${withExtra("(i.status IN ('Retrasado', 'Atraso', 'En riesgo'))")}`,
             params
         );
 
