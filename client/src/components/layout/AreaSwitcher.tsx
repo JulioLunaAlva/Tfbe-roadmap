@@ -4,7 +4,7 @@ import { useArea } from '../../context/AreaContext';
 import { clsx } from 'clsx';
 
 export const AreaSwitcher: React.FC<{ isSidebarOpen?: boolean }> = ({ isSidebarOpen = true }) => {
-    const { activeArea, userAreas, setActiveArea } = useArea();
+    const { activeArea, userAreas, setActiveArea, isLoadingAreas } = useArea();
     const [isOpen, setIsOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -42,7 +42,7 @@ export const AreaSwitcher: React.FC<{ isSidebarOpen?: boolean }> = ({ isSidebarO
                         <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full w-3 h-3 border-2 border-[var(--bg-sidebar)]"></div>
                     </div>
                     <h1 className="text-sm font-extrabold tracking-tight text-[var(--text-sidebar-primary)] leading-tight line-clamp-2 uppercase">
-                        {activeArea?.name || 'Cargando...'}
+                        {activeArea?.name || (isLoadingAreas ? 'Cargando...' : 'Vista Global')}
                     </h1>
                 </div>
                 {activeArea && (

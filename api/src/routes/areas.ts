@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { pool } from '../db';
 import { authenticateToken } from '../middleware';
 
@@ -35,9 +35,9 @@ router.get('/', async (req: any, res) => {
                  FROM business_areas ba
                  JOIN user_area_access uaa ON ba.id = uaa.area_id
                  JOIN users u ON uaa.user_id = u.id
-                 WHERE u.email = $1 AND ba.is_active = TRUE
+                 WHERE LOWER(u.email) = $1 AND ba.is_active = TRUE
                  ORDER BY ba.display_order ASC, ba.name ASC`,
-                [req.user.email]
+                [email]
             );
         }
 
