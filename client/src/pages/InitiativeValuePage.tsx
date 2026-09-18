@@ -182,9 +182,9 @@ export const InitiativeValuePage = () => {
     const [areaSearchQuery, setAreaSearchQuery] = useState<string>('');
     const [isAreaComboOpen, setIsAreaComboOpen] = useState(false);
     // TransfLead Filter
-    const [selectedTransfLead, setselectedTransfLead] = useState<string>('');
+    const [selectedTransfLead, setselectedTransfLead] = useState<string[]>([]);
     // Status filter
-    const [selectedStatus, setSelectedStatus] = useState<string>('');
+    const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
 
     const [valueData, setValueData] = useState<ValueData>({ ...EMPTY_VALUE });
     const [loading, setLoading] = useState(false);
@@ -781,7 +781,7 @@ export const InitiativeValuePage = () => {
                 {selectedInitiative && (
                     <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100 dark:border-gray-700">
                         <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(selectedInitiative.status)}`}>
-                            {selectedInitiative.status || 'Sin Estatus'}
+                            {selectedInitiative.status === 'En espera' ? 'On Hold' : selectedInitiative.status || 'Sin Estatus'}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <span className="font-bold">Resp. Transformación:</span>

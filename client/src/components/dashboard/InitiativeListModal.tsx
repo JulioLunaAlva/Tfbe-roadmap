@@ -100,7 +100,7 @@ export const InitiativeListModal = ({ isOpen, onClose, title, initiatives }: Ini
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 <span className={clsx("text-[10px] font-bold px-2 py-1 rounded-full mb-1", style.badge)}>
-                                                    {item.status}
+                                                    {item.status === 'En espera' ? 'On Hold' : item.status}
                                                 </span>
                                                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">{item.progress}%</span>
                                             </div>

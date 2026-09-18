@@ -275,7 +275,7 @@ const SortableInitiativeRow = ({
                         return 'bg-[#F1F3F5] text-[#4B5563] dark:bg-[#27272A] dark:text-[#E5E7EB]';
                     })()
                 )}>
-                    {initiative.status || 'On Hold'}
+                    {initiative.status === 'En espera' ? 'On Hold' : initiative.status || 'Sin Estatus'}
                 </td>
                 <td className="px-2 py-2 text-[9px] border-r border-[var(--border-color)] whitespace-normal break-words text-[var(--text-secondary)] dark:text-gray-300" title={initiative.notes}>{initiative.notes}</td>
                 <td className="px-2 py-2 text-[10px] border-r border-[var(--border-color)] text-center truncate text-[var(--text-secondary)] dark:text-gray-200 font-medium" title={initiative.transformation_lead}>
