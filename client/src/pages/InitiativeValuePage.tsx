@@ -23,6 +23,7 @@ interface Initiative {
     area: string;
     status?: string;
     champion?: string;
+    transformation_lead?: string;
     technologies?: string[];
     progress?: number;
 }
