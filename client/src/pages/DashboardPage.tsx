@@ -433,7 +433,7 @@ export const DashboardPage = () => {
             span: 'col-span-12 lg:col-span-4'
         },
         'trends': {
-            component: <DashboardTrends initiatives={initiatives} />,
+            component: <DashboardTrends initiatives={filteredInitiatives} />,
             span: 'col-span-12 lg:col-span-8'
         },
         'active-support': {
