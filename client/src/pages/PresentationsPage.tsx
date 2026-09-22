@@ -280,6 +280,8 @@ export const PresentationsPage = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
+    const [debugMsg, setDebugMsg] = useState('');
+
     // ── Fetch folders ──────────────────────────────────────────────────────
     const fetchFolders = useCallback(async () => {
         if (!token) return;
@@ -288,19 +290,23 @@ export const PresentationsPage = () => {
             // Build query string — areaQueryParam starts with '&', strip it
             const areaParam = activeArea?.id ? `business_area_id=${activeArea.id}` : '';
             const url = `${API_URL}/api/presentations/folders${areaParam ? `?${areaParam}` : ''}`;
+            setDebugMsg(`Fetching: ${url}`);
             const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
                 const data: Folder[] = await res.json();
+                setDebugMsg(`OK — ${data.length} carpetas recibidas. area=${activeArea?.id ?? 'none'}`);
                 setFolders(data);
                 // Auto-select first folder if none selected
                 if (data.length > 0) setSelectedFolder(prev => prev ?? data[0]);
             } else {
                 const errText = await res.text();
+                setDebugMsg(`ERROR ${res.status}: ${errText}`);
                 console.error('Presentations API error:', res.status, errText);
             }
         } catch (err) {
+            setDebugMsg(`EXCEPTION: ${String(err)}`);
             console.error('fetchFolders failed:', err);
         } finally {
             setLoadingFolders(false);
@@ -520,11 +526,16 @@ export const PresentationsPage = () => {
                     )}
                 </div>
 
-                {/* Stats footer */}
+                {/* Stats + debug footer */}
                 <div className="p-4 border-t border-gray-100 dark:border-gray-800">
                     <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center">
                         {folders.length} carpeta{folders.length !== 1 ? 's' : ''} · {folders.reduce((a, f) => a + f.file_count, 0)} archivo{folders.reduce((a, f) => a + f.file_count, 0) !== 1 ? 's' : ''}
                     </p>
+                    {debugMsg && (
+                        <p className="mt-1 text-[9px] text-amber-600 dark:text-amber-400 break-all text-center leading-tight">
+                            {debugMsg}
+                        </p>
+                    )}
                 </div>
             </aside>
 

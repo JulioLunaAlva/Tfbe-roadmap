@@ -27,22 +27,27 @@ router.get('/folders', async (req: any, res: Response) => {
             whereClause = `WHERE f.business_area_id = $${params.length}`;
         }
 
+        // Use a correlated subquery for file_count — avoids GROUP BY pitfalls
         const result = await query(
-            `SELECT f.id, f.name, f.description, f.business_area_id, f.created_at,
-                    COALESCE(u.name, '') as created_by_name,
-                    COUNT(pf.id)::int as file_count
+            `SELECT
+                f.id,
+                f.name,
+                f.description,
+                f.business_area_id,
+                f.created_at,
+                COALESCE(u.name, '') AS created_by_name,
+                (SELECT COUNT(*)::int FROM presentation_files pf WHERE pf.folder_id = f.id) AS file_count
              FROM presentation_folders f
              LEFT JOIN users u ON u.id = f.created_by
-             LEFT JOIN presentation_files pf ON pf.folder_id = f.id
              ${whereClause}
-             GROUP BY f.id, f.name, f.description, f.business_area_id, f.created_at, u.id, u.name
              ORDER BY f.created_at ASC`,
             params
         );
+        console.log(`GET /folders — area=${business_area_id ?? 'ALL'} — returned ${result.rows.length} rows`);
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching folders:', err);
-        res.status(500).json({ error: 'Failed to fetch folders' });
+        res.status(500).json({ error: 'Failed to fetch folders', detail: String(err) });
     }
 });
 
