@@ -35,12 +35,29 @@ router.get('/summary', authenticateToken, async (_req, res) => {
     }
 });
 
-// GET /api/initiative-value?initiative_id=X
+// GET /api/initiative-value/all — Returns all initiative values for consolidated dashboard
+router.get('/all', authenticateToken, async (_req, res) => {
+    try {
+        const result = await query(`SELECT * FROM initiative_value`);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('[GET initiative-value/all] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch all initiative values' });
+    }
+});
+
+// GET /api/initiative-value?initiative_id=X (or all if not provided)
 router.get('/', authenticateToken, async (req, res) => {
     const { initiative_id } = req.query;
 
     if (!initiative_id) {
-        return res.status(400).json({ error: 'Missing required parameter: initiative_id' });
+        try {
+            const result = await query(`SELECT * FROM initiative_value`);
+            return res.json(result.rows);
+        } catch (error) {
+            console.error('[GET initiative-value all] Error:', error);
+            return res.status(500).json({ error: 'Failed to fetch initiative values' });
+        }
     }
 
     try {

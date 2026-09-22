@@ -11,9 +11,10 @@ import {
     DollarSign, HelpCircle, Award, Presentation, Search, ChevronDown, X as XIcon,
     FileDown, FileSpreadsheet, FileText
 } from 'lucide-react';
-import { RichTextEditor } from '../components/common/RichTextEditor';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
+import { ConsolidatedValueDashboard } from '../components/roadmap/ConsolidatedValueDashboard';
+import { InitiativePillarsEditor } from '../components/roadmap/InitiativePillarsEditor';
 import { exportToExcel, exportToPDF, EXPORT_PILLARS } from '../utils/exportValue';
 import type { Step } from 'react-joyride';
 import { useSearchParams } from 'react-router-dom';
@@ -199,6 +200,8 @@ export const InitiativeValuePage = () => {
 
     // Pillar summary map  { initiative_id: filledCount }
     const [pillarSummary, setPillarSummary] = useState<Record<string, number>>({});
+    // All values map for consolidated dashboard { initiative_id: ValueData }
+    const [allValues, setAllValues] = useState<Record<string, ValueData>>({});
 
     // Derived
     const uniqueAreas = useMemo(() => {
@@ -238,15 +241,18 @@ export const InitiativeValuePage = () => {
         [initiatives, selectedInitiativeId]
     );
 
-    // Fetch Initiatives + Pillar Summary
+    // Fetch Initiatives + Pillar Summary + All Value Data
     useEffect(() => {
         const fetchInitiatives = async () => {
             try {
-                const [initRes, summaryRes] = await Promise.all([
+                const [initRes, summaryRes, allValuesRes] = await Promise.all([
                     fetch(`${API_URL}/api/initiatives?year=${year}${areaQueryParam}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                     fetch(`${API_URL}/api/initiative-value/summary`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch(`${API_URL}/api/initiative-value/all`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                 ]);
@@ -259,6 +265,24 @@ export const InitiativeValuePage = () => {
                 if (summaryRes.ok) {
                     const summaryData = await summaryRes.json();
                     setPillarSummary(summaryData || {});
+                }
+
+                if (allValuesRes.ok) {
+                    const allData: any[] = await allValuesRes.json();
+                    if (Array.isArray(allData)) {
+                        const valMap: Record<string, ValueData> = {};
+                        for (const r of allData) {
+                            valMap[r.initiative_id] = {
+                                business_value: r.business_value || '',
+                                operational_efficiency: r.operational_efficiency || '',
+                                fte_detail: r.fte_detail || '',
+                                qualitative_benefit: r.qualitative_benefit || '',
+                                users_reached_detail: r.users_reached_detail || '',
+                                estimated_savings_detail: r.estimated_savings_detail || '',
+                            };
+                        }
+                        setAllValues(valMap);
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -306,13 +330,35 @@ export const InitiativeValuePage = () => {
         fetchValue();
     }, [selectedInitiativeId, token]);
 
-    // Re-fetch summary after save so badges stay fresh
+    // Re-fetch summary after save so badges and consolidated dashboard stay fresh
     const refreshSummary = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/initiative-value/summary`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) setPillarSummary(await res.json());
+            const [sumRes, allRes] = await Promise.all([
+                fetch(`${API_URL}/api/initiative-value/summary`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                fetch(`${API_URL}/api/initiative-value/all`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+            ]);
+            if (sumRes.ok) setPillarSummary(await sumRes.json());
+            if (allRes.ok) {
+                const allData: any[] = await allRes.json();
+                if (Array.isArray(allData)) {
+                    const valMap: Record<string, ValueData> = {};
+                    for (const r of allData) {
+                        valMap[r.initiative_id] = {
+                            business_value: r.business_value || '',
+                            operational_efficiency: r.operational_efficiency || '',
+                            fte_detail: r.fte_detail || '',
+                            qualitative_benefit: r.qualitative_benefit || '',
+                            users_reached_detail: r.users_reached_detail || '',
+                            estimated_savings_detail: r.estimated_savings_detail || '',
+                        };
+                    }
+                    setAllValues(valMap);
+                }
+            }
         } catch (e) {
             console.error(e);
         }
@@ -339,8 +385,9 @@ export const InitiativeValuePage = () => {
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Datos guardados exitosamente' });
                 setTimeout(() => setMessage(null), 3000);
-                // Update local summary optimistically with current filledCount
+                // Update local summary and allValues optimistically
                 setPillarSummary(prev => ({ ...prev, [selectedInitiativeId]: filledCount }));
+                setAllValues(prev => ({ ...prev, [selectedInitiativeId]: { ...valueData } }));
                 refreshSummary();
             } else {
                 const errData = await res.json().catch(() => ({}));
@@ -415,19 +462,6 @@ export const InitiativeValuePage = () => {
         setSelectedInitiativeId('');
         setSearchQuery('');
     };
-
-    // Global summary stats — reactive to filters
-    const globalStats = useMemo(() => {
-        const base = filteredInitiatives;
-        const total = base.length;
-        const complete = base.filter(i => (pillarSummary[i.id] ?? 0) === PILLARS.length).length;
-        const partial = base.filter(i => {
-            const c = pillarSummary[i.id] ?? 0;
-            return c > 0 && c < PILLARS.length;
-        }).length;
-        const empty = total - complete - partial;
-        return { total, complete, partial, empty };
-    }, [filteredInitiatives, pillarSummary]);
 
     // Helper: count filled pillars
     const filledCount = useMemo(() => {
@@ -839,76 +873,6 @@ export const InitiativeValuePage = () => {
                 </div>
             )}
 
-            {/* Empty State + Global Summary */}
-            {!selectedInitiativeId && !loading && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                    {/* Hero */}
-                    <div className="text-center max-w-md">
-                        <div className="mx-auto w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/10">
-                            <Award size={36} className="text-indigo-500 dark:text-indigo-400" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-2">
-                            Impacto & Valor
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                            Selecciona una iniciativa para visualizar y{' '}
-                            {isAdminOrEditor ? 'editar' : 'consultar'} su detalle de valor
-                            a través de los 6 pilares de impacto.
-                        </p>
-                    </div>
-
-                    {/* Global pillar completion summary */}
-                    {globalStats.total > 0 && (
-                        <div className="w-full max-w-2xl">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Resumen global de iniciativas</p>
-                            <div className="grid grid-cols-3 gap-3">
-                                {/* Complete */}
-                                <div className="flex flex-col items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 rounded-xl p-4">
-                                    <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{globalStats.complete}</span>
-                                    <div className="flex gap-0.5 mb-0.5">
-                                        {PILLARS.map((_, i) => <div key={i} className="w-2 h-2 rounded-full bg-emerald-400" />)}
-                                    </div>
-                                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 text-center leading-tight">6/6 pilares completos</span>
-                                    <span className="text-xs text-gray-400">iniciativas</span>
-                                </div>
-                                {/* Partial */}
-                                <div className="flex flex-col items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 rounded-xl p-4">
-                                    <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{globalStats.partial}</span>
-                                    <div className="flex gap-0.5 mb-0.5">
-                                        {PILLARS.map((_, i) => <div key={i} className={`w-2 h-2 rounded-full ${i < 3 ? 'bg-amber-400' : 'bg-gray-300 dark:bg-gray-600'}`} />)}
-                                    </div>
-                                    <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 text-center leading-tight">1–5/6 pilares</span>
-                                    <span className="text-xs text-gray-400">en progreso</span>
-                                </div>
-                                {/* Empty */}
-                                <div className="flex flex-col items-center gap-1 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
-                                    <span className="text-2xl font-black text-gray-400">{globalStats.empty}</span>
-                                    <div className="flex gap-0.5 mb-0.5">
-                                        {PILLARS.map((_, i) => <div key={i} className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />)}
-                                    </div>
-                                    <span className="text-xs font-semibold text-gray-400 text-center leading-tight">0/6 sin documentar</span>
-                                    <span className="text-xs text-gray-400">pendientes</span>
-                                </div>
-                            </div>
-
-                            {/* Progress bar */}
-                            <div className="mt-4">
-                                <div className="flex justify-between text-xs text-gray-400 mb-1">
-                                    <span>{globalStats.complete} completas de {globalStats.total}</span>
-                                    <span>{Math.round((globalStats.complete / globalStats.total) * 100)}% completado</span>
-                                </div>
-                                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-700"
-                                        style={{ width: `${(globalStats.complete / globalStats.total) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
             {/* Loading State */}
             {loading && (
                 <div className="flex-1 flex items-center justify-center">
@@ -921,47 +885,23 @@ export const InitiativeValuePage = () => {
                 </div>
             )}
 
-            {/* Pillars Grid */}
-            {selectedInitiativeId && !loading && (
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 min-h-0 tour-iv-pillars">
-                    {PILLARS.map((pillar) => {
-                        const Icon = pillar.icon;
-                        return (
-                            <div
-                                key={pillar.key}
-                                className={`bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 
-                                    flex flex-col overflow-hidden transition-all hover:shadow-md ring-1 ${pillar.accentRing}
-                                    min-h-[280px] max-h-[400px]`}
-                            >
-                                {/* Pillar Header */}
-                                <div className={`px-4 py-3 bg-gradient-to-r ${pillar.gradient} border-b ${pillar.borderColor} flex items-center gap-2 flex-shrink-0`}>
-                                    <div className={`p-1.5 ${pillar.iconBg} rounded-lg ${pillar.iconColor}`}>
-                                        <Icon size={18} />
-                                    </div>
-                                    <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">
-                                        {pillar.label}
-                                    </h3>
-                                </div>
-
-                                {/* Pillar Editor */}
-                                <div className="flex-1 p-0 flex flex-col min-h-0 overflow-hidden">
-                                    <RichTextEditor
-                                        value={valueData[pillar.key]}
-                                        onChange={(val) =>
-                                            setValueData(prev => ({ ...prev, [pillar.key]: val }))
-                                        }
-                                        readOnly={!canEdit}
-                                        placeholder={
-                                            canEdit
-                                                ? pillar.placeholder
-                                                : 'Sin información disponible'
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+            {/* Conditional Render: Consolidated Dashboard OR Pillars Editor */}
+            {!loading && (
+                !selectedInitiativeId ? (
+                    <ConsolidatedValueDashboard
+                        initiatives={filteredInitiatives}
+                        allValues={allValues}
+                        pillarSummary={pillarSummary}
+                        onSelectInitiative={handleSelectInitiative}
+                    />
+                ) : (
+                    <InitiativePillarsEditor
+                        valueData={valueData}
+                        onChangeValue={setValueData}
+                        canEdit={canEdit}
+                        pillars={PILLARS}
+                    />
+                )
             )}
         </div>
     );
