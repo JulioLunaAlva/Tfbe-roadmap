@@ -266,7 +266,7 @@ const UploadZone = ({ onUpload, uploading }: { onUpload: (file: File) => void; u
 
 export const PresentationsPage = () => {
     const { token, user } = useAuth();
-    const { activeArea, areaQueryParam } = useArea();
+    const { activeArea } = useArea();
     const canEdit = user?.role === 'admin' || user?.role === 'editor';
 
     const [folders, setFolders] = useState<Folder[]>([]);
@@ -285,19 +285,27 @@ export const PresentationsPage = () => {
         if (!token) return;
         setLoadingFolders(true);
         try {
-            const res = await fetch(`${API_URL}/api/presentations/folders?${areaQueryParam.replace('&', '')}`, {
+            // Build query string — areaQueryParam starts with '&', strip it
+            const areaParam = activeArea?.id ? `business_area_id=${activeArea.id}` : '';
+            const url = `${API_URL}/api/presentations/folders${areaParam ? `?${areaParam}` : ''}`;
+            const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
                 const data: Folder[] = await res.json();
                 setFolders(data);
                 // Auto-select first folder if none selected
-                if (!selectedFolder && data.length > 0) setSelectedFolder(data[0]);
+                if (data.length > 0) setSelectedFolder(prev => prev ?? data[0]);
+            } else {
+                const errText = await res.text();
+                console.error('Presentations API error:', res.status, errText);
             }
+        } catch (err) {
+            console.error('fetchFolders failed:', err);
         } finally {
             setLoadingFolders(false);
         }
-    }, [token, areaQueryParam]);
+    }, [token, activeArea?.id]);
 
     useEffect(() => { fetchFolders(); }, [fetchFolders]);
 

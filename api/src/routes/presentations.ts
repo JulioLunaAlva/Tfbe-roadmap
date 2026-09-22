@@ -29,13 +29,13 @@ router.get('/folders', async (req: any, res: Response) => {
 
         const result = await query(
             `SELECT f.id, f.name, f.description, f.business_area_id, f.created_at,
-                    u.name as created_by_name,
+                    COALESCE(u.name, '') as created_by_name,
                     COUNT(pf.id)::int as file_count
              FROM presentation_folders f
              LEFT JOIN users u ON u.id = f.created_by
              LEFT JOIN presentation_files pf ON pf.folder_id = f.id
              ${whereClause}
-             GROUP BY f.id, u.name
+             GROUP BY f.id, f.name, f.description, f.business_area_id, f.created_at, u.id, u.name
              ORDER BY f.created_at ASC`,
             params
         );
