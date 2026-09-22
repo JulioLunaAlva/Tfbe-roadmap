@@ -15,7 +15,7 @@ import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
 import { ConsolidatedValueDashboard } from '../components/roadmap/ConsolidatedValueDashboard';
 import { InitiativePillarsEditor } from '../components/roadmap/InitiativePillarsEditor';
-import { exportToExcel, exportToPDF, exportConsolidatedToExcel, EXPORT_PILLARS, isNAPillar, isPillarFilled } from '../utils/exportValue';
+import { exportToExcel, exportToPDF, exportConsolidatedToExcel, exportConsolidatedToPDF, EXPORT_PILLARS, isNAPillar, isPillarFilled } from '../utils/exportValue';
 import type { Step } from 'react-joyride';
 import { useSearchParams } from 'react-router-dom';
 
@@ -468,8 +468,8 @@ export const InitiativeValuePage = () => {
         return PILLARS.filter(p => isPillarFilled(valueData[p.key])).length;
     }, [valueData]);
 
-    // Export consolidated to Excel
-    const handleExportConsolidated = () => {
+    // Export handlers
+    const handleExportConsolidatedExcel = () => {
         exportConsolidatedToExcel(
             filteredInitiatives,
             allValues as any,
@@ -478,6 +478,50 @@ export const InitiativeValuePage = () => {
                 transfLead: selectedTransfLead,
                 status: selectedStatus,
             }
+        );
+    };
+
+    const handleExportConsolidatedPDF = () => {
+        exportConsolidatedToPDF(
+            filteredInitiatives,
+            allValues as any,
+            {
+                area: selectedArea,
+                transfLead: selectedTransfLead,
+                status: selectedStatus,
+            }
+        );
+    };
+
+    const handleExportIndividualExcel = () => {
+        if (!selectedInitiative) return;
+        exportToExcel(
+            {
+                name: selectedInitiative.name,
+                area: selectedInitiative.area,
+                champion: selectedInitiative.champion,
+                status: selectedInitiative.status,
+                progress: selectedInitiative.progress,
+                technologies: selectedInitiative.technologies,
+            },
+            valueData as unknown as Record<string, string>,
+            EXPORT_PILLARS
+        );
+    };
+
+    const handleExportIndividualPDF = () => {
+        if (!selectedInitiative) return;
+        exportToPDF(
+            {
+                name: selectedInitiative.name,
+                area: selectedInitiative.area,
+                champion: selectedInitiative.champion,
+                status: selectedInitiative.status,
+                progress: selectedInitiative.progress,
+                technologies: selectedInitiative.technologies,
+            },
+            valueData as unknown as Record<string, string>,
+            EXPORT_PILLARS
         );
     };
 
@@ -705,17 +749,86 @@ export const InitiativeValuePage = () => {
                             </div>
                         )}
 
-                        {/* Export Consolidated Button (visible when no initiative is selected) */}
-                        {!selectedInitiativeId && (
+                        {/* Unified Export Dropdown (Consolidated & Individual) */}
+                        <div className="relative">
                             <button
-                                onClick={handleExportConsolidated}
-                                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm hover:shadow transition-all font-bold text-xs whitespace-nowrap active:scale-95"
-                                title="Exportar Consolidado Completo a Excel"
+                                onClick={() => setShowExportMenu(prev => !prev)}
+                                onBlur={() => setTimeout(() => setShowExportMenu(false), 200)}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-900/50 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all font-bold text-xs whitespace-nowrap active:scale-95"
+                                title={selectedInitiativeId ? "Exportar Ficha de Iniciativa" : "Exportar Reporte Consolidado"}
                             >
-                                <FileSpreadsheet size={16} />
-                                <span>Exportar Consolidado (Excel)</span>
+                                <FileDown size={18} />
+                                <span>Exportar</span>
+                                <ChevronDown size={13} className={`transition-transform duration-200 ${showExportMenu ? 'rotate-180' : ''}`} />
                             </button>
-                        )}
+
+                            {showExportMenu && (
+                                <div className="absolute right-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                                    {/* Header */}
+                                    <div className="px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700">
+                                        <p className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            {selectedInitiativeId ? 'Ficha de Iniciativa' : 'Consolidado de Portafolio'}
+                                        </p>
+                                        <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                                            {selectedInitiativeId ? (selectedInitiative?.name || 'Iniciativa seleccionada') : `${filteredInitiatives.length} iniciativas filtradas`}
+                                        </p>
+                                    </div>
+
+                                    {/* Excel option */}
+                                    <button
+                                        onMouseDown={() => {
+                                            setShowExportMenu(false);
+                                            if (selectedInitiativeId && selectedInitiative) {
+                                                handleExportIndividualExcel();
+                                            } else {
+                                                handleExportConsolidatedExcel();
+                                            }
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group text-left"
+                                    >
+                                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/60 transition-colors flex-shrink-0">
+                                            <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-100">Excel (.xlsx)</p>
+                                            <p className="text-[11px] text-gray-400">
+                                                {selectedInitiativeId
+                                                    ? 'Ficha técnica en 1 pestaña'
+                                                    : '2 hojas (KPIs + Detalle)'}
+                                            </p>
+                                        </div>
+                                    </button>
+
+                                    {/* Divider */}
+                                    <div className="h-px bg-gray-100 dark:bg-gray-700 mx-3" />
+
+                                    {/* PDF option */}
+                                    <button
+                                        onMouseDown={() => {
+                                            setShowExportMenu(false);
+                                            if (selectedInitiativeId && selectedInitiative) {
+                                                handleExportIndividualPDF();
+                                            } else {
+                                                handleExportConsolidatedPDF();
+                                            }
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group text-left"
+                                    >
+                                        <div className="p-2 bg-rose-100 dark:bg-rose-900/40 rounded-lg group-hover:bg-rose-200 dark:group-hover:bg-rose-900/60 transition-colors flex-shrink-0">
+                                            <FileText size={16} className="text-rose-600 dark:text-rose-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-100">PDF (.pdf)</p>
+                                            <p className="text-[11px] text-gray-400">
+                                                {selectedInitiativeId
+                                                    ? 'Ficha Ejecutiva One-Pager'
+                                                    : 'Reporte horizontal (KPIs + Matriz)'}
+                                            </p>
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Help Button */}
                         <button
@@ -739,90 +852,6 @@ export const InitiativeValuePage = () => {
                                 <Presentation size={18} />
                                 <span>Vista Previa</span>
                             </button>
-                        )}
-
-                        {/* Export Dropdown */}
-                        {selectedInitiativeId && selectedInitiative && (
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowExportMenu(prev => !prev)}
-                                    onBlur={() => setTimeout(() => setShowExportMenu(false), 150)}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-900/50 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all font-bold text-xs whitespace-nowrap"
-                                    title="Exportar iniciativa"
-                                >
-                                    <FileDown size={18} />
-                                    <span>Exportar</span>
-                                    <ChevronDown size={13} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                {showExportMenu && (
-                                    <div className="absolute right-0 top-full mt-1.5 z-50 w-52 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden">
-                                        {/* Header */}
-                                        <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700">
-                                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Formato de exportación</p>
-                                        </div>
-
-                                        {/* Excel option */}
-                                        <button
-                                            onMouseDown={() => {
-                                                setShowExportMenu(false);
-                                                exportToExcel(
-                                                    {
-                                                        name: selectedInitiative.name,
-                                                        area: selectedInitiative.area,
-                                                        champion: selectedInitiative.champion,
-                                                        status: selectedInitiative.status,
-                                                        progress: selectedInitiative.progress,
-                                                        technologies: selectedInitiative.technologies,
-                                                    },
-                                                    valueData as unknown as Record<string, string>,
-                                                    EXPORT_PILLARS
-                                                );
-                                            }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group"
-                                        >
-                                            <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/60 transition-colors">
-                                                <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Excel (.xlsx)</p>
-                                                <p className="text-xs text-gray-400">2 hojas · Resumen + Detalle</p>
-                                            </div>
-                                        </button>
-
-                                        {/* Divider */}
-                                        <div className="h-px bg-gray-100 dark:bg-gray-700 mx-3" />
-
-                                        {/* PDF option */}
-                                        <button
-                                            onMouseDown={() => {
-                                                setShowExportMenu(false);
-                                                exportToPDF(
-                                                    {
-                                                        name: selectedInitiative.name,
-                                                        area: selectedInitiative.area,
-                                                        champion: selectedInitiative.champion,
-                                                        status: selectedInitiative.status,
-                                                        progress: selectedInitiative.progress,
-                                                        technologies: selectedInitiative.technologies,
-                                                    },
-                                                    valueData as unknown as Record<string, string>,
-                                                    EXPORT_PILLARS
-                                                );
-                                            }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group"
-                                        >
-                                            <div className="p-1.5 bg-rose-100 dark:bg-rose-900/40 rounded-lg group-hover:bg-rose-200 dark:group-hover:bg-rose-900/60 transition-colors">
-                                                <FileText size={16} className="text-rose-600 dark:text-rose-400" />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">PDF (.pdf)</p>
-                                                <p className="text-xs text-gray-400">Portada + 1 página por pilar</p>
-                                            </div>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
                         )}
 
                         {/* Save Button */}
