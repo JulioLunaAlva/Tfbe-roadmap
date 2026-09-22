@@ -4,7 +4,7 @@ import { useArea } from '../context/AreaContext';
 import {
     FolderOpen, Plus, Trash2, Download, Upload, FileText,
     FilePieChart, File, Search, FolderPlus, ChevronRight,
-    MoreVertical, Clock, User, HardDrive, X, Edit2, Check,
+    MoreVertical, Clock, HardDrive, X, Edit2, Check,
     Presentation, Layers
 } from 'lucide-react';
 import { clsx } from 'clsx';
