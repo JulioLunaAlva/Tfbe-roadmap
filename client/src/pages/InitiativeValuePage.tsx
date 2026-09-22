@@ -15,7 +15,7 @@ import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
 import { ConsolidatedValueDashboard } from '../components/roadmap/ConsolidatedValueDashboard';
 import { InitiativePillarsEditor } from '../components/roadmap/InitiativePillarsEditor';
-import { exportToExcel, exportToPDF, EXPORT_PILLARS } from '../utils/exportValue';
+import { exportToExcel, exportToPDF, exportConsolidatedToExcel, EXPORT_PILLARS, isNAPillar, isPillarFilled } from '../utils/exportValue';
 import type { Step } from 'react-joyride';
 import { useSearchParams } from 'react-router-dom';
 
@@ -463,13 +463,23 @@ export const InitiativeValuePage = () => {
         setSearchQuery('');
     };
 
-    // Helper: count filled pillars
+    // Helper: count filled pillars (including N/A)
     const filledCount = useMemo(() => {
-        return PILLARS.filter(p => {
-            const v = valueData[p.key];
-            return v && v !== '' && v !== '<p></p>';
-        }).length;
+        return PILLARS.filter(p => isPillarFilled(valueData[p.key])).length;
     }, [valueData]);
+
+    // Export consolidated to Excel
+    const handleExportConsolidated = () => {
+        exportConsolidatedToExcel(
+            filteredInitiatives,
+            allValues as any,
+            {
+                area: selectedArea,
+                transfLead: selectedTransfLead,
+                status: selectedStatus,
+            }
+        );
+    };
 
     return (
         <div className="flex flex-col h-full space-y-4 p-2">
@@ -610,7 +620,15 @@ export const InitiativeValuePage = () => {
                                             <div className="px-3 py-2 text-xs text-gray-400 italic">Sin resultados</div>
                                         ) : (
                                             comboOptions.map(i => {
-                                                const filled = pillarSummary[i.id] ?? 0;
+                                                const v = allValues[i.id];
+                                                const filled = v ? [
+                                                    v.business_value,
+                                                    v.operational_efficiency,
+                                                    v.fte_detail,
+                                                    v.qualitative_benefit,
+                                                    v.users_reached_detail,
+                                                    v.estimated_savings_detail
+                                                ].filter(isPillarFilled).length : (pillarSummary[i.id] ?? 0);
                                                 const isSelected = i.id === selectedInitiativeId;
                                                 const badgeColor =
                                                     filled === PILLARS.length
@@ -664,12 +682,19 @@ export const InitiativeValuePage = () => {
                             <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <div className="flex gap-0.5">
                                     {PILLARS.map((p, i) => {
-                                        const filled = valueData[p.key] && valueData[p.key] !== '' && valueData[p.key] !== '<p></p>';
+                                        const filled = isPillarFilled(valueData[p.key]);
+                                        const isNa = isNAPillar(valueData[p.key]);
                                         return (
                                             <div
                                                 key={i}
-                                                className={`w-2 h-2 rounded-full transition-colors ${filled ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                                                title={`${p.label}: ${filled ? 'Completado' : 'Pendiente'}`}
+                                                className={`w-2 h-2 rounded-full transition-colors ${
+                                                    filled
+                                                        ? isNa
+                                                            ? 'bg-indigo-400'
+                                                            : 'bg-indigo-500'
+                                                        : 'bg-gray-300 dark:bg-gray-600'
+                                                }`}
+                                                title={`${p.label}: ${filled ? (isNa ? 'No Aplica (Documentado)' : 'Completado') : 'Pendiente'}`}
                                             />
                                         );
                                     })}
@@ -678,6 +703,18 @@ export const InitiativeValuePage = () => {
                                     {filledCount}/{PILLARS.length}
                                 </span>
                             </div>
+                        )}
+
+                        {/* Export Consolidated Button (visible when no initiative is selected) */}
+                        {!selectedInitiativeId && (
+                            <button
+                                onClick={handleExportConsolidated}
+                                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm hover:shadow transition-all font-bold text-xs whitespace-nowrap active:scale-95"
+                                title="Exportar Consolidado Completo a Excel"
+                            >
+                                <FileSpreadsheet size={16} />
+                                <span>Exportar Consolidado (Excel)</span>
+                            </button>
                         )}
 
                         {/* Help Button */}
@@ -893,6 +930,7 @@ export const InitiativeValuePage = () => {
                         allValues={allValues}
                         pillarSummary={pillarSummary}
                         onSelectInitiative={handleSelectInitiative}
+                        onExportConsolidated={handleExportConsolidated}
                     />
                 ) : (
                     <InitiativePillarsEditor

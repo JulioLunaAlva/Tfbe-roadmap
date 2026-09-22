@@ -42,10 +42,13 @@ export const EXPORT_PILLARS: ExportPillar[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function stripHtml(html: string): string {
+export function stripHtml(html?: string): string {
     if (!html) return '';
     return html
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
         .replace(/<\/p>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<\/li>/gi, '\n')
         .replace(/<li>/gi, '• ')
@@ -56,12 +59,29 @@ function stripHtml(html: string): string {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 }
 
-function isPillarFilled(val: string): boolean {
-    return !!val && val !== '' && val !== '<p></p>';
+export function isNAPillar(text?: string): boolean {
+    if (!text) return false;
+    const clean = stripHtml(text).trim().toLowerCase();
+    return (
+        clean === 'n/a' ||
+        clean === 'na' ||
+        clean === 'no aplica' ||
+        clean === 'no-aplica' ||
+        clean === 'n.a.' ||
+        clean === 'n / a' ||
+        clean === 'no aplicable'
+    );
+}
+
+export function isPillarFilled(val?: string): boolean {
+    if (!val) return false;
+    const clean = stripHtml(val).trim();
+    return clean.length > 0 && clean !== '<p></p>';
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -432,4 +452,151 @@ export function exportToPDF(
     }
 
     doc.save(`ImpactoValor_${safeFileName(initiative.name)}.pdf`);
+}
+
+// ─── Consolidated Excel Export ───────────────────────────────────────────────
+
+export interface ConsolidatedInitiativeExport {
+    id: string;
+    name: string;
+    area?: string;
+    champion?: string;
+    transformation_lead?: string;
+    status?: string;
+    progress?: number;
+    technologies?: string[];
+}
+
+export function exportConsolidatedToExcel(
+    initiatives: ConsolidatedInitiativeExport[],
+    allValues: Record<string, ExportValueData>,
+    filterContext?: {
+        area?: string;
+        transfLead?: string[];
+        status?: string[];
+    }
+): void {
+    const wb = XLSX.utils.book_new();
+    const exportDate = new Date().toLocaleDateString('es-MX', {
+        day: '2-digit', month: 'long', year: 'numeric',
+    });
+
+    const filterNotes: string[] = [];
+    if (filterContext?.area) filterNotes.push(`Área: ${filterContext.area}`);
+    if (filterContext?.transfLead && filterContext.transfLead.length > 0) filterNotes.push(`Resp: ${filterContext.transfLead.join(', ')}`);
+    if (filterContext?.status && filterContext.status.length > 0) filterNotes.push(`Estatus: ${filterContext.status.join(', ')}`);
+    const filterSubtitle = filterNotes.length > 0 ? `Filtros aplicados: ${filterNotes.join(' | ')}` : 'Todas las iniciativas (Universo Completo)';
+
+    const rows: any[][] = [
+        ['TFBE ROADMAP — CONSOLIDADO DE IMPACTO & VALOR (6 PILARES)'],
+        [`Exportado el ${exportDate} | ${initiatives.length} iniciativas | ${filterSubtitle}`],
+        [],
+        [
+            'ID / Código',
+            'Iniciativa',
+            'Área',
+            'Responsable / Champion',
+            'Estatus',
+            'Progreso (%)',
+            '1. Valor de Negocio',
+            '2. Eficiencia Operativa',
+            '3. Impacto FTE',
+            '4. Beneficio Cualitativo',
+            '5. Usuarios Alcanzados',
+            '6. Ahorro Estimado',
+            'Pilares Documentados'
+        ]
+    ];
+
+    for (const init of initiatives) {
+        const val = allValues[init.id] || {};
+        const cleanBusiness = stripHtml(val.business_value);
+        const cleanOperational = stripHtml(val.operational_efficiency);
+        const cleanFte = stripHtml(val.fte_detail);
+        const cleanQualitative = stripHtml(val.qualitative_benefit);
+        const cleanUsers = stripHtml(val.users_reached_detail);
+        const cleanSavings = stripHtml(val.estimated_savings_detail);
+
+        const docCount = [
+            cleanBusiness,
+            cleanOperational,
+            cleanFte,
+            cleanQualitative,
+            cleanUsers,
+            cleanSavings
+        ].filter(t => t.length > 0 && t !== '<p></p>').length;
+
+        const leadChampion = [init.transformation_lead, init.champion].filter(Boolean).join(' / ') || '—';
+
+        rows.push([
+            init.id,
+            init.name,
+            init.area || '—',
+            leadChampion,
+            init.status || 'Sin Estatus',
+            `${init.progress ?? 0}%`,
+            cleanBusiness || '—',
+            cleanOperational || '—',
+            cleanFte || '—',
+            cleanQualitative || '—',
+            cleanUsers || '—',
+            cleanSavings || '—',
+            `${docCount}/6`
+        ]);
+    }
+
+    rows.push([]);
+    rows.push([`© ${new Date().getFullYear()} TFBE Roadmap — Consolidado de Impacto & Valor generado automáticamente`]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    ws['!cols'] = [
+        { wch: 18 }, // ID / Código
+        { wch: 38 }, // Iniciativa
+        { wch: 22 }, // Área
+        { wch: 28 }, // Responsable / Champion
+        { wch: 18 }, // Estatus
+        { wch: 14 }, // Progreso (%)
+        { wch: 45 }, // 1. Valor de Negocio
+        { wch: 45 }, // 2. Eficiencia Operativa
+        { wch: 40 }, // 3. Impacto FTE
+        { wch: 45 }, // 4. Beneficio Cualitativo
+        { wch: 40 }, // 5. Usuarios Alcanzados
+        { wch: 40 }, // 6. Ahorro Estimado
+        { wch: 22 }  // Pilares Documentados
+    ];
+
+    ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
+    ];
+
+    const setStyle = (ref: string, style: object) => {
+        if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+        ws[ref].s = style;
+    };
+
+    setStyle('A1', {
+        font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '312E81' } },
+        alignment: { horizontal: 'center', vertical: 'center' }
+    });
+    setStyle('A2', {
+        font: { sz: 9, italic: true, color: { rgb: '6366F1' } },
+        alignment: { horizontal: 'center', vertical: 'center' }
+    });
+
+    const headerCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
+    for (const col of headerCols) {
+        setStyle(`${col}4`, {
+            font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '1E1B4B' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+        });
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Consolidado 6 Pilares');
+
+    const fileName = `Consolidado_Impacto_Valor_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
 }

@@ -2,9 +2,10 @@ import React, { useMemo } from 'react';
 import {
     TrendingUp, Zap, Users, Sparkles, UserCheck, DollarSign,
     ExternalLink, Award, CheckCircle2, Clock, FileQuestion,
-    ShieldCheck, Database, Scale, Cpu, Eye, Gauge
+    ShieldCheck, Database, Scale, Cpu, Eye, Gauge, FileSpreadsheet
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { isNAPillar, isPillarFilled } from '../../utils/exportValue';
 
 export interface InitiativeSummaryItem {
     id: string;
@@ -30,6 +31,7 @@ interface ConsolidatedValueDashboardProps {
     allValues: Record<string, ValueRecord>;
     pillarSummary: Record<string, number>;
     onSelectInitiative: (id: string, name: string) => void;
+    onExportConsolidated?: () => void;
 }
 
 // ─── Helpers para parsear contenido HTML ──────────────────────────────────────────
@@ -68,15 +70,15 @@ const extractBulletsFromPillar = (
 
     for (const init of initiatives) {
         const val = allValues[init.id]?.[pillarKey];
-        if (!val || val === '<p></p>') continue;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
 
         const clean = stripHtml(val);
-        if (!clean) continue;
+        if (!clean || isNAPillar(clean)) continue;
 
         const lines = clean
             .split('\n')
             .map(l => l.replace(/^[•\-\*–—\d\.\)]\s*/, '').trim())
-            .filter(l => l.length > 5);
+            .filter(l => l.length > 5 && !isNAPillar(l));
 
         for (let i = 0; i < lines.length && i < 2; i++) {
             bullets.push({
@@ -102,10 +104,10 @@ const extractTotalFte = (
 
     for (const init of initiatives) {
         const val = allValues[init.id]?.fte_detail;
-        if (!val || val === '<p></p>') continue;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
 
         const clean = stripHtml(val);
-        if (!clean) continue;
+        if (!clean || isNAPillar(clean)) continue;
 
         // Buscar números cerca de FTE, personas, posiciones, etc.
         const fteMatch = clean.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?|posicion(?:es)?|recurso(?:s)?|persona(?:s)?)/i)
@@ -120,8 +122,8 @@ const extractTotalFte = (
             }
         }
 
-        // Si no se encontró número específico pero hay texto sustancial, se cuenta como impacto cualitativo
-        if (clean.length > 10) {
+        // Si no se encontró número específico pero hay texto sustancial (que no sea N/A), se cuenta como impacto cualitativo
+        if (clean.length > 10 && !isNAPillar(clean)) {
             impactedCount++;
         }
     }
@@ -139,10 +141,10 @@ const extractSavings = (
 
     for (const init of initiatives) {
         const val = allValues[init.id]?.estimated_savings_detail;
-        if (!val || val === '<p></p>') continue;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
 
         const clean = stripHtml(val);
-        if (!clean) continue;
+        if (!clean || isNAPillar(clean)) continue;
 
         // Buscar expresiones de dinero: $100,000 o 100k o 1.5M
         const moneyMatch = clean.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(k|m|mdp|mil|millones)?/i)
@@ -163,7 +165,7 @@ const extractSavings = (
             }
         }
 
-        if (clean.length > 10) {
+        if (clean.length > 10 && !isNAPillar(clean)) {
             quantifiedCount++;
         }
     }
@@ -181,10 +183,10 @@ const extractUsersReached = (
 
     for (const init of initiatives) {
         const val = allValues[init.id]?.users_reached_detail;
-        if (!val || val === '<p></p>') continue;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
 
         const clean = stripHtml(val);
-        if (!clean) continue;
+        if (!clean || isNAPillar(clean)) continue;
 
         if (init.area) areas.add(init.area);
 
@@ -229,7 +231,9 @@ const detectQualitativeCategories = (
     for (const rule of categoryRules) {
         const matchedInits: InitiativeSummaryItem[] = [];
         for (const init of initiatives) {
-            const text = stripHtml(allValues[init.id]?.qualitative_benefit || '').toLowerCase();
+            const raw = allValues[init.id]?.qualitative_benefit;
+            if (!raw || isNAPillar(raw)) continue;
+            const text = stripHtml(raw).toLowerCase();
             if (rule.keywords.some(kw => text.includes(kw))) {
                 matchedInits.push(init);
             }
@@ -250,7 +254,7 @@ const detectQualitativeCategories = (
     if (results.length === 0) {
         const initsWithQual = initiatives.filter(i => {
             const v = allValues[i.id]?.qualitative_benefit;
-            return v && v !== '' && v !== '<p></p>';
+            return v && !isNAPillar(v) && isPillarFilled(v);
         });
         if (initsWithQual.length > 0) {
             results.push(
@@ -316,7 +320,8 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
     initiatives,
     allValues,
     pillarSummary,
-    onSelectInitiative
+    onSelectInitiative,
+    onExportConsolidated
 }) => {
     // Totales y estadísticas del portafolio
     const totalInitiatives = initiatives.length;
@@ -333,17 +338,32 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
         for (const init of initiatives) {
             const v = allValues[init.id];
             if (!v) continue;
-            if (v.business_value && v.business_value !== '<p></p>') hasBusinessValue++;
-            if (v.operational_efficiency && v.operational_efficiency !== '<p></p>') hasOperationalEfficiency++;
-            if (v.fte_detail && v.fte_detail !== '<p></p>') hasFte++;
-            if (v.qualitative_benefit && v.qualitative_benefit !== '<p></p>') hasQualitative++;
-            if (v.users_reached_detail && v.users_reached_detail !== '<p></p>') hasUsers++;
-            if (v.estimated_savings_detail && v.estimated_savings_detail !== '<p></p>') hasSavings++;
+            if (isPillarFilled(v.business_value) && !isNAPillar(v.business_value)) hasBusinessValue++;
+            if (isPillarFilled(v.operational_efficiency) && !isNAPillar(v.operational_efficiency)) hasOperationalEfficiency++;
+            if (isPillarFilled(v.fte_detail) && !isNAPillar(v.fte_detail)) hasFte++;
+            if (isPillarFilled(v.qualitative_benefit) && !isNAPillar(v.qualitative_benefit)) hasQualitative++;
+            if (isPillarFilled(v.users_reached_detail) && !isNAPillar(v.users_reached_detail)) hasUsers++;
+            if (isPillarFilled(v.estimated_savings_detail) && !isNAPillar(v.estimated_savings_detail)) hasSavings++;
         }
 
-        const complete = initiatives.filter(i => (pillarSummary[i.id] ?? 0) === 6).length;
+        // Cálculo de avance global (6/6 pilares):
+        // Un pilar marcado como "N/A", "NA" o "No Aplica" cuenta como completado / documentado
+        const getInitDocCount = (initId: string): number => {
+            const v = allValues[initId];
+            if (!v) return pillarSummary[initId] ?? 0;
+            let count = 0;
+            if (isPillarFilled(v.business_value)) count++;
+            if (isPillarFilled(v.operational_efficiency)) count++;
+            if (isPillarFilled(v.fte_detail)) count++;
+            if (isPillarFilled(v.qualitative_benefit)) count++;
+            if (isPillarFilled(v.users_reached_detail)) count++;
+            if (isPillarFilled(v.estimated_savings_detail)) count++;
+            return count;
+        };
+
+        const complete = initiatives.filter(i => getInitDocCount(i.id) === 6).length;
         const partial = initiatives.filter(i => {
-            const c = pillarSummary[i.id] ?? 0;
+            const c = getInitDocCount(i.id);
             return c > 0 && c < 6;
         }).length;
         const empty = totalInitiatives - complete - partial;
@@ -401,7 +421,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                     </p>
                 </div>
 
-                {/* Contadores horizontales alineados a la derecha */}
+                {/* Contadores horizontales alineados a la derecha + Botón de Exportación */}
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Completas */}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
@@ -443,6 +463,18 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             />
                         </div>
                     </div>
+
+                    {/* Botón de Exportación a Excel */}
+                    {onExportConsolidated && (
+                        <button
+                            onClick={onExportConsolidated}
+                            className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-bold whitespace-nowrap active:scale-95 ml-1"
+                            title="Exportar Consolidado Completo a Excel"
+                        >
+                            <FileSpreadsheet size={15} />
+                            <span>Exportar Consolidado (Excel)</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
