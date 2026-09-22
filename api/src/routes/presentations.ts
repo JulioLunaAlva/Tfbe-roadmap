@@ -35,7 +35,7 @@ router.get('/folders', async (req: any, res: Response) => {
                 f.description,
                 f.business_area_id,
                 f.created_at,
-                COALESCE(u.name, '') AS created_by_name,
+                COALESCE(u.email, '') AS created_by_name,
                 (SELECT COUNT(*)::int FROM presentation_files pf WHERE pf.folder_id = f.id) AS file_count
              FROM presentation_folders f
              LEFT JOIN users u ON u.id = f.created_by
@@ -114,7 +114,7 @@ router.get('/folders/:id/files', async (req: any, res: Response) => {
     try {
         const result = await query(
             `SELECT f.id, f.folder_id, f.original_name, f.mime_type, f.size_bytes, f.created_at,
-                    u.name as uploaded_by_name
+                    u.email as uploaded_by_name
              FROM presentation_files f
              LEFT JOIN users u ON u.id = f.uploaded_by
              WHERE f.folder_id = $1
