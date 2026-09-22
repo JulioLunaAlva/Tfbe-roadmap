@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import {
     TrendingUp, Zap, Users, Sparkles, UserCheck, DollarSign,
     ExternalLink, Award, CheckCircle2, Clock, FileQuestion,
-    ShieldCheck, Database, Scale, Cpu, Eye, Gauge, FileSpreadsheet
+    ShieldCheck, Database, Scale, Cpu, Eye, Gauge
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { isNAPillar, isPillarFilled } from '../../utils/exportValue';
@@ -31,7 +31,6 @@ interface ConsolidatedValueDashboardProps {
     allValues: Record<string, ValueRecord>;
     pillarSummary: Record<string, number>;
     onSelectInitiative: (id: string, name: string) => void;
-    onExportConsolidated?: () => void;
 }
 
 // ─── Helpers para parsear contenido HTML ──────────────────────────────────────────
@@ -320,8 +319,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
     initiatives,
     allValues,
     pillarSummary,
-    onSelectInitiative,
-    onExportConsolidated
+    onSelectInitiative
 }) => {
     // Totales y estadísticas del portafolio
     const totalInitiatives = initiatives.length;
@@ -463,18 +461,6 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             />
                         </div>
                     </div>
-
-                    {/* Botón de Exportación a Excel */}
-                    {onExportConsolidated && (
-                        <button
-                            onClick={onExportConsolidated}
-                            className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-bold whitespace-nowrap active:scale-95 ml-1"
-                            title="Exportar Consolidado Completo a Excel"
-                        >
-                            <FileSpreadsheet size={15} />
-                            <span>Exportar Consolidado (Excel)</span>
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -605,7 +591,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             <div>
                                 <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">FTEs Liberados</span>
                                 <p className="text-xl font-black text-cyan-700 dark:text-cyan-300">
-                                    {totalFte > 0 ? `${totalFte}` : `${fteInitiativesCount} inits`}
+                                    {totalFte > 0 ? `${totalFte} FTEs` : (fteInitiativesCount > 0 ? `${fteInitiativesCount} iniciativas` : '0 FTEs')}
                                 </p>
                             </div>
                             <div>
@@ -712,7 +698,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                 </h4>
                             </div>
                             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40">
-                                {metrics.hasUsers} inits
+                                {metrics.hasUsers} iniciativas
                             </span>
                         </div>
 
@@ -721,7 +707,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             <div>
                                 <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Usuarios Estimados</span>
                                 <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
-                                    {totalUsers > 0 ? `+${totalUsers.toLocaleString()}` : `${metrics.hasUsers} inits`}
+                                    {totalUsers > 0 ? `+${totalUsers.toLocaleString()}` : `${metrics.hasUsers} iniciativas`}
                                 </p>
                             </div>
                             <div>

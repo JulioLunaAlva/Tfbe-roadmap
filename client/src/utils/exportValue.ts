@@ -481,31 +481,329 @@ export function exportConsolidatedToExcel(
         day: '2-digit', month: 'long', year: 'numeric',
     });
 
+    const totalInits = initiatives.length;
+
+    // Filter subtitle
     const filterNotes: string[] = [];
     if (filterContext?.area) filterNotes.push(`Área: ${filterContext.area}`);
     if (filterContext?.transfLead && filterContext.transfLead.length > 0) filterNotes.push(`Resp: ${filterContext.transfLead.join(', ')}`);
     if (filterContext?.status && filterContext.status.length > 0) filterNotes.push(`Estatus: ${filterContext.status.join(', ')}`);
     const filterSubtitle = filterNotes.length > 0 ? `Filtros aplicados: ${filterNotes.join(' | ')}` : 'Todas las iniciativas (Universo Completo)';
 
-    const rows: any[][] = [
-        ['TFBE ROADMAP — CONSOLIDADO DE IMPACTO & VALOR (6 PILARES)'],
-        [`Exportado el ${exportDate} | ${initiatives.length} iniciativas | ${filterSubtitle}`],
+    // ─── Macro Calculations ──────────────────────────────────────────────────────────
+
+    // 1. General adoption metrics (counting N/A as documented/completed for 6/6)
+    let completeInits = 0;
+    let partialInits = 0;
+    let emptyInits = 0;
+
+    let hasBusiness = 0;
+    let hasOperational = 0;
+    let hasQualitative = 0;
+    let hasUsers = 0;
+
+    const operationalAreasSet = new Set<string>();
+
+    for (const init of initiatives) {
+        const val = allValues[init.id] || {};
+        let docCount = 0;
+
+        if (isPillarFilled(val.business_value)) docCount++;
+        if (isPillarFilled(val.operational_efficiency)) docCount++;
+        if (isPillarFilled(val.fte_detail)) docCount++;
+        if (isPillarFilled(val.qualitative_benefit)) docCount++;
+        if (isPillarFilled(val.users_reached_detail)) docCount++;
+        if (isPillarFilled(val.estimated_savings_detail)) docCount++;
+
+        if (docCount === 6) completeInits++;
+        else if (docCount > 0) partialInits++;
+        else emptyInits++;
+
+        if (isPillarFilled(val.business_value) && !isNAPillar(val.business_value)) hasBusiness++;
+        if (isPillarFilled(val.operational_efficiency) && !isNAPillar(val.operational_efficiency)) {
+            hasOperational++;
+            if (init.area) operationalAreasSet.add(init.area);
+        }
+        if (isPillarFilled(val.qualitative_benefit) && !isNAPillar(val.qualitative_benefit)) hasQualitative++;
+        if (isPillarFilled(val.users_reached_detail) && !isNAPillar(val.users_reached_detail)) hasUsers++;
+    }
+
+    const pctGlobalComplete = totalInits > 0 ? Math.round((completeInits / totalInits) * 100) : 0;
+    const pctPartial = totalInits > 0 ? Math.round((partialInits / totalInits) * 100) : 0;
+    const pctEmpty = totalInits > 0 ? Math.round((emptyInits / totalInits) * 100) : 0;
+    const pctBusiness = totalInits > 0 ? Math.round((hasBusiness / totalInits) * 100) : 0;
+
+    // 2. FTE metrics (omitting N/A)
+    let totalFte = 0;
+    let fteImpactedCount = 0;
+    for (const init of initiatives) {
+        const val = allValues[init.id]?.fte_detail;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
+
+        const clean = stripHtml(val);
+        if (!clean || isNAPillar(clean)) continue;
+
+        const fteMatch = clean.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?|posicion(?:es)?|recurso(?:s)?|persona(?:s)?)/i)
+            || clean.match(/(?:liberaci[oó]n|ahorro|impacto|reasignaci[oó]n)\s*(?:de)?\s*([0-9]+(?:\.[0-9]+)?)/i);
+
+        if (fteMatch) {
+            const num = parseFloat(fteMatch[1]);
+            if (!isNaN(num) && num > 0 && num < 1000) {
+                totalFte += num;
+                fteImpactedCount++;
+                continue;
+            }
+        }
+
+        if (clean.length > 10 && !isNAPillar(clean)) {
+            fteImpactedCount++;
+        }
+    }
+    totalFte = Math.round(totalFte * 10) / 10;
+    const pctFte = totalInits > 0 ? Math.round((fteImpactedCount / totalInits) * 100) : 0;
+
+    // 3. Savings metrics (omitting N/A)
+    let totalSavings = 0;
+    let savingsQuantifiedCount = 0;
+    for (const init of initiatives) {
+        const val = allValues[init.id]?.estimated_savings_detail;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
+
+        const clean = stripHtml(val);
+        if (!clean || isNAPillar(clean)) continue;
+
+        const moneyMatch = clean.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(k|m|mdp|mil|millones)?/i)
+            || clean.match(/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(?:USD|MXN)/i);
+
+        if (moneyMatch) {
+            let amountStr = moneyMatch[1].replace(/,/g, '');
+            let amount = parseFloat(amountStr);
+            const multiplier = (moneyMatch[2] || '').toLowerCase();
+
+            if (multiplier === 'k' || multiplier === 'mil') amount *= 1000;
+            else if (multiplier === 'm' || multiplier === 'millones' || multiplier === 'mdp') amount *= 1000000;
+
+            if (!isNaN(amount) && amount > 0) {
+                totalSavings += amount;
+                savingsQuantifiedCount++;
+                continue;
+            }
+        }
+
+        if (clean.length > 10 && !isNAPillar(clean)) {
+            savingsQuantifiedCount++;
+        }
+    }
+    const pctSavings = totalInits > 0 ? Math.round((savingsQuantifiedCount / totalInits) * 100) : 0;
+    const formattedSavings = totalSavings > 0
+        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalSavings)
+        : '$0 USD';
+
+    // 4. Users Reached metrics (omitting N/A)
+    let totalUsers = 0;
+    const usersAreasSet = new Set<string>();
+    for (const init of initiatives) {
+        const val = allValues[init.id]?.users_reached_detail;
+        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
+
+        const clean = stripHtml(val);
+        if (!clean || isNAPillar(clean)) continue;
+
+        if (init.area) usersAreasSet.add(init.area);
+
+        const userMatch = clean.match(/(?:^|\s|\+|>)([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:usuarios?|personas?|colaboradores?|empleados?)/i);
+        if (userMatch) {
+            const num = parseInt(userMatch[1].replace(/,/g, ''), 10);
+            if (!isNaN(num) && num > 0 && num < 100000) {
+                totalUsers += num;
+            }
+        }
+    }
+    const usersAreas = Array.from(usersAreasSet);
+    const operationalAreas = Array.from(operationalAreasSet);
+
+    // 5. Qualitative Categories breakdown
+    const qualRules = [
+        { name: 'Mitigación de Riesgos', keywords: ['riesgo', 'mitiga', 'auditor', 'vulnerab'] },
+        { name: 'Cumplimiento & Normativa', keywords: ['cumplimiento', 'normativ', 'fiscal', 'legal', 'sox'] },
+        { name: 'Calidad de Datos', keywords: ['calidad', 'consisten', 'precisi', 'integridad'] },
+        { name: 'Gobernanza & Control', keywords: ['gobernanza', 'control', 'visibilidad', 'trazabil'] },
+        { name: 'Automatización & RPA', keywords: ['automatiz', 'rpa', 'robot', 'digital'] },
+        { name: 'Agilidad Operativa', keywords: ['agil', 'tiempo', 'velocidad', 'productiv'] },
+    ];
+
+    const qualCategories = qualRules.map(rule => {
+        const matched = initiatives.filter(init => {
+            const raw = allValues[init.id]?.qualitative_benefit;
+            if (!raw || isNAPillar(raw)) return false;
+            const text = stripHtml(raw).toLowerCase();
+            return rule.keywords.some(kw => text.includes(kw));
+        });
+        const areas = Array.from(new Set(matched.map(m => m.area).filter(Boolean))) as string[];
+        return {
+            name: rule.name,
+            count: matched.length,
+            areas
+        };
+    });
+
+    // ─── PESTAÑA 1: Resumen Ejecutivo (KPIs) ───────────────────────────────────────
+
+    const s1: any[][] = [
+        ['TFBE ROADMAP — RESUMEN EJECUTIVO DE IMPACTO & VALOR (KPIs)'],
+        [`Exportado el ${exportDate} | Portafolio: ${totalInits} iniciativas | ${filterSubtitle}`],
         [],
+        ['1. ADOPCIÓN Y MADUREZ DE DOCUMENTACIÓN (6 PILARES)'],
+        ['Métrica', 'Iniciativas', '% del Portafolio', 'Descripción'],
+        ['Total de Iniciativas Analizadas', totalInits, '100%', 'Total de iniciativas evaluadas según filtros activos'],
+        ['Completas (6/6 pilares)', completeInits, `${pctGlobalComplete}%`, 'Con todos los 6 pilares de valor documentados o marcados N/A'],
+        ['En Progreso (1 a 5 pilares)', partialInits, `${pctPartial}%`, 'Con avance parcial registrado en sus dimensiones de impacto'],
+        ['Sin Documentar (0 pilares)', emptyInits, `${pctEmpty}%`, 'Iniciativas pendientes de iniciar documentación de valor'],
+        ['% Global de Avance / Adopción', `${pctGlobalComplete}%`, '—', 'Proporción del portafolio con perfil de valor completo'],
+        [],
+        ['2. INDICADORES CONSOLIDADOS POR PILAR DE VALOR'],
+        ['Pilar de Impacto', 'Métrica Principal', 'Métrica Secundaria', 'Cobertura y Observaciones'],
         [
-            'ID / Código',
-            'Iniciativa',
-            'Área',
-            'Responsable / Champion',
-            'Estatus',
-            'Progreso (%)',
-            '1. Valor de Negocio',
-            '2. Eficiencia Operativa',
-            '3. Impacto FTE',
-            '4. Beneficio Cualitativo',
-            '5. Usuarios Alcanzados',
-            '6. Ahorro Estimado',
-            'Pilares Documentados'
-        ]
+            'Pilar 1: Valor de Negocio',
+            `${pctBusiness}% iniciativas alineadas (${hasBusiness}/${totalInits})`,
+            `${hasBusiness} temas clave identificados`,
+            'Alineación estratégica con objetivos corporativos y prioridades del negocio'
+        ],
+        [
+            'Pilar 2: Eficiencia Operativa',
+            `${hasOperational} procesos optimizados`,
+            `${operationalAreas.length} áreas impactadas`,
+            `Áreas: ${operationalAreas.slice(0, 5).join(', ')}${operationalAreas.length > 5 ? '…' : ''}`
+        ],
+        [
+            'Pilar 3: Impacto FTE',
+            totalFte > 0 ? `${totalFte} FTEs liberados` : `${fteImpactedCount} iniciativas con impacto`,
+            `${pctFte}% iniciativas con impacto FTE (${fteImpactedCount}/${totalInits})`,
+            'Capacidad operativa reasignada o liberada (omitiendo valores N/A)'
+        ],
+        [
+            'Pilar 4: Beneficio Cualitativo',
+            `${hasQualitative} iniciativas documentadas`,
+            `${qualCategories.filter(c => c.count > 0).length} categorías activas`,
+            'Mejoras no monetarias en control, gobierno, calidad y agilidad'
+        ],
+        [
+            'Pilar 5: Usuarios Alcanzados',
+            totalUsers > 0 ? `+${totalUsers.toLocaleString()} usuarios estimados` : `${hasUsers} iniciativas con alcance`,
+            `${usersAreas.length} áreas involucradas`,
+            `Áreas con alcance: ${usersAreas.slice(0, 5).join(', ')}${usersAreas.length > 5 ? '…' : ''}`
+        ],
+        [
+            'Pilar 6: Ahorro Estimado',
+            formattedSavings,
+            `${pctSavings}% iniciativas con ahorro cuantificado (${savingsQuantifiedCount}/${totalInits})`,
+            'Ahorro económico anualizado proyectado o realizado (omitiendo valores N/A)'
+        ],
+        [],
+        ['3. DESGLOSE POR CATEGORÍA CUALITATIVA (PILAR 4)'],
+        ['Categoría Cualitativa', 'Iniciativas con Cobertura', '% del Portafolio', 'Áreas Representativas'],
+        ...qualCategories.map(cat => [
+            cat.name,
+            cat.count,
+            totalInits > 0 ? `${Math.round((cat.count / totalInits) * 100)}%` : '0%',
+            cat.areas.length > 0 ? cat.areas.slice(0, 4).join(', ') : 'General'
+        ]),
+        [],
+        [`© ${new Date().getFullYear()} TFBE Roadmap — Resumen Ejecutivo de Impacto & Valor`]
+    ];
+
+    const ws1 = XLSX.utils.aoa_to_sheet(s1);
+
+    ws1['!cols'] = [
+        { wch: 36 },
+        { wch: 34 },
+        { wch: 28 },
+        { wch: 68 },
+    ];
+
+    ws1['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, // Title
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }, // Subtitle
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } }, // Section 1 header
+        { s: { r: 11, c: 0 }, e: { r: 11, c: 3 } }, // Section 2 header
+        { s: { r: 20, c: 0 }, e: { r: 20, c: 3 } }, // Section 3 header
+        { s: { r: s1.length - 1, c: 0 }, e: { r: s1.length - 1, c: 3 } }, // Footer
+    ];
+
+    const setStyle = (sheet: any, ref: string, style: object) => {
+        if (!sheet[ref]) sheet[ref] = { t: 's', v: '' };
+        sheet[ref].s = style;
+    };
+
+    // Styling Sheet 1
+    setStyle(ws1, 'A1', {
+        font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '312E81' } },
+        alignment: { horizontal: 'center', vertical: 'center' }
+    });
+    setStyle(ws1, 'A2', {
+        font: { sz: 9, italic: true, color: { rgb: '6366F1' } },
+        alignment: { horizontal: 'center', vertical: 'center' }
+    });
+
+    // Section title banners (Row 4, Row 12, Row 21)
+    const sectionRows = [4, 12, 21];
+    sectionRows.forEach(r => {
+        setStyle(ws1, `A${r}`, {
+            font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '4F46E5' } },
+            alignment: { vertical: 'center' }
+        });
+    });
+
+    // Table header rows (Row 5, Row 13, Row 22)
+    const tableHeaderRows = [5, 13, 22];
+    tableHeaderRows.forEach(r => {
+        ['A', 'B', 'C', 'D'].forEach(c => {
+            setStyle(ws1, `${c}${r}`, {
+                font: { bold: true, sz: 9, color: { rgb: 'FFFFFF' } },
+                fill: { fgColor: { rgb: '1E1B4B' } },
+                alignment: { horizontal: 'center', vertical: 'center' }
+            });
+        });
+    });
+
+    // Bold metric labels in Column A
+    for (let r = 6; r <= 10; r++) {
+        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 } });
+    }
+    for (let r = 14; r <= 19; r++) {
+        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 } });
+    }
+    for (let r = 23; r <= 22 + qualCategories.length; r++) {
+        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 } });
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen Ejecutivo (KPIs)');
+
+    // ─── PESTAÑA 2: Detalle Iniciativas y Pilares ──────────────────────────────────
+    // Sin columna ID/Código, con las 12 columnas requeridas
+
+    const detailHeaders = [
+        'Iniciativa',
+        'Área',
+        'Responsable / Champion',
+        'Estatus',
+        'Progreso (%)',
+        '1. Valor de Negocio',
+        '2. Eficiencia Operativa',
+        '3. Impacto FTE',
+        '4. Beneficio Cualitativo',
+        '5. Usuarios Alcanzados',
+        '6. Ahorro Estimado',
+        'Pilares Completos'
+    ];
+
+    const s2: any[][] = [
+        ['TFBE ROADMAP — DETALLE DE INICIATIVAS Y 6 PILARES DE VALOR'],
+        [`Exportado el ${exportDate} | ${totalInits} iniciativas | ${filterSubtitle}`],
+        [],
+        detailHeaders
     ];
 
     for (const init of initiatives) {
@@ -517,19 +815,19 @@ export function exportConsolidatedToExcel(
         const cleanUsers = stripHtml(val.users_reached_detail);
         const cleanSavings = stripHtml(val.estimated_savings_detail);
 
+        // Doc count counts N/A as completed / documented (6/6)
         const docCount = [
-            cleanBusiness,
-            cleanOperational,
-            cleanFte,
-            cleanQualitative,
-            cleanUsers,
-            cleanSavings
-        ].filter(t => t.length > 0 && t !== '<p></p>').length;
+            val.business_value,
+            val.operational_efficiency,
+            val.fte_detail,
+            val.qualitative_benefit,
+            val.users_reached_detail,
+            val.estimated_savings_detail
+        ].filter(v => isPillarFilled(v)).length;
 
         const leadChampion = [init.transformation_lead, init.champion].filter(Boolean).join(' / ') || '—';
 
-        rows.push([
-            init.id,
+        s2.push([
             init.name,
             init.area || '—',
             leadChampion,
@@ -545,58 +843,69 @@ export function exportConsolidatedToExcel(
         ]);
     }
 
-    rows.push([]);
-    rows.push([`© ${new Date().getFullYear()} TFBE Roadmap — Consolidado de Impacto & Valor generado automáticamente`]);
+    s2.push([]);
+    s2.push([`© ${new Date().getFullYear()} TFBE Roadmap — Detalle de Iniciativas generado automáticamente`]);
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const ws2 = XLSX.utils.aoa_to_sheet(s2);
 
-    ws['!cols'] = [
-        { wch: 18 }, // ID / Código
-        { wch: 38 }, // Iniciativa
-        { wch: 22 }, // Área
-        { wch: 28 }, // Responsable / Champion
-        { wch: 18 }, // Estatus
-        { wch: 14 }, // Progreso (%)
-        { wch: 45 }, // 1. Valor de Negocio
-        { wch: 45 }, // 2. Eficiencia Operativa
-        { wch: 40 }, // 3. Impacto FTE
-        { wch: 45 }, // 4. Beneficio Cualitativo
-        { wch: 40 }, // 5. Usuarios Alcanzados
-        { wch: 40 }, // 6. Ahorro Estimado
-        { wch: 22 }  // Pilares Documentados
+    // Dynamic width calculation based on content starting from header row (index 3)
+    const minColWidths = [28, 18, 26, 16, 14, 38, 38, 32, 38, 32, 32, 18];
+    const maxColWidths = [50, 30, 38, 22, 16, 75, 75, 70, 75, 70, 70, 22];
+
+    const colWidths: { wch: number }[] = [];
+    for (let c = 0; c < detailHeaders.length; c++) {
+        let maxLen = detailHeaders[c].length;
+        for (let r = 3; r < s2.length - 2; r++) {
+            const cell = s2[r] ? s2[r][c] : undefined;
+            if (cell !== undefined && cell !== null && cell !== '') {
+                const lines = String(cell).split('\n');
+                for (const l of lines) {
+                    if (l.length > maxLen) {
+                        maxLen = l.length;
+                    }
+                }
+            }
+        }
+        const minW = minColWidths[c] || 15;
+        const maxW = maxColWidths[c] || 75;
+        colWidths.push({ wch: Math.min(Math.max(maxLen + 3, minW), maxW) });
+    }
+    ws2['!cols'] = colWidths;
+
+    ws2['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } },
+        { s: { r: s2.length - 1, c: 0 }, e: { r: s2.length - 1, c: 11 } }
     ];
 
-    ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
-    ];
-
-    const setStyle = (ref: string, style: object) => {
-        if (!ws[ref]) ws[ref] = { t: 's', v: '' };
-        ws[ref].s = style;
-    };
-
-    setStyle('A1', {
+    setStyle(ws2, 'A1', {
         font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '312E81' } },
         alignment: { horizontal: 'center', vertical: 'center' }
     });
-    setStyle('A2', {
+    setStyle(ws2, 'A2', {
         font: { sz: 9, italic: true, color: { rgb: '6366F1' } },
         alignment: { horizontal: 'center', vertical: 'center' }
     });
 
-    const headerCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
-    for (const col of headerCols) {
-        setStyle(`${col}4`, {
+    // Detail table header row (Row 4, index 3: A4 to L4)
+    const detailHeaderCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    detailHeaderCols.forEach(col => {
+        setStyle(ws2, `${col}4`, {
             font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
             fill: { fgColor: { rgb: '1E1B4B' } },
             alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
         });
+    });
+
+    // Set bold font on initiative names (Column A) for clean reading
+    for (let r = 5; r <= s2.length - 2; r++) {
+        setStyle(ws2, `A${r}`, { font: { bold: true, sz: 9 } });
     }
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Consolidado 6 Pilares');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Detalle Iniciativas y Pilares');
 
+    // ─── Guardar archivo ──────────────────────────────────────────────────────────
     const fileName = `Consolidado_Impacto_Valor_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
 }

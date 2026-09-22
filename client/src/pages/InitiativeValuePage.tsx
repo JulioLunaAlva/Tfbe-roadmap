@@ -930,7 +930,6 @@ export const InitiativeValuePage = () => {
                         allValues={allValues}
                         pillarSummary={pillarSummary}
                         onSelectInitiative={handleSelectInitiative}
-                        onExportConsolidated={handleExportConsolidated}
                     />
                 ) : (
                     <InitiativePillarsEditor
