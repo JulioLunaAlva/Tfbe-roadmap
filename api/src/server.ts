@@ -249,6 +249,12 @@ const initDb = async () => {
       CREATE INDEX IF NOT EXISTS idx_pres_files_folder ON presentation_files(folder_id);
     `);
 
+    // User profile fields (avatar_url, name)
+    await query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT '';
+    `);
+
     console.log('🟢 Database tables ready');
   } catch (err) {
     console.error('❌ Failed to initialize dashboard layout table:', err);

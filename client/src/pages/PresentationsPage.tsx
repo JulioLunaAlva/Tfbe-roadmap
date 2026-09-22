@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import API_URL from '../config/api';
+import { UserAvatar } from '../components/common/UserAvatar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ interface Folder {
     business_area_id: string;
     file_count: number;
     created_by_name: string;
+    created_by_avatar?: string;
     created_at: string;
 }
 
@@ -29,6 +31,7 @@ interface PresentationFile {
     mime_type: string;
     size_bytes: number;
     uploaded_by_name: string;
+    uploaded_by_avatar?: string;
     created_at: string;
 }
 
@@ -189,7 +192,11 @@ const FileCard = ({ file, canEdit, onDelete, onDownload }: {
                         <span>{formatBytes(file.size_bytes)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                        <User size={11} className="flex-shrink-0" />
+                        <UserAvatar
+                            name={file.uploaded_by_name}
+                            imageUrl={file.uploaded_by_avatar}
+                            size="xs"
+                        />
                         <span className="truncate">{file.uploaded_by_name || 'Desconocido'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
@@ -280,8 +287,6 @@ export const PresentationsPage = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
-    const [debugMsg, setDebugMsg] = useState('');
-
     // ── Fetch folders ──────────────────────────────────────────────────────
     const fetchFolders = useCallback(async () => {
         if (!token) return;
@@ -290,23 +295,19 @@ export const PresentationsPage = () => {
             // Build query string — areaQueryParam starts with '&', strip it
             const areaParam = activeArea?.id ? `business_area_id=${activeArea.id}` : '';
             const url = `${API_URL}/api/presentations/folders${areaParam ? `?${areaParam}` : ''}`;
-            setDebugMsg(`Fetching: ${url}`);
             const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
                 const data: Folder[] = await res.json();
-                setDebugMsg(`OK — ${data.length} carpetas recibidas. area=${activeArea?.id ?? 'none'}`);
                 setFolders(data);
                 // Auto-select first folder if none selected
                 if (data.length > 0) setSelectedFolder(prev => prev ?? data[0]);
             } else {
                 const errText = await res.text();
-                setDebugMsg(`ERROR ${res.status}: ${errText}`);
                 console.error('Presentations API error:', res.status, errText);
             }
         } catch (err) {
-            setDebugMsg(`EXCEPTION: ${String(err)}`);
             console.error('fetchFolders failed:', err);
         } finally {
             setLoadingFolders(false);
@@ -499,7 +500,15 @@ export const PresentationsPage = () => {
                                     ) : (
                                         <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate leading-tight">{folder.name}</p>
                                     )}
-                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{folder.file_count} {folder.file_count === 1 ? 'archivo' : 'archivos'}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{folder.file_count} {folder.file_count === 1 ? 'archivo' : 'archivos'}</p>
+                                        {folder.created_by_name && (
+                                            <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+                                                <span>·</span>
+                                                <UserAvatar name={folder.created_by_name} imageUrl={folder.created_by_avatar} size="xs" />
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 {/* Actions */}
                                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
@@ -526,16 +535,11 @@ export const PresentationsPage = () => {
                     )}
                 </div>
 
-                {/* Stats + debug footer */}
+                {/* Stats footer */}
                 <div className="p-4 border-t border-gray-100 dark:border-gray-800">
                     <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center">
                         {folders.length} carpeta{folders.length !== 1 ? 's' : ''} · {folders.reduce((a, f) => a + f.file_count, 0)} archivo{folders.reduce((a, f) => a + f.file_count, 0) !== 1 ? 's' : ''}
                     </p>
-                    {debugMsg && (
-                        <p className="mt-1 text-[9px] text-amber-600 dark:text-amber-400 break-all text-center leading-tight">
-                            {debugMsg}
-                        </p>
-                    )}
                 </div>
             </aside>
 
@@ -556,6 +560,13 @@ export const PresentationsPage = () => {
                                     <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{selectedFolder.name}</h2>
                                     {selectedFolder.description && (
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{selectedFolder.description}</p>
+                                    )}
+                                    {selectedFolder.created_by_name && (
+                                        <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
+                                            <span>Creado por</span>
+                                            <UserAvatar name={selectedFolder.created_by_name} imageUrl={selectedFolder.created_by_avatar} size="xs" />
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{selectedFolder.created_by_name}</span>
+                                        </div>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">

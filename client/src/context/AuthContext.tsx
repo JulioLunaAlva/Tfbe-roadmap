@@ -2,9 +2,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import API_URL from '../config/api';
 
 interface User {
+    id?: string;
     email: string;
+    name?: string;
     role: 'admin' | 'editor' | 'viewer';
     allowed_pages?: string[];
+    avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -17,6 +20,7 @@ interface AuthContextType {
     isLoading: boolean;
     triggerMustChangePassword: (tempToken: string, email: string) => void;
     confirmPasswordChange: (token: string, user: User) => void;
+    updateUserProfile: (data: { avatar_url?: string; name?: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -109,11 +113,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login(newToken, newUser);
     };
 
+    const updateUserProfile = async (data: { avatar_url?: string; name?: string }) => {
+        if (!token) return { success: false, error: 'No autenticado' };
+        try {
+            const res = await fetch(`${API_URL}/api/auth/profile`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const resData = await res.json();
+                if (resData.user) {
+                    setUser(resData.user);
+                }
+                return { success: true };
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                return { success: false, error: errData.error || 'Error al actualizar perfil' };
+            }
+        } catch (err: any) {
+            return { success: false, error: err.message || 'Error de conexión' };
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user, token, mustChangePassword, tempToken,
             login, logout, isLoading,
-            triggerMustChangePassword, confirmPasswordChange
+            triggerMustChangePassword, confirmPasswordChange,
+            updateUserProfile
         }}>
             {children}
         </AuthContext.Provider>

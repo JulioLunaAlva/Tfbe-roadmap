@@ -53,7 +53,18 @@ export const loginCall = async (req: Request, res: Response) => {
         const token = generateToken(user.email, user.role || 'viewer', user.id, user.allowed_pages);
 
         // Respond success
-        res.json({ message: 'Login successful', token, user: { email: user.email, role: user.role, allowed_pages: user.allowed_pages } });
+        res.json({
+            message: 'Login successful',
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                allowed_pages: user.allowed_pages,
+                avatar_url: user.avatar_url || '',
+                name: user.name || ''
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
@@ -107,7 +118,7 @@ export const changePassword = async (req: Request, res: Response) => {
 
         // Issue full session token so user is logged in after changing password
         const freshUser = await query(
-            'SELECT id, email, role, allowed_pages FROM users WHERE id = $1',
+            'SELECT id, email, role, allowed_pages, avatar_url, name FROM users WHERE id = $1',
             [decoded.id]
         );
         const u = freshUser.rows[0];
@@ -116,7 +127,14 @@ export const changePassword = async (req: Request, res: Response) => {
         res.json({
             message: 'Contraseña actualizada exitosamente',
             token: fullToken,
-            user: { email: u.email, role: u.role, allowed_pages: u.allowed_pages }
+            user: {
+                id: u.id,
+                email: u.email,
+                role: u.role,
+                allowed_pages: u.allowed_pages,
+                avatar_url: u.avatar_url || '',
+                name: u.name || ''
+            }
         });
     } catch (error) {
         console.error(error);
@@ -134,8 +152,11 @@ export const verifyToken = async (req: Request, res: Response) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-        // Fetch fresh user data from DB to include allowed_pages
-        const userResult = await query('SELECT id, email, role, allowed_pages FROM users WHERE email = $1', [decoded.email]);
+        // Fetch fresh user data from DB to include allowed_pages, avatar_url, name
+        const userResult = await query(
+            'SELECT id, email, role, allowed_pages, avatar_url, name FROM users WHERE email = $1',
+            [decoded.email]
+        );
         const user = userResult.rows[0];
 
         if (!user) {
@@ -145,5 +166,51 @@ export const verifyToken = async (req: Request, res: Response) => {
         res.json({ user });
     } catch (e) {
         res.status(401).json({ error: 'Invalid token' });
+    }
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+    const token = authHeader.split(' ')[1];
+    let decoded: any;
+    try {
+        decoded = jwt.verify(token, JWT_SECRET) as any;
+    } catch (_e) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    const { avatar_url, name } = req.body;
+
+    try {
+        const updateFields: string[] = [];
+        const values: any[] = [];
+
+        if (avatar_url !== undefined) {
+            values.push(typeof avatar_url === 'string' ? avatar_url.trim() : '');
+            updateFields.push(`avatar_url = $${values.length}`);
+        }
+        if (name !== undefined) {
+            values.push(typeof name === 'string' ? name.trim() : '');
+            updateFields.push(`name = $${values.length}`);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({ error: 'No fields to update' });
+        }
+
+        values.push(decoded.id);
+        const queryText = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${values.length} RETURNING id, email, role, allowed_pages, avatar_url, name`;
+        const result = await query(queryText, values);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({ message: 'Perfil actualizado exitosamente', user: result.rows[0] });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };

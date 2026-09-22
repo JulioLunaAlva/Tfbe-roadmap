@@ -36,6 +36,7 @@ router.get('/folders', async (req: any, res: Response) => {
                 f.business_area_id,
                 f.created_at,
                 COALESCE(u.email, '') AS created_by_name,
+                COALESCE(u.avatar_url, '') AS created_by_avatar,
                 (SELECT COUNT(*)::int FROM presentation_files pf WHERE pf.folder_id = f.id) AS file_count
              FROM presentation_folders f
              LEFT JOIN users u ON u.id = f.created_by
@@ -43,7 +44,6 @@ router.get('/folders', async (req: any, res: Response) => {
              ORDER BY f.created_at ASC`,
             params
         );
-        console.log(`GET /folders — area=${business_area_id ?? 'ALL'} — returned ${result.rows.length} rows`);
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching folders:', err);
@@ -114,7 +114,8 @@ router.get('/folders/:id/files', async (req: any, res: Response) => {
     try {
         const result = await query(
             `SELECT f.id, f.folder_id, f.original_name, f.mime_type, f.size_bytes, f.created_at,
-                    u.email as uploaded_by_name
+                    u.email as uploaded_by_name,
+                    COALESCE(u.avatar_url, '') as uploaded_by_avatar
              FROM presentation_files f
              LEFT JOIN users u ON u.id = f.uploaded_by
              WHERE f.folder_id = $1

@@ -3,11 +3,13 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Users, Lock, Brain, Network, Building2, Presentation } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Users, Lock, Brain, Network, Building2, Presentation, UserCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
 import { ChangePasswordModal } from '../../pages/ChangePasswordPage';
 import { AreaSwitcher } from './AreaSwitcher';
+import { UserAvatar } from '../common/UserAvatar';
+import { ProfileModal } from '../common/ProfileModal';
 
 export const Layout = () => {
     const { user, logout } = useAuth();
@@ -15,6 +17,7 @@ export const Layout = () => {
     const { theme, toggleTheme, isSidebarOpen, toggleSidebar, isPresentationMode, togglePresentationMode } = useTheme();
     const { year, setYear } = useYear();
     const [showChangePassword, setShowChangePassword] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
     // Reset scroll on navigation
     React.useEffect(() => {
@@ -120,17 +123,43 @@ export const Layout = () => {
 
                     {/* User Profile */}
                     <div className="p-4 border-t border-white/[0.06] bg-[var(--bg-sidebar)] flex-shrink-0">
-                        <div className={clsx("flex items-center", isSidebarOpen ? "pb-3" : "justify-center pb-2")}>
-                            <div className="w-8 h-8 rounded-full bg-zinc-700 ring-2 ring-white/10 flex items-center justify-center text-xs font-bold text-zinc-200 flex-shrink-0">
-                                {user?.email[0].toUpperCase()}
-                            </div>
+                        <div
+                            onClick={() => setShowProfileModal(true)}
+                            className={clsx(
+                                "flex items-center cursor-pointer p-1.5 -mx-1.5 rounded-xl hover:bg-white/[0.06] transition-colors group",
+                                isSidebarOpen ? "pb-3" : "justify-center pb-2"
+                            )}
+                            title="Ver y editar perfil"
+                        >
+                            <UserAvatar
+                                name={user?.name || user?.email}
+                                imageUrl={user?.avatar_url}
+                                size="md"
+                            />
                             {isSidebarOpen && (
-                                <div className="ml-3 overflow-hidden fade-in animate-in">
-                                    <p className="text-sm font-medium text-[var(--text-sidebar-primary)] truncate w-32" title={user?.email}>{user?.email}</p>
-                                    <p className="text-xs text-[var(--text-sidebar-secondary)] capitalize">{user?.role}</p>
+                                <div className="ml-3 overflow-hidden fade-in animate-in flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-[var(--text-sidebar-primary)] truncate" title={user?.name || user?.email}>
+                                        {user?.name || user?.email}
+                                    </p>
+                                    <p className="text-xs text-[var(--text-sidebar-secondary)] capitalize flex items-center justify-between">
+                                        <span>{user?.role}</span>
+                                        <span className="text-[10px] text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">Editar</span>
+                                    </p>
                                 </div>
                             )}
                         </div>
+                        {/* Edit Profile */}
+                        <button
+                            onClick={() => setShowProfileModal(true)}
+                            className={clsx(
+                                "flex items-center text-sm text-[var(--text-sidebar-secondary)] hover:text-[var(--text-sidebar-primary)] rounded transition-colors hover:bg-white/[0.05] mb-1",
+                                isSidebarOpen ? "w-full px-2 py-1.5 space-x-2" : "justify-center p-2"
+                            )}
+                            title="Editar perfil"
+                        >
+                            <UserCircle size={16} />
+                            {isSidebarOpen && <span>Mi Perfil</span>}
+                        </button>
                         {/* Change Password */}
                         <button
                             onClick={() => setShowChangePassword(true)}
@@ -162,6 +191,11 @@ export const Layout = () => {
             {/* Change Password Modal */}
             {showChangePassword && (
                 <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+            )}
+
+            {/* Profile Modal */}
+            {showProfileModal && (
+                <ProfileModal onClose={() => setShowProfileModal(false)} />
             )}
 
             {/* Main Content Area */}
@@ -235,6 +269,21 @@ export const Layout = () => {
                             title={theme === 'light' ? "Cambiar a Modo Oscuro" : "Cambiar a Modo Claro"}
                         >
                             {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+                        </button>
+
+                        <div className="h-6 w-px bg-[var(--border-color)] mx-1"></div>
+
+                        {/* User Profile Avatar in Header */}
+                        <button
+                            onClick={() => setShowProfileModal(true)}
+                            className="flex items-center gap-2 p-0.5 rounded-full hover:ring-2 hover:ring-indigo-500/50 transition-all focus:outline-none"
+                            title={`Mi Perfil (${user?.name || user?.email})`}
+                        >
+                            <UserAvatar
+                                name={user?.name || user?.email}
+                                imageUrl={user?.avatar_url}
+                                size="sm"
+                            />
                         </button>
                     </div>
                 </header>
