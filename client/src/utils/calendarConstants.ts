@@ -55,19 +55,3 @@ export const getMonthFromWeek = (week: number) => {
     }
     return null;
 };
-
-export const getWeekNumberFromDate = (dateStr?: string, targetYear?: number): number | null => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return null;
-    if (targetYear && d.getFullYear() !== targetYear) {
-        if (d.getFullYear() < targetYear) return 1;
-        if (d.getFullYear() > targetYear) return 52;
-    }
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    const week = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-    return Math.max(1, Math.min(52, week));
-};
-

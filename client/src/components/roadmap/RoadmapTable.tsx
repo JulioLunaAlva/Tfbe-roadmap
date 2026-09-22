@@ -32,7 +32,7 @@ import { RoadmapFilters } from './RoadmapFilters';
 import { RoadmapLegend } from './RoadmapLegend';
 import { TagsEditor } from './TagsEditor';
 import { CommentsDrawer } from '../comments/CommentsDrawer';
-import { CALENDAR_SCHEMA, flatWeeks, getCurrentWeekNumber, getWeekNumberFromDate } from '../../utils/calendarConstants';
+import { CALENDAR_SCHEMA, flatWeeks, getCurrentWeekNumber } from '../../utils/calendarConstants';
 import { exportRoadmapToExcel } from '../../utils/exportRoadmap';
 import { useNavigate } from 'react-router-dom';
 
@@ -83,6 +83,16 @@ interface Milestone {
     week_number: number;
 }
 
+const getProgressColor = (val: number) => {
+    switch (val) {
+        case 1: return 'bg-gray-300'; // En plan
+        case 2: return 'bg-purple-500'; // Atraso / Redefinición Funcional
+        case 3: return 'bg-green-500'; // Avance conforme plan
+        case 4: return 'bg-red-600'; // Atraso
+        default: return '';
+    }
+};
+
 const getStatusName = (val: number) => {
     switch (val) {
         case 1: return 'En plan';
@@ -90,21 +100,6 @@ const getStatusName = (val: number) => {
         case 3: return 'Avance conforme plan';
         case 4: return 'Atraso';
         default: return 'Sin estado';
-    }
-};
-
-const getPillGradient = (val: number) => {
-    switch (val) {
-        case 1: // En plan
-            return 'bg-gradient-to-r from-slate-400 to-slate-500 text-white shadow-sm border-y border-slate-400/30';
-        case 2: // Atraso / Redefinición Funcional
-            return 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-sm border-y border-purple-500/30';
-        case 3: // Avance conforme plan
-            return 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm border-y border-emerald-500/30';
-        case 4: // Atraso
-            return 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-sm border-y border-rose-500/30';
-        default:
-            return '';
     }
 };
 
@@ -138,9 +133,9 @@ const SortableInitiativeRow = ({
     renderMilestone,
     currentWeekNumber,
     getStatusName,
+    getProgressColor,
     handlePhaseProgressUpdate,
-    CALENDAR_SCHEMA,
-    year
+    CALENDAR_SCHEMA
 }: any) => {
     const {
         attributes,
@@ -152,28 +147,6 @@ const SortableInitiativeRow = ({
     } = useSortable({ id: initiative.id });
     
     const navigate = useNavigate();
-
-    const startWeek = useMemo(() => {
-        if (initiative.start_date) {
-            const wk = getWeekNumberFromDate(initiative.start_date, year);
-            if (wk) return wk;
-        }
-        for (let w = 1; w <= 52; w++) {
-            if (progressMap[`${initiative.id}-0-${w}`]?.progress_value > 0) return w;
-        }
-        return null;
-    }, [initiative.start_date, initiative.id, progressMap, year]);
-
-    const endWeek = useMemo(() => {
-        if (initiative.end_date) {
-            const wk = getWeekNumberFromDate(initiative.end_date, year);
-            if (wk) return wk;
-        }
-        for (let w = 52; w >= 1; w--) {
-            if (progressMap[`${initiative.id}-0-${w}`]?.progress_value > 0) return w;
-        }
-        return null;
-    }, [initiative.end_date, initiative.id, progressMap, year]);
 
     const style = {
         transform: CSS.Translate.toString(transform),
@@ -329,44 +302,25 @@ const SortableInitiativeRow = ({
                     }
                     const key = `${initiative.id}-0-${w}`;
                     const prog = progressMap[key];
-                    const val = prog?.progress_value || 0;
-                    const hasProgress = val > 0;
+                    const progressColor = prog ? getProgressColor(prog.progress_value) : '';
                     const isSelected = selectedCells.some((c: any) => c.initiativeId === initiative.id && c.phaseId === 0 && c.week === w);
-                    const isDimmed = highlightedStatus !== null && val !== highlightedStatus;
-
-                    // Continuous timeline pill neighbor detection
-                    const prevVal = progressMap[`${initiative.id}-0-${w - 1}`]?.progress_value || 0;
-                    const nextVal = progressMap[`${initiative.id}-0-${w + 1}`]?.progress_value || 0;
-                    const hasPrev = prevVal > 0;
-                    const hasNext = nextVal > 0;
-                    const isBarStart = !hasPrev;
-                    const isBarEnd = !hasNext;
-
-                    const isStartMilestone = startWeek === w;
-                    const isEndMilestone = endWeek === w;
-                    const isCurrentWeek = w === currentWeekNumber;
-
-                    const tooltipText = [
-                        `Semana ${w} - ${getStatusName(val)}`,
-                        isStartMilestone ? `🚩 Inicio: ${initiative.start_date ? new Date(initiative.start_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : `Semana ${w}`}` : null,
-                        isEndMilestone ? `🏁 Fin: ${initiative.end_date ? new Date(initiative.end_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : `Semana ${w}`}` : null,
-                        prog?.comment ? `Comentario: ${prog.comment}` : null
-                    ].filter(Boolean).join('\n');
+                    const isDimmed = highlightedStatus !== null && prog?.progress_value !== highlightedStatus;
 
                     return (
                         <td
                             key={w}
                             className={clsx(
-                                "px-0 py-0 relative h-auto min-h-[3.25rem] transition-colors duration-150 cursor-pointer select-none",
-                                isDimmed ? "opacity-20 hover:opacity-100" : "hover:bg-slate-100/70 dark:hover:bg-slate-800/40",
+                                "px-0 py-0 relative h-auto min-h-[3.5rem] transition-all duration-300 cursor-pointer",
+                                isDimmed ? "opacity-20 hover:opacity-100" : "hover:bg-[var(--item-hover)] dark:hover:bg-[#374151]",
                                 "border-b border-[var(--border-color)]",
-                                isSelected ? "after:absolute after:inset-0 after:bg-blue-500/20 after:border-2 after:border-blue-500 after:z-30" : "",
+                                progressColor,
+                                isSelected ? "after:absolute after:inset-0 after:bg-blue-500/20 after:border-2 after:border-blue-500 after:z-20" : "",
                                 [13, 26, 39, 52].includes(w)
-                                    ? "border-r-[2px] border-r-slate-400/60 dark:border-r-slate-600 shadow-[1px_0_4px_-1px_rgba(0,0,0,0.15)]"
+                                    ? "border-r-[2px] border-r-[rgba(220,38,38,0.85)] shadow-[1px_0_4px_-1px_rgba(220,38,38,0.3)]"
                                     : isMonthEnd
                                         ? "border-r border-r-[var(--border-color)] dark:border-r-gray-700" 
-                                        : "border-r border-[var(--border-color)]/60 dark:border-r-gray-800/60",
-                                isCurrentWeek ? "bg-emerald-500/[0.04] dark:bg-emerald-400/[0.05]" : ""
+                                        : "border-r border-[var(--border-color)]",
+                                w === currentWeekNumber ? "!border-l-[2px] !border-l-[#4ADE80] bg-gradient-to-r from-[rgba(34,197,94,0.15)] to-transparent dark:from-[rgba(74,222,128,0.1)] dark:to-transparent shadow-[inset_1px_0_0_0_rgba(74,222,128,0.2)]" : ""
                             )}
                             onContextMenu={(e) => handleContextMenu(e, initiative.id, w)}
                             onMouseDown={(e) => handleCellMouseDown(e, initiative.id, 0, w)}
@@ -374,62 +328,12 @@ const SortableInitiativeRow = ({
                             onClick={(e) => { if (user?.role === 'viewer') return; handleCellClick(e, initiative.id, 0, w); }}
                             onDragOver={(e) => handleDragOver(e, initiative.id)}
                             onDrop={(e) => handleDrop(e, initiative.id, w)}
-                            title={tooltipText}
+                            title={`Semana ${w} - ${getStatusName(prog?.progress_value || 0)}${prog?.comment ? `\n\nComentario:\n${prog.comment}` : ''}`}
                         >
-                            {/* Today vertical ruler line */}
-                            {isCurrentWeek && (
-                                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-emerald-500/80 dark:bg-emerald-400/80 z-20 pointer-events-none shadow-[0_0_4px_rgba(16,185,129,0.5)]" />
-                            )}
-
-                            {/* Continuous Gantt Pill */}
-                            {hasProgress && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none py-1.5">
-                                    <div
-                                        className={clsx(
-                                            "h-6 w-full relative z-10 transition-all duration-150 flex items-center justify-center",
-                                            isBarStart && isBarEnd && "rounded-md mx-1",
-                                            isBarStart && !isBarEnd && "rounded-l-md ml-1 -mr-[1px]",
-                                            !isBarStart && isBarEnd && "rounded-r-md mr-1 -ml-[1px]",
-                                            !isBarStart && !isBarEnd && "rounded-none -ml-[1px] -mr-[1px]",
-                                            getPillGradient(val),
-                                            isDimmed ? "opacity-25" : "opacity-100"
-                                        )}
-                                    >
-                                        {val === 4 && isBarStart && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping opacity-75 mr-1" />
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Start Milestone Marker */}
-                            {isStartMilestone && (
-                                <div
-                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 z-25 flex items-center justify-center pointer-events-none"
-                                    title={`Inicio: ${initiative.start_date ? new Date(initiative.start_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : `Semana ${w}`}`}
-                                >
-                                    <div className="w-3.5 h-3.5 bg-sky-500 rotate-45 rounded-[2px] shadow-sm ring-2 ring-white dark:ring-gray-900 flex items-center justify-center">
-                                        <div className="w-1 h-1 bg-white rounded-full -rotate-45" />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* End Milestone Marker */}
-                            {isEndMilestone && (
-                                <div
-                                    className="absolute -right-1.5 top-1/2 -translate-y-1/2 z-25 flex items-center justify-center pointer-events-none"
-                                    title={`Fin: ${initiative.end_date ? new Date(initiative.end_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : `Semana ${w}`}`}
-                                >
-                                    <div className="w-3.5 h-3.5 bg-rose-500 rotate-45 rounded-[2px] shadow-sm ring-2 ring-white dark:ring-gray-900 flex items-center justify-center">
-                                        <div className="w-1 h-1 bg-white rounded-full -rotate-45" />
-                                    </div>
-                                </div>
-                            )}
-
-                            {!expanded[initiative.id] && <div className="absolute inset-x-0 bottom-0 h-[1px] bg-slate-200/50 dark:bg-gray-800/60 pointer-events-none"></div>}
+                            {!expanded[initiative.id] && <div className="absolute inset-x-0 bottom-0 h-1 bg-[var(--bg-secondary)] opacity-50"></div>}
                             {renderMilestone(initiative.id, w)}
                         </td>
-                    );
+                    )
                 })}
             </tr>
             {expanded[initiative.id] && initiative.phases?.map((phase: any) => (
@@ -476,7 +380,6 @@ const SortableInitiativeRow = ({
                             const key = `${initiative.id}-${phase.phase_id}-${w}`;
                             const prog = progressMap[key];
                             const val = prog?.progress_value || 0;
-                            const hasProgress = val > 0;
                             let isMonthEnd = false;
                             let accumulateWeeks = 0;
                             for (const q of CALENDAR_SCHEMA) {
@@ -488,15 +391,6 @@ const SortableInitiativeRow = ({
                             const isSelected = selectedCells.some((c: any) => c.initiativeId === initiative.id && c.phaseId === phase.phase_id && c.week === w);
                             const isDimmed = highlightedStatus !== null && val !== highlightedStatus;
 
-                            // Continuous timeline pill neighbor detection for phase
-                            const prevVal = progressMap[`${initiative.id}-${phase.phase_id}-${w - 1}`]?.progress_value || 0;
-                            const nextVal = progressMap[`${initiative.id}-${phase.phase_id}-${w + 1}`]?.progress_value || 0;
-                            const hasPrev = prevVal > 0;
-                            const hasNext = nextVal > 0;
-                            const isBarStart = !hasPrev;
-                            const isBarEnd = !hasNext;
-                            const isCurrentWeek = w === currentWeekNumber;
-
                             return (
                                 <td
                                     key={w}
@@ -504,40 +398,19 @@ const SortableInitiativeRow = ({
                                     onMouseEnter={() => handleCellMouseEnter(initiative.id, phase.phase_id, w)}
                                     onClick={(e) => handleCellClick(e, initiative.id, phase.phase_id, w)}
                                     className={clsx(
-                                        "border-b border-[var(--border-color)] h-auto min-h-[2.75rem] cursor-pointer transition-colors duration-150 relative select-none",
-                                        isDimmed ? "opacity-20 hover:opacity-100" : "hover:bg-slate-100/70 dark:hover:bg-slate-800/40",
-                                        isSelected ? "after:absolute after:inset-0 after:bg-blue-500/20 after:border-2 after:border-blue-500 after:z-30" : "",
+                                        "border-b border-[var(--border-color)] h-auto min-h-[3rem] cursor-pointer transition-all duration-300 relative",
+                                        isDimmed ? "opacity-20 hover:opacity-100" : "hover:opacity-80",
+                                        getProgressColor(val),
+                                        isSelected ? "after:absolute after:inset-0 after:bg-blue-500/20 after:border-2 after:border-blue-500 after:z-20" : "",
                                         [13, 26, 39, 52].includes(w)
-                                            ? "border-r-[2px] border-r-slate-400/60 dark:border-r-slate-600 shadow-[1px_0_4px_-1px_rgba(0,0,0,0.15)]"
+                                            ? "border-r-[2px] border-r-[rgba(220,38,38,0.85)] shadow-[1px_0_4px_-1px_rgba(220,38,38,0.3)]"
                                             : isMonthEnd
                                                 ? "border-r border-r-[var(--border-color)] dark:border-r-gray-700"
-                                                : "border-r border-[var(--border-color)]/60 dark:border-r-gray-800/60",
-                                        isCurrentWeek ? "bg-emerald-500/[0.04] dark:bg-emerald-400/[0.05]" : ""
+                                                : "border-r border-[var(--border-color)]",
+                                        w === currentWeekNumber ? "!border-l-[2px] !border-l-[#4ADE80] bg-gradient-to-r from-[rgba(34,197,94,0.15)] to-transparent dark:from-[rgba(74,222,128,0.1)] dark:to-transparent shadow-[inset_1px_0_0_0_rgba(74,222,128,0.2)]" : ""
                                     )}
-                                    title={`Semana ${w} - ${getStatusName(val)}${prog?.comment ? `\n\nComentario:\n${prog.comment}` : ''}`}
-                                >
-                                    {/* Today vertical ruler line */}
-                                    {isCurrentWeek && (
-                                        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-emerald-500/80 dark:bg-emerald-400/80 z-20 pointer-events-none shadow-[0_0_4px_rgba(16,185,129,0.5)]" />
-                                    )}
-
-                                    {/* Continuous Gantt Pill for phase */}
-                                    {hasProgress && (
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none py-1.5">
-                                            <div
-                                                className={clsx(
-                                                    "h-5 w-full relative z-10 transition-all duration-150 flex items-center justify-center",
-                                                    isBarStart && isBarEnd && "rounded-md mx-1",
-                                                    isBarStart && !isBarEnd && "rounded-l-md ml-1 -mr-[1px]",
-                                                    !isBarStart && isBarEnd && "rounded-r-md mr-1 -ml-[1px]",
-                                                    !isBarStart && !isBarEnd && "rounded-none -ml-[1px] -mr-[1px]",
-                                                    getPillGradient(val),
-                                                    isDimmed ? "opacity-25" : "opacity-100"
-                                                )}
-                                            />
-                                        </div>
-                                    )}
-                                </td>
+                                    title={`Semana ${w} - ${getStatusName(prog?.progress_value || 0)}${prog?.comment ? `\n\nComentario:\n${prog.comment}` : ''}`}
+                                ></td>
                             );
                         })}
                     </tr>
@@ -1643,29 +1516,18 @@ export const RoadmapTable = () => {
                                         <th
                                             key={w}
                                             className={clsx(
-                                                "px-0 py-1 text-center text-[9px] w-8 min-w-[20px] bg-[var(--bg-secondary)] select-none",
-                                                "border-b border-[var(--border-color)] transition-colors",
+                                                "px-0 py-0.5 text-center text-[9px] w-8 min-w-[20px] bg-[var(--bg-secondary)]",
+                                                "border-b border-[var(--border-color)]",
                                                 isQuarterEnd
-                                                    ? "border-r-[2px] border-r-slate-400/60 dark:border-r-slate-600 shadow-[1px_0_4px_-1px_rgba(0,0,0,0.15)]"
+                                                    ? "border-r-[2px] border-r-[rgba(220,38,38,0.85)] shadow-[1px_0_4px_-1px_rgba(220,38,38,0.3)]"
                                                     : isMonthEnd
-                                                        ? "border-r border-r-slate-300 dark:border-r-gray-700"
-                                                        : "border-r border-[var(--border-color)]/50",
-                                                "text-[var(--text-tertiary)] opacity-90 font-medium",
-                                                isCurrentWeek ? "!border-x-2 !border-x-emerald-500 bg-emerald-500/15 dark:bg-emerald-400/20 text-emerald-700 dark:text-emerald-300 !font-extrabold shadow-inner" : ""
+                                                        ? "border-r border-r-white/20"
+                                                        : "",
+                                                "text-[var(--text-tertiary)] opacity-80 font-normal",
+                                                isCurrentWeek ? "!border-l-[2px] !border-l-[#4ADE80] bg-gradient-to-r from-[rgba(34,197,94,0.15)] to-transparent dark:from-[rgba(74,222,128,0.1)] dark:to-transparent text-[#166534] dark:text-[#4ADE80] !font-extrabold shadow-[inset_1px_0_0_0_rgba(74,222,128,0.2)]" : ""
                                             )}
                                         >
-                                            {isCurrentWeek ? (
-                                                <div className="flex flex-col items-center justify-center relative py-0.5">
-                                                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                                                        {relativeWeek}
-                                                    </span>
-                                                    <span className="inline-flex items-center px-1 rounded-sm text-[7px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-sm mt-0.5 leading-tight">
-                                                        HOY
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                relativeWeek
-                                            )}
+                                            {relativeWeek}
                                         </th>
                                     );
                                 })}
@@ -1688,6 +1550,7 @@ export const RoadmapTable = () => {
                                         setEditingInitiative={setEditingInitiative}
                                         handleDeleteInitiative={handleDeleteInitiative}
                                         handleOpenComments={handleOpenComments}
+                                        colWidths={colWidths}
                                         flatWeeks={flatWeeks}
                                         progressMap={progressMap}
                                         selectedCells={selectedCells}
@@ -1701,9 +1564,9 @@ export const RoadmapTable = () => {
                                         renderMilestone={renderMilestone}
                                         currentWeekNumber={currentWeekNumber}
                                         getStatusName={getStatusName}
+                                        getProgressColor={getProgressColor}
                                         handlePhaseProgressUpdate={handlePhaseProgressUpdate}
                                         CALENDAR_SCHEMA={CALENDAR_SCHEMA}
-                                        year={year}
                                     />
                                 ))}
                             </SortableContext>
