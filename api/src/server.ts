@@ -21,6 +21,7 @@ import dependenciesRouter from './routes/dependencies';
 import plannerRouter from './routes/planner';
 import aiRouter from './routes/ai';
 import areasRouter from './routes/areas';
+import presentationsRouter from './routes/presentations';
 import { query } from './db';
 
 const app = express();
@@ -57,6 +58,7 @@ app.use('/api/dependencies', dependenciesRouter);
 app.use('/api/planner', plannerRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/areas', areasRouter);
+app.use('/api/presentations', presentationsRouter);
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {
@@ -221,7 +223,33 @@ const initDb = async () => {
       CREATE INDEX IF NOT EXISTS idx_user_area_access_area ON user_area_access(area_id);
     `);
     
-    console.log('✅ Database tables ready');
+    // Presentations module tables
+    await query(`
+      CREATE TABLE IF NOT EXISTS presentation_folders (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(255) NOT NULL,
+        description TEXT DEFAULT '',
+        business_area_id UUID REFERENCES business_areas(id) ON DELETE CASCADE,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_pres_folders_area ON presentation_folders(business_area_id);
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS presentation_files (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        folder_id UUID NOT NULL REFERENCES presentation_folders(id) ON DELETE CASCADE,
+        original_name VARCHAR(500) NOT NULL,
+        mime_type VARCHAR(100),
+        size_bytes INTEGER,
+        data BYTEA NOT NULL,
+        uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_pres_files_folder ON presentation_files(folder_id);
+    `);
+
+    console.log('🟢 Database tables ready');
   } catch (err) {
     console.error('❌ Failed to initialize dashboard layout table:', err);
   }

@@ -25,6 +25,7 @@ import { IntelligencePage } from './pages/IntelligencePage';
 import { KnowledgeGraphPage } from './pages/KnowledgeGraphPage';
 import { AreaProvider } from './context/AreaContext';
 import { AreasAdminPage } from './pages/AreasAdminPage';
+import { PresentationsPage } from './pages/PresentationsPage';
 
 // Proteced Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: React.ReactElement, allowedRoles?: string[], requiredPage?: string }) => {
@@ -157,6 +158,11 @@ const AppRoutes = () => {
         <Route path="areas" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AreasAdminPage />
+          </ProtectedRoute>
+        } />
+        <Route path="presentations" element={
+          <ProtectedRoute>
+            <PresentationsPage />
           </ProtectedRoute>
         } />
       </Route>

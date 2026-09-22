@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useYear } from '../../context/YearContext';
-import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Users, Lock, Brain, Network, Building2 } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut, Upload, ChevronLeft, ChevronRight, Sun, Moon, MonitorPlay, MonitorOff, FileText, LifeBuoy, Key, Award, Calendar, CalendarDays, BarChart3, ShieldAlert, KanbanSquare, CheckSquare, Users, Lock, Brain, Network, Building2, Presentation } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ActivityFeed } from '../activity/ActivityFeed';
 import { ChangePasswordModal } from '../../pages/ChangePasswordPage';
@@ -38,12 +38,13 @@ export const Layout = () => {
         { label: 'Calendario', path: '/calendar', icon: CalendarDays },
         { label: 'Comparativa', path: '/comparative', icon: BarChart3 },
         { label: 'Riesgos', path: '/risks', icon: ShieldAlert },
+        { label: 'Presentaciones', path: '/presentations', icon: Presentation },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
     ].filter(item => {
         // Admin always sees all main nav items
         if (user?.role === 'admin') return true;
         // If no allowed_pages are set (e.g., old token), default to allowing standard pages
-        if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks'].includes(item.path);
+        if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks', '/presentations'].includes(item.path);
         return user.allowed_pages.includes(item.path);
     });
 
