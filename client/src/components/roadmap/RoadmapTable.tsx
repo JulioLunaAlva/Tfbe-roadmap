@@ -221,7 +221,7 @@ const SortableInitiativeRow = ({
                             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2 bg-[var(--bg-secondary)]/80 backdrop-blur-sm rounded p-1 shadow-sm font-normal">
                                 <button onClick={() => setEditingInitiative(initiative)} className="p-1 text-[var(--text-tertiary)] hover:text-blue-400 rounded" title="Editar Iniciativa"><Pencil size={12} /></button>
                                 <button onClick={(e) => { e.stopPropagation(); if (typeof handleOpenComments === 'function') handleOpenComments(initiative.id, initiative.name); }} className="p-1 text-[var(--text-tertiary)] hover:text-indigo-400 rounded" title="Comentarios"><MessageCircle size={12} /></button>
-                                <button onClick={() => handleDeleteInitiative(initiative.id)} className="p-1 text-[var(--text-tertiary)] hover:text-red-400 rounded" title="Eliminar Iniciativa"><Trash2 size={12} /></button>
+                                <button onClick={() => handleDeleteInitiative(initiative.id, initiative.name)} className="p-1 text-[var(--text-tertiary)] hover:text-red-400 rounded" title="Eliminar Iniciativa"><Trash2 size={12} /></button>
                             </div>
                         )}
                     </div>
@@ -577,8 +577,8 @@ export const RoadmapTable = () => {
         setContextMenu(null);
     };
 
-    const handleDeleteInitiative = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar esta iniciativa?')) return;
+    const handleDeleteInitiative = async (id: string, name?: string) => {
+        if (!confirm(`¿Estás seguro de eliminar la iniciativa "${name || 'seleccionada'}"?`)) return;
         try {
             await fetch(`${API_URL}/api/initiatives/${id}`, {
                 method: 'DELETE',
@@ -1625,7 +1625,7 @@ export const RoadmapTable = () => {
                 )}
 
             </div>
-            {isCreateModalOpen && <CreateInitiativeModal onClose={() => setIsCreateModalOpen(false)} onSave={fetchInitiatives} />}
+            {isCreateModalOpen && <CreateInitiativeModal onClose={() => setIsCreateModalOpen(false)} onSave={() => { alert('¡Iniciativa creada exitosamente!'); fetchInitiatives(); }} />}
 
             {/* Comments Drawer */}
             <CommentsDrawer
