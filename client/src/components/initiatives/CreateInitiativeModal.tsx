@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useArea } from '../../context/AreaContext';
 import API_URL from '../../config/api';
 
 interface Props {
@@ -30,6 +31,7 @@ interface InitiativeForm {
 
 export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
     const { token } = useAuth();
+    const { activeArea } = useArea();
     const [loading, setLoading] = useState(false);
 
     // Form State
@@ -133,7 +135,11 @@ export const CreateInitiativeModal: React.FC<Props> = ({ onClose, onSave }) => {
         console.log('CreateInitiativeModal - Value field specifically:', formData.value);
 
         try {
-            const payload = { ...formData };
+            const payload = { 
+                ...formData,
+                area: activeArea?.name || formData.area,
+                business_area_id: activeArea?.id
+            };
 
             const res = await fetch(`${API_URL}/api/initiatives`, {
                 method: 'POST',
