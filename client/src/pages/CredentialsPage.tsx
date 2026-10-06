@@ -88,6 +88,14 @@ export const CredentialsPage = () => {
         fetchUsers();
     }, [token]);
 
+const normalizePages = (pages?: string[]) => {
+    if (!pages || !Array.isArray(pages)) return DEFAULT_ALLOWED_PAGES;
+    return pages
+        .map(p => (typeof p === 'string' ? p.trim() : ''))
+        .filter(Boolean)
+        .map(p => (p.startsWith('/') ? p : `/${p}`));
+};
+
     const handleOpenModal = (mode: 'create' | 'edit', userToEdit?: User) => {
         setModalMode(mode);
         if (mode === 'edit' && userToEdit) {
@@ -96,7 +104,7 @@ export const CredentialsPage = () => {
                 email: userToEdit.email,
                 password: '', // Password empty on edit unless changing
                 role: userToEdit.role,
-                allowed_pages: userToEdit.allowed_pages || DEFAULT_ALLOWED_PAGES,
+                allowed_pages: normalizePages(userToEdit.allowed_pages),
                 must_change_password: userToEdit.must_change_password || false
             });
         } else {
@@ -122,13 +130,15 @@ export const CredentialsPage = () => {
 
             const method = modalMode === 'create' ? 'POST' : 'PUT';
 
-            // For edit, only send password if it's not empty
+            const cleanPages = normalizePages(formData.allowed_pages);
             const body: any = {
                 role: formData.role,
-                allowed_pages: formData.allowed_pages,
-                email: formData.email,
+                allowed_pages: cleanPages,
                 must_change_password: formData.must_change_password
             };
+            if (modalMode === 'create' || (editingUser && formData.email.trim().toLowerCase() !== editingUser.email.trim().toLowerCase())) {
+                body.email = formData.email.trim();
+            }
             if (modalMode === 'create') {
                 body.password = formData.password;
             } else {

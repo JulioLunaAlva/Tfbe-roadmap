@@ -6,7 +6,7 @@ import { z, ZodTypeAny } from 'zod';
 export const uuid = z.string().uuid();
 export const isUuid = (value: unknown): value is string => uuid.safeParse(value).success;
 
-export const emailSchema = z.string().trim().toLowerCase().min(1, 'El usuario o correo no puede estar vacío').max(254);
+export const emailSchema = z.string().trim().min(1, 'El usuario o correo no puede estar vacío').max(254);
 
 // bcrypt only uses the first 72 bytes, so cap the length. Min 4 chars.
 export const passwordSchema = z

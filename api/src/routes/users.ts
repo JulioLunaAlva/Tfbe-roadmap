@@ -23,7 +23,9 @@ const DEFAULT_PAGES = [
     '/presentations',
     '/support'
 ];
-const pagesSchema = z.array(z.string().max(100).regex(/^\/[A-Za-z0-9\-_/]*$/)).max(50);
+const pagesSchema = z.array(
+    z.string().trim().max(100).transform(p => (p.startsWith('/') ? p : `/${p}`))
+).max(50);
 
 const createSchema = z.object({
     email: emailSchema,
@@ -93,11 +95,22 @@ router.put('/:id', requireUuidParams('id'), validate(updateSchema), async (req, 
     const { password, role, allowed_pages, email, must_change_password } = req.body;
 
     try {
+        const currentUserRes = await pool.query('SELECT id, email FROM users WHERE id = $1', [id]);
+        if (currentUserRes.rowCount === 0) return res.status(404).json({ error: 'User not found' });
+        const currentEmail = currentUserRes.rows[0].email;
+
         const sets: string[] = ['role = $1', 'allowed_pages = $2'];
         const values: any[] = [role, allowed_pages || DEFAULT_PAGES];
 
-        if (email) {
-            values.push(email);
+        if (email && email.trim().toLowerCase() !== String(currentEmail).trim().toLowerCase()) {
+            const check = await pool.query(
+                'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2',
+                [email.trim(), id]
+            );
+            if (check.rowCount && check.rowCount > 0) {
+                return res.status(409).json({ error: 'Ya existe otro usuario con este nombre o correo' });
+            }
+            values.push(email.trim());
             sets.push(`email = $${values.length}`);
         }
         if (password) {
@@ -118,7 +131,7 @@ router.put('/:id', requireUuidParams('id'), validate(updateSchema), async (req, 
         if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
         res.json(result.rows[0]);
     } catch (err: any) {
-        if (err.code === '23505') return res.status(409).json({ error: 'User with this email already exists' });
+        if (err.code === '23505') return res.status(409).json({ error: 'Ya existe otro usuario con este nombre o correo' });
         console.error('Error updating user:', err.message);
         res.status(500).json({ error: 'Failed to update user' });
     }
