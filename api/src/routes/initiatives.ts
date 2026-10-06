@@ -50,7 +50,6 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
 // POST /api/initiatives - Create
 router.post('/', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
-    console.log('POST /initiatives body:', req.body);
     const { name, area, champion, transformation_lead, complexity, is_top_priority, is_key_initiative, year, notes, technologies, status, start_date, end_date, progress, value, methodology_type, tags, business_area_id } = req.body;
 
     const methodology = methodology_type || 'Hibrida';
@@ -126,7 +125,6 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: Request, 
 // PUT /api/initiatives/:id - Update
 router.put('/:id', authenticateToken, requireRole('editor'), async (req: Request, res: Response) => {
     const { id } = req.params;
-    console.log(`PUT /initiatives/${id} body:`, req.body);
     const { name, area, champion, transformation_lead, complexity, status, start_date, end_date, progress, notes, technologies, is_top_priority, is_key_initiative, year, value, methodology_type, tags, business_area_id } = req.body;
 
     // Validate and normalize value field

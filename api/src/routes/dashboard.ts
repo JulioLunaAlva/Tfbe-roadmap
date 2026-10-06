@@ -1,20 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middleware';
+import { authenticateToken, requireAreaAdmin } from '../middleware';
 import { query } from '../db';
 
 const router = Router();
 
-// Middleware to check if user is Cesar or Admin
-const requireAdmin = (req: any, res: any, next: any) => {
-    const email = (req.user?.email || '').toLowerCase();
-    const role = (req.user?.role || '').toLowerCase();
-    
-    if (email === 'cesar@kof.com' || email === 'cesar' || role === 'admin') {
-        next();
-    } else {
-        res.status(403).json({ error: 'Solo Cesar o Administradores pueden gestionar layouts globales.' });
-    }
-};
+// Admin / configured super admin (exact match, see config.SUPERADMIN_EMAILS)
+const requireAdmin = requireAreaAdmin;
 
 // GET /api/dashboard/layout - Get the active global layout
 router.get('/layout', authenticateToken, async (req: Request, res: Response) => {

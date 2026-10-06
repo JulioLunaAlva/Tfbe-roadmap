@@ -126,7 +126,7 @@ Usa el siguiente formato exacto:
 
     } catch (err: any) {
         console.error('[AI] /insights error:', err.message);
-        res.status(500).json({ error: 'AI analysis failed', detail: err.message });
+        res.status(500).json({ error: 'AI analysis failed' });
     }
 });
 
@@ -200,7 +200,7 @@ Responde con JSON:
 
     } catch (err: any) {
         console.error('[AI] /portfolio-summary error:', err.message);
-        res.status(500).json({ error: 'Portfolio summary failed', detail: err.message });
+        res.status(500).json({ error: 'Portfolio summary failed' });
     }
 });
 
@@ -287,7 +287,7 @@ Responde con JSON:
 
     } catch (err: any) {
         console.error('[AI] /graph-insights error:', err.message);
-        res.status(500).json({ error: 'Graph insights failed', detail: err.message });
+        res.status(500).json({ error: 'Graph insights failed' });
     }
 });
 

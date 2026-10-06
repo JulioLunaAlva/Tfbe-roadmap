@@ -1,116 +1,120 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { query } from './db';
+import { JWT_SECRET, BCRYPT_ROUNDS } from './config';
+import { extractBearer, verifyJwt } from './middleware';
+import { emailSchema, passwordSchema } from './validation';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+// Full session token (reduced from 7 days; the user is re-validated against the DB on every request)
+const SESSION_TTL = '12h';
 
-// Full session token (7 days)
 const generateToken = (email: string, role: string, id: string, allowed_pages?: string[]) => {
-    return jwt.sign({ email, role, id, allowed_pages }, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign({ email, role, id, allowed_pages }, JWT_SECRET, { expiresIn: SESSION_TTL, algorithm: 'HS256' });
 };
 
 // Short-lived token only valid for changing password (15 minutes)
 const generateTempToken = (id: string, email: string) => {
-    return jwt.sign({ id, email, purpose: 'change_password' }, JWT_SECRET, { expiresIn: '15m' });
+    return jwt.sign({ id, email, purpose: 'change_password' }, JWT_SECRET, { expiresIn: '15m', algorithm: 'HS256' });
 };
 
-import bcrypt from 'bcryptjs';
+// Compared against when the user does not exist, so response time does not reveal valid e-mails.
+const DUMMY_HASH = bcrypt.hashSync('timing-equalizer-not-a-real-password', BCRYPT_ROUNDS);
+
+const loginSchema = z.object({
+    email: z.string().trim().toLowerCase().min(1).max(254),
+    password: z.string().min(1).max(72),
+});
+
+const publicUser = (u: any) => ({
+    id: u.id,
+    email: u.email,
+    role: u.role,
+    allowed_pages: u.allowed_pages,
+    avatar_url: u.avatar_url || '',
+    name: u.name || '',
+});
 
 export const loginCall = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Email and password required' });
+    const { email, password } = parsed.data;
 
     try {
-        // Check if user exists
-        const userResult = await query('SELECT * FROM users WHERE email = $1', [email]);
+        const userResult = await query(
+            `SELECT id, email, role, allowed_pages, avatar_url, name, password_hash, must_change_password
+               FROM users WHERE LOWER(email) = $1`,
+            [email]
+        );
         const user = userResult.rows[0];
 
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        // Verify Password
-        if (!user.password_hash) {
-            return res.status(401).json({ error: 'User has no password set. Please contact admin.' });
-        }
-
-        const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) {
+        // Same response and comparable timing for "unknown user", "no password" and "wrong password"
+        const validPassword = await bcrypt.compare(password, user?.password_hash || DUMMY_HASH);
+        if (!user || !user.password_hash || !validPassword) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         // If user must change password, return a temp token instead of a full session
         if (user.must_change_password) {
-            const tempToken = generateTempToken(user.id, user.email);
             return res.json({
                 must_change_password: true,
-                temp_token: tempToken,
-                user: { email: user.email }
+                temp_token: generateTempToken(user.id, user.email),
+                user: { email: user.email },
             });
         }
 
-        // Generate full session token
         const token = generateToken(user.email, user.role || 'viewer', user.id, user.allowed_pages);
-
-        // Respond success
-        res.json({
-            message: 'Login successful',
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                allowed_pages: user.allowed_pages,
-                avatar_url: user.avatar_url || '',
-                name: user.name || ''
-            }
-        });
+        res.json({ message: 'Login successful', token, user: publicUser(user) });
     } catch (error) {
-        console.error(error);
+        console.error('[auth] login failed:', (error as Error).message);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+const changePasswordSchema = z.object({
+    newPassword: passwordSchema,
+    currentPassword: z.string().max(72).optional(),
+});
 
 // POST /api/auth/change-password
 // Works for both:
 //   - Forced change (uses temp_token from must_change_password flow, no current password needed)
 //   - Self-service change (uses normal session token, requires current password)
 export const changePassword = async (req: Request, res: Response) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
-
-    const token = authHeader.split(' ')[1];
-    let decoded: any;
-    try {
-        decoded = jwt.verify(token, JWT_SECRET) as any;
-    } catch (_e) {
+    const token = extractBearer(req);
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+    const decoded = verifyJwt(token);
+    if (!decoded || typeof decoded.id !== 'string') {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const { newPassword, currentPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) {
-        return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({
+            error: parsed.error.issues[0]?.message || 'La nueva contraseña no cumple los requisitos',
+        });
     }
+    const { newPassword, currentPassword } = parsed.data;
 
     try {
-        const userResult = await query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+        const userResult = await query('SELECT id, password_hash FROM users WHERE id = $1', [decoded.id]);
         const user = userResult.rows[0];
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) return res.status(401).json({ error: 'Invalid or expired token' });
 
         const isForced = decoded.purpose === 'change_password';
 
         if (!isForced) {
-            // Self-service: validate current password
             if (!currentPassword) {
                 return res.status(400).json({ error: 'La contraseña actual es requerida' });
             }
-            const validCurrent = await bcrypt.compare(currentPassword, user.password_hash);
+            const validCurrent = await bcrypt.compare(currentPassword, user.password_hash || DUMMY_HASH);
             if (!validCurrent) {
                 return res.status(400).json({ error: 'La contraseña actual es incorrecta' });
             }
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
         await query(
             'UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2',
             [hashedPassword, decoded.id]
@@ -127,75 +131,72 @@ export const changePassword = async (req: Request, res: Response) => {
         res.json({
             message: 'Contraseña actualizada exitosamente',
             token: fullToken,
-            user: {
-                id: u.id,
-                email: u.email,
-                role: u.role,
-                allowed_pages: u.allowed_pages,
-                avatar_url: u.avatar_url || '',
-                name: u.name || ''
-            }
+            user: publicUser(u),
         });
     } catch (error) {
-        console.error(error);
+        console.error('[auth] change-password failed:', (error as Error).message);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 export const verifyToken = async (req: Request, res: Response) => {
-    // Client should send token in header Authorization: Bearer <token>
-    // This endpoint might be 'me' to check validity
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'No token' });
+    const token = extractBearer(req);
+    if (!token) return res.status(401).json({ error: 'No token' });
 
-    const token = authHeader.split(' ')[1];
+    const decoded = verifyJwt(token);
+    // Temp (change_password) tokens are not valid sessions
+    if (!decoded || decoded.purpose || typeof decoded.id !== 'string') {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-
-        // Fetch fresh user data from DB to include allowed_pages, avatar_url, name
         const userResult = await query(
-            'SELECT id, email, role, allowed_pages, avatar_url, name FROM users WHERE email = $1',
-            [decoded.email]
+            'SELECT id, email, role, allowed_pages, avatar_url, name FROM users WHERE id = $1',
+            [decoded.id]
         );
         const user = userResult.rows[0];
-
-        if (!user) {
-            return res.status(401).json({ error: 'User not found in database' });
-        }
-
+        if (!user) return res.status(401).json({ error: 'Invalid token' });
         res.json({ user });
-    } catch (e) {
-        res.status(401).json({ error: 'Invalid token' });
+    } catch (error) {
+        console.error('[auth] verify failed:', (error as Error).message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-export const updateProfile = async (req: Request, res: Response) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+// Only https:// image URLs (no javascript:, data:, http:) and a sane length
+const profileSchema = z
+    .object({
+        avatar_url: z
+            .union([z.literal(''), z.string().trim().max(500).url().refine((v) => v.startsWith('https://'), 'avatar_url must use https')])
+            .optional(),
+        name: z.string().trim().max(120).optional(),
+    })
+    .strict();
 
-    const token = authHeader.split(' ')[1];
-    let decoded: any;
-    try {
-        decoded = jwt.verify(token, JWT_SECRET) as any;
-    } catch (_e) {
+export const updateProfile = async (req: Request, res: Response) => {
+    const token = extractBearer(req);
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+    const decoded = verifyJwt(token);
+    if (!decoded || decoded.purpose || typeof decoded.id !== 'string') {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const { avatar_url, name } = req.body;
+    const parsed = profileSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid profile data' });
+    const { avatar_url, name } = parsed.data;
 
     try {
         const updateFields: string[] = [];
         const values: any[] = [];
 
         if (avatar_url !== undefined) {
-            values.push(typeof avatar_url === 'string' ? avatar_url.trim() : '');
+            values.push(avatar_url);
             updateFields.push(`avatar_url = $${values.length}`);
         }
         if (name !== undefined) {
-            values.push(typeof name === 'string' ? name.trim() : '');
+            values.push(name);
             updateFields.push(`name = $${values.length}`);
         }
-
         if (updateFields.length === 0) {
             return res.status(400).json({ error: 'No fields to update' });
         }
@@ -204,13 +205,10 @@ export const updateProfile = async (req: Request, res: Response) => {
         const queryText = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${values.length} RETURNING id, email, role, allowed_pages, avatar_url, name`;
         const result = await query(queryText, values);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
+        if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
         res.json({ message: 'Perfil actualizado exitosamente', user: result.rows[0] });
     } catch (error) {
-        console.error('Error updating profile:', error);
+        console.error('[auth] update profile failed:', (error as Error).message);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

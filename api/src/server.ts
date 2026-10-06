@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import authRouter from './routes/auth';
 import initiativesRouter from './routes/initiatives';
 import progressRouter from './routes/progress';
@@ -23,20 +25,64 @@ import aiRouter from './routes/ai';
 import areasRouter from './routes/areas';
 import presentationsRouter from './routes/presentations';
 import { query } from './db';
+import { authenticateToken, requireRole } from './middleware';
+import { ALLOWED_ORIGINS } from './config';
+import { errorHandler, notFoundHandler } from './errors';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Render terminates TLS in a reverse proxy: needed for correct client IPs (rate limiting)
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
+// Security headers (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, ...).
+// The API returns JSON only, so the CSP can be fully locked down.
+app.use(
+  helmet({
+    contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: 'no-referrer' },
+  })
+);
+
+// CORS: explicit allow-list, never a wildcard
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Non-browser clients (curl, health checks) send no Origin header
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 600,
+  })
+);
+
+app.use(express.json({ limit: '1mb' }));
+
+// Rate limiting: global + strict on credential endpoints (brute force / DoS mitigation)
+app.use(
+  '/api',
+  rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false })
+);
+const credentialLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many attempts. Try again later.' },
+});
+app.use('/api/auth/login', credentialLimiter);
+app.use('/api/auth/change-password', credentialLimiter);
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
-});
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/initiatives', initiativesRouter);
@@ -44,8 +90,10 @@ app.use('/api/progress', progressRouter);
 app.use('/api/import', importRouter);
 app.use('/api/milestones', milestonesRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/db', dbStatusRouter);
-app.use('/api/one-pagers', onePagerRouter);
+// Operational diagnostics: authenticated admins only
+app.use('/api/db', authenticateToken, requireRole('admin'), dbStatusRouter);
+// One-pagers: authentication enforced at mount time (fail-closed)
+app.use('/api/one-pagers', authenticateToken, onePagerRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/dashboard', dashboardRouter);
@@ -59,6 +107,14 @@ app.use('/api/planner', plannerRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/areas', areasRouter);
 app.use('/api/presentations', presentationsRouter);
+
+// Must be registered after all routes
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+app.listen(port, () => {
+  console.log(`API listening on port ${port}`);
+});
 
 // Database Initialization: Create dashboard_layouts table if not exists
 const initDb = async () => {

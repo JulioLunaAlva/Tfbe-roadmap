@@ -1,26 +1,51 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { query } from '../db';
 import { authenticateToken, requireRole } from '../middleware';
 import { logActivity } from '../utils/activityLogger';
+import { sanitizeRichText } from '../utils/sanitize';
+import { checkInitiativeAccess, getAccessibleAreaIds } from '../access';
+import { isUuid, uuid } from '../validation';
 
 const router = Router();
 
+const upsertSchema = z.object({
+    initiative_id: uuid,
+    business_value: z.string().max(50_000).optional().default(''),
+    operational_efficiency: z.string().max(50_000).optional().default(''),
+    fte_detail: z.string().max(50_000).optional().default(''),
+    qualitative_benefit: z.string().max(50_000).optional().default(''),
+    users_reached_detail: z.string().max(50_000).optional().default(''),
+    estimated_savings_detail: z.string().max(50_000).optional().default(''),
+});
+
 // GET /api/initiative-value/summary — Returns pillar completion count per initiative
-router.get('/summary', authenticateToken, async (_req, res) => {
+router.get('/summary', authenticateToken, async (req: any, res) => {
     try {
+        const allowedAreas = await getAccessibleAreaIds(req.user);
+        const params: any[] = [];
+        let whereClause = '';
+
+        if (allowedAreas !== null) {
+            params.push(allowedAreas);
+            whereClause = `WHERE (i.business_area_id IS NULL OR i.business_area_id = ANY($1::uuid[]))`;
+        }
+
         const result = await query(
             `SELECT
-                initiative_id,
+                iv.initiative_id,
                 (
-                    CASE WHEN business_value IS NOT NULL AND business_value != '' AND business_value != '<p></p>' THEN 1 ELSE 0 END +
-                    CASE WHEN operational_efficiency IS NOT NULL AND operational_efficiency != '' AND operational_efficiency != '<p></p>' THEN 1 ELSE 0 END +
-                    CASE WHEN fte_detail IS NOT NULL AND fte_detail != '' AND fte_detail != '<p></p>' THEN 1 ELSE 0 END +
-                    CASE WHEN qualitative_benefit IS NOT NULL AND qualitative_benefit != '' AND qualitative_benefit != '<p></p>' THEN 1 ELSE 0 END +
-                    CASE WHEN users_reached_detail IS NOT NULL AND users_reached_detail != '' AND users_reached_detail != '<p></p>' THEN 1 ELSE 0 END +
-                    CASE WHEN estimated_savings_detail IS NOT NULL AND estimated_savings_detail != '' AND estimated_savings_detail != '<p></p>' THEN 1 ELSE 0 END
+                    CASE WHEN iv.business_value IS NOT NULL AND iv.business_value != '' AND iv.business_value != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN iv.operational_efficiency IS NOT NULL AND iv.operational_efficiency != '' AND iv.operational_efficiency != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN iv.fte_detail IS NOT NULL AND iv.fte_detail != '' AND iv.fte_detail != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN iv.qualitative_benefit IS NOT NULL AND iv.qualitative_benefit != '' AND iv.qualitative_benefit != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN iv.users_reached_detail IS NOT NULL AND iv.users_reached_detail != '' AND iv.users_reached_detail != '<p></p>' THEN 1 ELSE 0 END +
+                    CASE WHEN iv.estimated_savings_detail IS NOT NULL AND iv.estimated_savings_detail != '' AND iv.estimated_savings_detail != '<p></p>' THEN 1 ELSE 0 END
                 ) AS filled_pillars
-            FROM initiative_value`,
-            []
+            FROM initiative_value iv
+            JOIN initiatives i ON iv.initiative_id = i.id
+            ${whereClause}`,
+            params
         );
 
         // Return as a map { initiative_id: filledCount }
@@ -30,37 +55,75 @@ router.get('/summary', authenticateToken, async (_req, res) => {
         }
         res.json(summary);
     } catch (error) {
-        console.error('[GET initiative-value/summary] Error:', error);
+        console.error('[GET initiative-value/summary] Error:', (error as Error).message);
         res.status(500).json({ error: 'Failed to fetch summary' });
     }
 });
 
-// GET /api/initiative-value/all — Returns all initiative values for consolidated dashboard
-router.get('/all', authenticateToken, async (_req, res) => {
+// GET /api/initiative-value/all — Returns all initiative values for consolidated dashboard (scoped by user's area)
+router.get('/all', authenticateToken, async (req: any, res) => {
     try {
-        const result = await query(`SELECT * FROM initiative_value`);
+        const allowedAreas = await getAccessibleAreaIds(req.user);
+        const params: any[] = [];
+        let whereClause = '';
+
+        if (allowedAreas !== null) {
+            params.push(allowedAreas);
+            whereClause = `WHERE (i.business_area_id IS NULL OR i.business_area_id = ANY($1::uuid[]))`;
+        }
+
+        const result = await query(
+            `SELECT iv.* 
+             FROM initiative_value iv
+             JOIN initiatives i ON iv.initiative_id = i.id
+             ${whereClause}`,
+            params
+        );
         res.json(result.rows);
     } catch (error) {
-        console.error('[GET initiative-value/all] Error:', error);
+        console.error('[GET initiative-value/all] Error:', (error as Error).message);
         res.status(500).json({ error: 'Failed to fetch all initiative values' });
     }
 });
 
 // GET /api/initiative-value?initiative_id=X (or all if not provided)
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req: any, res) => {
     const { initiative_id } = req.query;
 
     if (!initiative_id) {
         try {
-            const result = await query(`SELECT * FROM initiative_value`);
+            const allowedAreas = await getAccessibleAreaIds(req.user);
+            const params: any[] = [];
+            let whereClause = '';
+
+            if (allowedAreas !== null) {
+                params.push(allowedAreas);
+                whereClause = `WHERE (i.business_area_id IS NULL OR i.business_area_id = ANY($1::uuid[]))`;
+            }
+
+            const result = await query(
+                `SELECT iv.* 
+                 FROM initiative_value iv
+                 JOIN initiatives i ON iv.initiative_id = i.id
+                 ${whereClause}`,
+                params
+            );
             return res.json(result.rows);
         } catch (error) {
-            console.error('[GET initiative-value all] Error:', error);
+            console.error('[GET initiative-value all] Error:', (error as Error).message);
             return res.status(500).json({ error: 'Failed to fetch initiative values' });
         }
     }
 
+    if (!isUuid(initiative_id)) {
+        return res.status(400).json({ error: 'Invalid initiative_id' });
+    }
+
     try {
+        if ((await checkInitiativeAccess(req.user, initiative_id)) !== 'allowed') {
+            return res.status(404).json({ error: 'Not found' });
+        }
+
         const result = await query(
             `SELECT * FROM initiative_value WHERE initiative_id = $1`,
             [initiative_id]
@@ -72,13 +135,18 @@ router.get('/', authenticateToken, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('[GET initiative-value] Error:', error);
+        console.error('[GET initiative-value] Error:', (error as Error).message);
         res.status(500).json({ error: 'Failed to fetch initiative value' });
     }
 });
 
 // POST /api/initiative-value — Upsert (admin/editor only)
-router.post('/', authenticateToken, requireRole('editor'), async (req, res) => {
+router.post('/', authenticateToken, requireRole('editor'), async (req: any, res) => {
+    const parsed = upsertSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid or missing fields in request' });
+    }
+
     const {
         initiative_id,
         business_value,
@@ -87,15 +155,15 @@ router.post('/', authenticateToken, requireRole('editor'), async (req, res) => {
         qualitative_benefit,
         users_reached_detail,
         estimated_savings_detail
-    } = req.body;
-
-    const userId = (req as any).user?.userId || null;
-
-    if (!initiative_id) {
-        return res.status(400).json({ error: 'Missing required parameter: initiative_id' });
-    }
+    } = parsed.data;
 
     try {
+        if ((await checkInitiativeAccess(req.user, initiative_id)) !== 'allowed') {
+            return res.status(404).json({ error: 'Not found' });
+        }
+
+        const userId = req.user.id;
+
         const result = await query(
             `INSERT INTO initiative_value (
                 initiative_id,
@@ -121,28 +189,24 @@ router.post('/', authenticateToken, requireRole('editor'), async (req, res) => {
             RETURNING *`,
             [
                 initiative_id,
-                business_value || '',
-                operational_efficiency || '',
-                fte_detail || '',
-                qualitative_benefit || '',
-                users_reached_detail || '',
-                estimated_savings_detail || '',
+                sanitizeRichText(business_value),
+                sanitizeRichText(operational_efficiency),
+                sanitizeRichText(fte_detail),
+                sanitizeRichText(qualitative_benefit),
+                sanitizeRichText(users_reached_detail),
+                sanitizeRichText(estimated_savings_detail),
                 userId
             ]
         );
 
-        // Retrieve user id correctly if the middleware puts id in req.user, or fetch it based on email
-        const userRes = await query('SELECT id FROM users WHERE email = $1', [(req as any).user?.email]);
-        const dbUserId = userRes.rows[0]?.id || null;
-
-        await logActivity(dbUserId, 'Actualizó Impacto y Valor', initiative_id, {
+        await logActivity(userId, 'Actualizó Impacto y Valor', initiative_id, {
             entity_type: 'Iniciativa'
         });
 
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('[POST initiative-value] Error:', error);
-        res.status(500).json({ error: 'Failed to save initiative value', details: String(error) });
+        console.error('[POST initiative-value] Error:', (error as Error).message);
+        res.status(500).json({ error: 'Failed to save initiative value' });
     }
 });
 

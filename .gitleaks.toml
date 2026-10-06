@@ -1,0 +1,18 @@
+# Gitleaks Configuration for Secret Detection (Enterprise SAST)
+title = "Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowed placeholders and development fixtures"
+paths = [
+    '''\.env\.example''',
+    '''package-lock\.json''',
+    '''client/dist/.*''',
+]
+regexes = [
+    '''dev-secret''',
+    '''AIzaSy\.\.\.tu_key_aqui''',
+    '''postgresql://user:password@host:port/dbname''',
+]

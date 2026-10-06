@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Award, MapPin, User, Rocket } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 interface ValueData {
     business_value: string;
@@ -165,7 +166,7 @@ export const ValuePresentationModal = ({ isOpen, onClose, initiative, data, pill
                                         <div 
                                             className="text-gray-200 text-xl md:text-2xl leading-relaxed prose prose-invert prose-p:mb-6 prose-ul:mb-6 prose-ol:mb-6 prose-li:mb-2 max-w-none font-medium
                                             [&>p]:text-gray-300 [&>ul>li]:text-gray-300"
-                                            dangerouslySetInnerHTML={{ __html: currentData }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentData) }}
                                         />
                                     )}
                                 </div>
@@ -211,7 +212,7 @@ export const ValuePresentationModal = ({ isOpen, onClose, initiative, data, pill
                                             ) : (
                                                 <div 
                                                     className="prose prose-invert prose-xs line-clamp-4"
-                                                    dangerouslySetInnerHTML={{ __html: content }}
+                                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
                                                 />
                                             )}
                                         </div>

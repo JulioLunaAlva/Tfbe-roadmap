@@ -5,8 +5,11 @@ import { query } from '../src/db';
 import bcrypt from 'bcryptjs';
 
 const seedUsers = async () => {
-    const password = 'BusinessExcellence2026$'; // Corrected spelling
-    const salt = await bcrypt.genSalt(10);
+    const password = process.env.SEED_DEFAULT_PASSWORD;
+    if (!password || password.length < 10) {
+        throw new Error('SEED_DEFAULT_PASSWORD env variable must be set (minimum 10 characters) to run seed script.');
+    }
+    const salt = await bcrypt.genSalt(12);
     const hash = await bcrypt.hash(password, salt);
 
     // Precise usernames as requested

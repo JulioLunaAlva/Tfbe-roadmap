@@ -1,31 +1,26 @@
 import { Router } from 'express';
 import { pool } from '../db';
-import { authenticateToken } from '../middleware';
+import { authenticateToken, requireAreaAdmin, isSuperAdmin } from '../middleware';
+import { isUuid } from '../validation';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticateToken);
 
-// Middleware: only César (super_admin) can manage areas
-const requireSuperAdmin = (req: any, res: any, next: any) => {
-    const email = (req.user?.email || '').toLowerCase();
-    if (email.includes('cesar@kof.com') || email === 'cesar' || req.user?.role === 'admin') {
-        next();
-    } else {
-        res.status(403).json({ error: 'Access denied. Only admin can manage areas.' });
-    }
-};
+// Reject malformed ids before they reach the database
+router.param('id', (_req, res, next, value) => (isUuid(value) ? next() : res.status(400).json({ error: 'Invalid id' })));
+router.param('userId', (_req, res, next, value) => (isUuid(value) ? next() : res.status(400).json({ error: 'Invalid userId' })));
 
 // GET /api/areas — Returns areas accessible to the current user
-// Admin/César sees ALL areas. Others see only their assigned areas.
+// Admin/super admin sees ALL areas. Others see only their assigned areas.
 router.get('/', async (req: any, res) => {
     try {
         const email = (req.user?.email || '').toLowerCase();
-        const isSuperAdmin = email.includes('cesar@kof.com') || email === 'cesar' || req.user?.role === 'admin';
+        const seesAll = req.user?.role === 'admin' || isSuperAdmin(req.user);
 
         let result;
-        if (isSuperAdmin) {
+        if (seesAll) {
             result = await pool.query(
                 'SELECT * FROM business_areas WHERE is_active = TRUE ORDER BY display_order ASC, name ASC'
             );
@@ -49,7 +44,7 @@ router.get('/', async (req: any, res) => {
 });
 
 // GET /api/areas/all — All areas including inactive (admin only)
-router.get('/all', requireSuperAdmin, async (_req, res) => {
+router.get('/all', requireAreaAdmin, async (_req, res) => {
     try {
         const result = await pool.query(
             `SELECT ba.*, 
@@ -65,7 +60,7 @@ router.get('/all', requireSuperAdmin, async (_req, res) => {
 });
 
 // POST /api/areas — Create new area (admin only)
-router.post('/', requireSuperAdmin, async (req, res) => {
+router.post('/', requireAreaAdmin, async (req, res) => {
     const { slug, name, description, color, icon, display_order } = req.body;
 
     if (!slug || !name) {
@@ -90,7 +85,7 @@ router.post('/', requireSuperAdmin, async (req, res) => {
 });
 
 // PUT /api/areas/:id — Update area (admin only)
-router.put('/:id', requireSuperAdmin, async (req, res) => {
+router.put('/:id', requireAreaAdmin, async (req, res) => {
     const { id } = req.params;
     const { name, description, color, icon, is_active, display_order } = req.body;
 
@@ -120,7 +115,7 @@ router.put('/:id', requireSuperAdmin, async (req, res) => {
 });
 
 // GET /api/areas/:id/users — List users with access to this area (admin only)
-router.get('/:id/users', requireSuperAdmin, async (req, res) => {
+router.get('/:id/users', requireAreaAdmin, async (req, res) => {
     const { id } = req.params;
     try {
         const result = await pool.query(
@@ -139,7 +134,7 @@ router.get('/:id/users', requireSuperAdmin, async (req, res) => {
 });
 
 // POST /api/areas/:id/users — Grant user access to area (admin only)
-router.post('/:id/users', requireSuperAdmin, async (req, res) => {
+router.post('/:id/users', requireAreaAdmin, async (req, res) => {
     const { id } = req.params;
     const { user_id, can_edit } = req.body;
 
@@ -163,7 +158,7 @@ router.post('/:id/users', requireSuperAdmin, async (req, res) => {
 });
 
 // DELETE /api/areas/:id/users/:userId — Revoke user access (admin only)
-router.delete('/:id/users/:userId', requireSuperAdmin, async (req, res) => {
+router.delete('/:id/users/:userId', requireAreaAdmin, async (req, res) => {
     const { id, userId } = req.params;
     try {
         const result = await pool.query(
