@@ -44,23 +44,30 @@ export const Layout = () => {
         { label: 'Presentaciones', path: '/presentations', icon: Presentation },
         { label: 'Soporte', path: '/support', icon: LifeBuoy },
     ].filter(item => {
-        // Admin always sees all main nav items
+        // If user has allowed_pages configured, ALWAYS respect it (even for admin)
+        if (user?.allowed_pages && Array.isArray(user.allowed_pages)) {
+            return user.allowed_pages.includes(item.path);
+        }
+        // If no allowed_pages are set (e.g., legacy users / null in DB):
+        // Admin sees all main nav items by default
         if (user?.role === 'admin') return true;
-        // If no allowed_pages are set (e.g., old token), default to allowing standard pages
-        if (!user?.allowed_pages) return ['/', '/dashboard', '/kanban', '/planner', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks', '/presentations'].includes(item.path);
-        return user.allowed_pages.includes(item.path);
+        // Non-admin default fallback
+        return ['/', '/dashboard', '/kanban', '/planner', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks', '/presentations'].includes(item.path);
     });
 
-    // ── AI pages: ONLY shown when explicitly granted in allowed_pages (never by default)
+    // ── AI pages: ONLY shown when explicitly granted in allowed_pages (or admin if no allowed_pages set)
     const AI_PAGES = [
         { label: '✨ Inteligencia IA', path: '/intelligence', icon: Brain },
         { label: '🗺️ Grafo Conocimiento', path: '/knowledge-graph', icon: Network },
     ];
     AI_PAGES.forEach(page => {
-        // Admin always sees them
+        // If user has allowed_pages configured, check it explicitly
+        if (user?.allowed_pages && Array.isArray(user.allowed_pages)) {
+            if (user.allowed_pages.includes(page.path)) navItems.push(page);
+            return;
+        }
+        // If allowed_pages is not configured, admin sees them by default
         if (user?.role === 'admin') { navItems.push(page); return; }
-        // Everyone else: MUST be explicitly in allowed_pages — no default fallback
-        if (user?.allowed_pages?.includes(page.path)) navItems.push(page);
     });
 
     if (user?.role === 'admin') {
@@ -209,14 +216,19 @@ export const Layout = () => {
                                 location.pathname === '/dashboard' ? 'Dashboard Transformación' :
                                     location.pathname === '/one-pager' ? 'One Pager' :
                                         location.pathname === '/initiative-value' ? 'Impacto & Valor' :
-                                            location.pathname === '/timeline' ? 'Timeline de Iniciativas' :
-                                                location.pathname === '/calendar' ? 'Calendario de Ejecución' :
-                                                    location.pathname === '/comparative' ? 'Vista Comparativa' :
-                                                        location.pathname === '/risks' ? 'Riesgos & Blockers' :
-                                                            location.pathname === '/support' ? 'Soporte y Mantenimiento' :
-                                location.pathname === '/credentials' ? 'Gestión de Credenciales' :
-                                                                location.pathname === '/intelligence' ? '✨ Inteligencia IA' :
-                                                                location.pathname === '/knowledge-graph' ? '🗺️ Grafo de Conocimiento' : 'Importación'}
+                                            location.pathname === '/kanban' ? 'Tablero Kanban' :
+                                                location.pathname === '/planner' ? 'Mi Planner' :
+                                                    location.pathname === '/capacity' ? 'Capacity Planning' :
+                                                        location.pathname === '/timeline' ? 'Timeline de Iniciativas' :
+                                                            location.pathname === '/calendar' ? 'Calendario de Ejecución' :
+                                                                location.pathname === '/comparative' ? 'Vista Comparativa' :
+                                                                    location.pathname === '/risks' ? 'Riesgos & Blockers' :
+                                                                        location.pathname === '/presentations' ? 'Presentaciones Ejecutivas' :
+                                                                            location.pathname === '/support' ? 'Soporte y Mantenimiento' :
+                                                                                location.pathname === '/credentials' ? 'Gestión de Credenciales' :
+                                                                                    location.pathname === '/areas' ? 'Gestión de Áreas' :
+                                                                                        location.pathname === '/intelligence' ? '✨ Inteligencia IA' :
+                                                                                            location.pathname === '/knowledge-graph' ? '🗺️ Grafo de Conocimiento' : 'Importación'}
                         </h2>
                     </div>
 

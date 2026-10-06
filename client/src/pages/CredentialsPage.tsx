@@ -13,8 +13,42 @@ interface User {
     created_at?: string;
 }
 
+const DEFAULT_ALLOWED_PAGES = [
+    '/',
+    '/dashboard',
+    '/initiative-value',
+    '/one-pager',
+    '/kanban',
+    '/planner',
+    '/capacity',
+    '/timeline',
+    '/calendar',
+    '/comparative',
+    '/risks',
+    '/presentations',
+    '/support'
+];
+
+const AVAILABLE_PAGES = [
+    { id: '/', label: 'Roadmap de Iniciativas' },
+    { id: '/dashboard', label: 'Dashboard Transformación' },
+    { id: '/initiative-value', label: 'Impacto & Valor' },
+    { id: '/one-pager', label: 'One Pager' },
+    { id: '/kanban', label: 'Tablero Kanban' },
+    { id: '/planner', label: 'Mi Planner' },
+    { id: '/capacity', label: 'Capacity Planning' },
+    { id: '/timeline', label: 'Timeline de Iniciativas' },
+    { id: '/calendar', label: 'Calendario de Ejecución' },
+    { id: '/comparative', label: 'Vista Comparativa' },
+    { id: '/risks', label: 'Riesgos & Blockers' },
+    { id: '/presentations', label: 'Presentaciones Ejecutivas' },
+    { id: '/support', label: 'Soporte y Mantenimiento' },
+    { id: '/intelligence', label: '✨ Inteligencia IA (Gemini)' },
+    { id: '/knowledge-graph', label: '🗺️ Grafo de Conocimiento' }
+];
+
 export const CredentialsPage = () => {
-    const { token } = useAuth();
+    const { token, user, refreshCurrentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -29,7 +63,7 @@ export const CredentialsPage = () => {
         email: '',
         password: '',
         role: 'viewer' as 'admin' | 'editor' | 'viewer',
-        allowed_pages: ['/', '/kanban', '/planner', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'] as string[],
+        allowed_pages: DEFAULT_ALLOWED_PAGES as string[],
         must_change_password: false
     });
 
@@ -54,16 +88,16 @@ export const CredentialsPage = () => {
         fetchUsers();
     }, [token]);
 
-    const handleOpenModal = (mode: 'create' | 'edit', user?: User) => {
+    const handleOpenModal = (mode: 'create' | 'edit', userToEdit?: User) => {
         setModalMode(mode);
-        if (mode === 'edit' && user) {
-            setEditingUser(user);
+        if (mode === 'edit' && userToEdit) {
+            setEditingUser(userToEdit);
             setFormData({
-                email: user.email,
+                email: userToEdit.email,
                 password: '', // Password empty on edit unless changing
-                role: user.role,
-                allowed_pages: user.allowed_pages || ['/', '/kanban', '/planner', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
-                must_change_password: user.must_change_password || false
+                role: userToEdit.role,
+                allowed_pages: userToEdit.allowed_pages || DEFAULT_ALLOWED_PAGES,
+                must_change_password: userToEdit.must_change_password || false
             });
         } else {
             setEditingUser(null);
@@ -71,7 +105,7 @@ export const CredentialsPage = () => {
                 email: '',
                 password: '',
                 role: 'viewer',
-                allowed_pages: ['/', '/kanban', '/planner', '/capacity', '/dashboard', '/one-pager', '/initiative-value', '/support', '/calendar'],
+                allowed_pages: DEFAULT_ALLOWED_PAGES,
                 must_change_password: false
             });
         }
@@ -118,6 +152,9 @@ export const CredentialsPage = () => {
             // Success
             setIsModalOpen(false);
             fetchUsers();
+            if (editingUser?.email?.toLowerCase() === user?.email?.toLowerCase() || editingUser?.id === user?.id) {
+                await refreshCurrentUser();
+            }
             alert(modalMode === 'create' ? 'Usuario creado exitosamente' : 'Usuario actualizado exitosamente');
 
         } catch (err: any) {
@@ -323,24 +360,9 @@ export const CredentialsPage = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Páginas Permitidas</label>
-                                <div className="space-y-2 p-3 bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-color)]">
-                                    {[
-                                        { id: '/', label: 'Roadmap de Iniciativas' },
-                                        { id: '/kanban', label: 'Tablero Kanban' },
-                                        { id: '/planner', label: 'Mi Planner' },
-                                        { id: '/capacity', label: 'Capacity Planning' },
-                                        { id: '/dashboard', label: 'Dashboard Transformación' },
-                                        { id: '/one-pager', label: 'One Pager' },
-                                        { id: '/initiative-value', label: 'Impacto & Valor' },
-                                        { id: '/timeline', label: 'Timeline de Iniciativas' },
-                                        { id: '/calendar', label: 'Calendario de Ejecución' },
-                                        { id: '/comparative', label: 'Vista Comparativa' },
-                                        { id: '/risks', label: 'Riesgos & Blockers' },
-                                        { id: '/support', label: 'Soporte y Mantenimiento' },
-                                        { id: '/intelligence', label: '✨ Inteligencia IA (Gemini)' },
-                                        { id: '/knowledge-graph', label: '🗺️ Grafo de Conocimiento' }
-                                    ].map(page => (
-                                        <label key={page.id} className="flex items-center space-x-3 cursor-pointer">
+                                <div className="space-y-2 p-3 bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-color)] max-h-60 overflow-y-auto custom-scrollbar">
+                                    {AVAILABLE_PAGES.map(page => (
+                                        <label key={page.id} className="flex items-center space-x-3 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-1 rounded transition-colors">
                                             <input
                                                 type="checkbox"
                                                 checked={formData.allowed_pages?.includes(page.id)}

@@ -45,11 +45,20 @@ const ProtectedRoute = ({ children, allowedRoles, requiredPage }: { children: Re
   }
 
   if (requiredPage && user) {
-    // Admin bypasses specific page check for main pages
+    // If user has explicit allowed_pages set, respect it (including admin)
+    if (user.allowed_pages && Array.isArray(user.allowed_pages)) {
+      if (!user.allowed_pages.includes(requiredPage)) {
+        const fallback = user.allowed_pages.length > 0 ? user.allowed_pages[0] : '/';
+        return <Navigate to={fallback} replace />;
+      }
+      return children;
+    }
+
+    // Admin bypasses specific page check if allowed_pages is not configured
     if (user.role === 'admin') return children;
 
-    // If user has no allowed_pages set, give them access to the main pages by default including support
-    const allowed = user.allowed_pages || ['/', '/dashboard', '/kanban', '/planner', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/comparative', '/risks', '/dependencies'];
+    // If user has no allowed_pages set, give them access to standard pages by default
+    const allowed = ['/', '/dashboard', '/kanban', '/planner', '/capacity', '/one-pager', '/initiative-value', '/support', '/timeline', '/calendar', '/comparative', '/risks', '/presentations', '/dependencies'];
     if (!allowed.includes(requiredPage)) {
       // Send them to the first page they ARE allowed to see, or fallback
       const fallback = allowed.length > 0 ? allowed[0] : '/';
@@ -161,7 +170,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
         <Route path="presentations" element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPage="/presentations">
             <PresentationsPage />
           </ProtectedRoute>
         } />

@@ -21,6 +21,7 @@ interface AuthContextType {
     triggerMustChangePassword: (tempToken: string, email: string) => void;
     confirmPasswordChange: (token: string, user: User) => void;
     updateUserProfile: (data: { avatar_url?: string; name?: string }) => Promise<{ success: boolean; error?: string }>;
+    refreshCurrentUser: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -139,12 +140,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const refreshCurrentUser = async () => {
+        if (token) {
+            return await refreshUser(token);
+        }
+        return false;
+    };
+
     return (
         <AuthContext.Provider value={{
             user, token, mustChangePassword, tempToken,
             login, logout, isLoading,
             triggerMustChangePassword, confirmPasswordChange,
-            updateUserProfile
+            updateUserProfile, refreshCurrentUser
         }}>
             {children}
         </AuthContext.Provider>

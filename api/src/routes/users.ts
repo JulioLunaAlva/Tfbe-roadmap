@@ -8,7 +8,21 @@ import { emailSchema, passwordSchema, roleSchema, requireUuidParams, validate } 
 
 const router = Router();
 
-const DEFAULT_PAGES = ['/', '/dashboard', '/one-pager'];
+const DEFAULT_PAGES = [
+    '/',
+    '/dashboard',
+    '/initiative-value',
+    '/one-pager',
+    '/kanban',
+    '/planner',
+    '/capacity',
+    '/timeline',
+    '/calendar',
+    '/comparative',
+    '/risks',
+    '/presentations',
+    '/support'
+];
 const pagesSchema = z.array(z.string().max(100).regex(/^\/[A-Za-z0-9\-_/]*$/)).max(50);
 
 const createSchema = z.object({
