@@ -6,15 +6,13 @@ import { z, ZodTypeAny } from 'zod';
 export const uuid = z.string().uuid();
 export const isUuid = (value: unknown): value is string => uuid.safeParse(value).success;
 
-export const emailSchema = z.string().trim().toLowerCase().email().max(254);
+export const emailSchema = z.string().trim().toLowerCase().min(1, 'El usuario o correo no puede estar vacío').max(254);
 
-// bcrypt only uses the first 72 bytes, so cap the length. 10+ chars, at least one letter and one digit.
+// bcrypt only uses the first 72 bytes, so cap the length. Min 4 chars.
 export const passwordSchema = z
     .string()
-    .min(10, 'La contraseña debe tener al menos 10 caracteres')
-    .max(72)
-    .regex(/[A-Za-z]/, 'La contraseña debe incluir letras')
-    .regex(/[0-9]/, 'La contraseña debe incluir números');
+    .min(4, 'La contraseña debe tener al menos 4 caracteres')
+    .max(72);
 
 export const roleSchema = z.enum(['admin', 'editor', 'viewer']);
 
@@ -26,8 +24,10 @@ export const validate =
     (req: Request, res: Response, next: NextFunction) => {
         const result = schema.safeParse(req[source]);
         if (!result.success) {
+            const firstIssue = result.error.issues[0];
+            const issueMsg = firstIssue ? `${firstIssue.path.join('.') || 'body'}: ${firstIssue.message}` : 'Invalid request';
             return res.status(400).json({
-                error: 'Invalid request',
+                error: issueMsg,
                 issues: result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
             });
         }

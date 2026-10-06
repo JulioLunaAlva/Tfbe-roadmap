@@ -145,8 +145,11 @@ export const CredentialsPage = () => {
             });
 
             if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.error || 'Operation failed');
+                const errData = await res.json().catch(() => ({}));
+                const msg = errData.issues && Array.isArray(errData.issues) && errData.issues.length > 0
+                    ? errData.issues.map((i: any) => `${i.path}: ${i.message}`).join(', ')
+                    : (errData.error || 'Operación fallida');
+                throw new Error(msg);
             }
 
             // Success
