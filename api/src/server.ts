@@ -311,6 +311,13 @@ const initDb = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT '';
     `);
 
+    // Ensure partial unique index for main row progress (phase_id IS NULL)
+    await query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_progress_main_row 
+      ON weekly_progress (initiative_id, year, week_number) 
+      WHERE phase_id IS NULL;
+    `);
+
     console.log('🟢 Database tables ready');
   } catch (err) {
     console.error('❌ Failed to initialize dashboard layout table:', err);

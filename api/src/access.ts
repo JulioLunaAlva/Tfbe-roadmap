@@ -17,6 +17,7 @@ export const getAccessibleAreaIds = async (user: U): Promise<string[] | null> =>
     if (!user) return [];
     if (user.role === 'admin' || isSuperAdmin(user)) return null;
     const r = await query('SELECT area_id FROM user_area_access WHERE user_id = $1', [user.id]);
+    if (r.rows.length === 0) return null;
     return r.rows.map((row) => row.area_id);
 };
 

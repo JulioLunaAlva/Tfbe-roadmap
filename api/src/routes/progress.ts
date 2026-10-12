@@ -8,9 +8,15 @@ import { logActivity } from '../utils/activityLogger';
 
 const router = Router();
 
+const phaseIdSchema = z.preprocess((val) => {
+    if (val === null || val === undefined || val === '' || val === 0 || val === '0') return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+}, z.number().int().positive().nullable());
+
 const progressSchema = z.object({
     initiative_id: uuid,
-    phase_id: uuid.nullish().or(z.literal('').transform(() => null)),
+    phase_id: phaseIdSchema,
     year: z.coerce.number().int().min(2000).max(2100),
     week_number: z.coerce.number().int().min(1).max(53),
     progress_value: z.coerce.number().min(0).max(100),
@@ -34,7 +40,10 @@ router.get('/:initiativeId', authenticateToken, requireInitiativeAccess('initiat
 // POST /api/progress - Upsert progress
 router.post('/', authenticateToken, requireRole('editor'), async (req: AuthRequest, res: Response) => {
     const parsed = progressSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: 'Missing or invalid fields' });
+    if (!parsed.success) {
+        const issueMsg = parsed.error.issues.map(i => `${i.path.join('.') || 'body'}: ${i.message}`).join(', ');
+        return res.status(400).json({ error: issueMsg || 'Missing or invalid fields' });
+    }
     const { initiative_id, phase_id, year, week_number, progress_value, comment } = parsed.data;
     const userId = req.user!.id;
 
@@ -43,27 +52,47 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: AuthReque
             return res.status(404).json({ error: 'Not found' });
         }
 
-        // Conflict target depends on phase_id presence (V7 migration added a partial index for the NULL phase).
         let result;
         if (phase_id) {
-            result = await query(
-                `INSERT INTO weekly_progress (initiative_id, phase_id, year, week_number, progress_value, comment, created_by)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT (initiative_id, phase_id, year, week_number)
-                 DO UPDATE SET progress_value = EXCLUDED.progress_value, comment = EXCLUDED.comment, created_at = CURRENT_TIMESTAMP
+            // Phase row progress upsert
+            const updateRes = await query(
+                `UPDATE weekly_progress
+                 SET progress_value = $1, comment = $2, created_at = CURRENT_TIMESTAMP
+                 WHERE initiative_id = $3 AND phase_id = $4 AND year = $5 AND week_number = $6
                  RETURNING *`,
-                [initiative_id, phase_id, year, week_number, progress_value, comment ?? null, userId]
+                [progress_value, comment ?? null, initiative_id, phase_id, year, week_number]
             );
+            if (updateRes.rowCount && updateRes.rowCount > 0) {
+                result = updateRes;
+            } else {
+                result = await query(
+                    `INSERT INTO weekly_progress (initiative_id, phase_id, year, week_number, progress_value, comment, created_by)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)
+                     ON CONFLICT (initiative_id, phase_id, year, week_number)
+                     DO UPDATE SET progress_value = EXCLUDED.progress_value, comment = EXCLUDED.comment, created_at = CURRENT_TIMESTAMP
+                     RETURNING *`,
+                    [initiative_id, phase_id, year, week_number, progress_value, comment ?? null, userId]
+                );
+            }
         } else {
-            // Main row upsert (phase_id is NULL)
-            result = await query(
-                `INSERT INTO weekly_progress (initiative_id, phase_id, year, week_number, progress_value, comment, created_by)
-                 VALUES ($1, NULL, $2, $3, $4, $5, $6)
-                 ON CONFLICT (initiative_id, year, week_number) WHERE phase_id IS NULL
-                 DO UPDATE SET progress_value = EXCLUDED.progress_value, comment = EXCLUDED.comment, created_at = CURRENT_TIMESTAMP
+            // Main row progress upsert (phase_id is NULL)
+            const updateRes = await query(
+                `UPDATE weekly_progress
+                 SET progress_value = $1, comment = $2, created_at = CURRENT_TIMESTAMP
+                 WHERE initiative_id = $3 AND year = $4 AND week_number = $5 AND phase_id IS NULL
                  RETURNING *`,
-                [initiative_id, year, week_number, progress_value, comment ?? null, userId]
+                [progress_value, comment ?? null, initiative_id, year, week_number]
             );
+            if (updateRes.rowCount && updateRes.rowCount > 0) {
+                result = updateRes;
+            } else {
+                result = await query(
+                    `INSERT INTO weekly_progress (initiative_id, phase_id, year, week_number, progress_value, comment, created_by)
+                     VALUES ($1, NULL, $2, $3, $4, $5, $6)
+                     RETURNING *`,
+                    [initiative_id, year, week_number, progress_value, comment ?? null, userId]
+                );
+            }
         }
 
         await logActivity(userId, 'Actualizó Avance Semanal', initiative_id, {

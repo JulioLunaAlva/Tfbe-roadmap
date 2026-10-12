@@ -889,8 +889,6 @@ export const RoadmapTable = () => {
 
         // Backend Update
         try {
-            // Depending on the backend route, maybe doing it recursively is easiest since there's no bulk bulk endpoint defined
-            // We'll iterate the weeks and save them concurrently
             const saves = weeks.map(w =>
                 fetch(`${API_URL}/api/progress`, {
                     method: 'POST',
@@ -900,7 +898,7 @@ export const RoadmapTable = () => {
                     },
                     body: JSON.stringify({
                         initiative_id: initiativeId,
-                        phase_id: phaseId,
+                        phase_id: phaseId === 0 ? null : phaseId,
                         year,
                         week_number: w,
                         progress_value: val,
@@ -909,12 +907,18 @@ export const RoadmapTable = () => {
                 })
             );
 
-            await Promise.all(saves);
+            const responses = await Promise.all(saves);
+            const failed = responses.find(r => !r.ok);
+            if (failed) {
+                const errData = await failed.json().catch(() => ({}));
+                throw new Error(errData.error || 'Error al guardar el progreso múltiple');
+            }
+
             setMultiEditPopover(null);
             setSelectedCells([]);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error in bulk saving progress:', error);
-            alert('Hubo un error al guardar o limpiar el progreso múltiple.');
+            alert(`Hubo un error al guardar o limpiar el progreso múltiple: ${error.message || error}`);
         }
     };
 
@@ -980,6 +984,10 @@ export const RoadmapTable = () => {
                     comment
                 })
             });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Error al guardar el progreso');
+            }
             const saved: Progress = await res.json();
             const key = `${saved.initiative_id}-${saved.phase_id === null ? 0 : saved.phase_id}-${saved.week_number}`;
             
@@ -988,9 +996,9 @@ export const RoadmapTable = () => {
                 checkStatusThreshold(initiativeId, val, newMap);
                 return newMap;
             });
-        } catch (e) {
-            console.error(e);
-            alert('Failed to save');
+        } catch (e: any) {
+            console.error('Error saving progress:', e);
+            alert(`Error al guardar el progreso: ${e.message || e}`);
         }
     };
 
