@@ -1,11 +1,19 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     TrendingUp, Zap, Users, Sparkles, UserCheck, DollarSign,
-    ExternalLink, Award, CheckCircle2, Clock, FileQuestion,
-    ShieldCheck, Database, Scale, Cpu, Eye, Gauge
+    ExternalLink, CheckCircle2, Clock, FileQuestion,
+    ShieldCheck, Database, Scale, Cpu, Eye, Gauge, ChevronsUpDown
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { isNAPillar, isPillarFilled } from '../../utils/exportValue';
+import {
+    isNAPillar,
+    isPillarCompleted,
+    isPendingDocumentation,
+    isSubstantivePillar,
+    isUnquantifiedPillarText,
+    analyzePortfolioValue,
+    stripHtml
+} from '../../utils/exportValue';
 
 export interface InitiativeSummaryItem {
     id: string;
@@ -33,173 +41,94 @@ interface ConsolidatedValueDashboardProps {
     onSelectInitiative: (id: string, name: string) => void;
 }
 
-// ─── Helpers para parsear contenido HTML ──────────────────────────────────────────
-
-const stripHtml = (html?: string): string => {
-    if (!html) return '';
-    return html
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<\/p>/gi, '\n')
-        .replace(/<\/li>/gi, '\n')
-        .replace(/<br\s*[\/]?>/gi, '\n')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .trim();
-};
-
 interface ExtractedBullet {
     id: string;
     text: string;
     initiative: InitiativeSummaryItem;
-    highlight?: string;
+    highlightBadge?: string;
+    isUnquantified?: boolean;
+    score: number;
 }
 
-const extractBulletsFromPillar = (
+/**
+ * Extracts a short quantitative badge if present in the text (e.g. "$125,000 USD", "6,800 MDP", "387.5 hrs/sem", "8 FTE", "64 usuarios", "222x")
+ */
+const extractHighlightBadge = (text: string): string | undefined => {
+    const patterns = [
+        /\$\s*[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?\s*(?:USD|MXN|MDP|MMUSD)?/i,
+        /[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?\s*(?:MM\s*USD|MMUSD|MDP|USD)/i,
+        /[0-9]+(?:\.[0-9]+)?\s*(?:hrs?|horas?)\s*\/\s*(?:semana|mes|a[ñn]o)/i,
+        /[0-9]+(?:\.[0-9]+)?\s*(?:hrs?|horas?)\s*(?:semanales|mensuales|anuales)/i,
+        /[0-9]+(?:\.[0-9]+)?\s*FTEs?\b/i,
+        /[0-9]+\s*x\b/i,
+        /[0-9]{1,3}(?:,[0-9]{3})*\s*(?:usuarios?|usurarios?|personas?|colaboradores?|oficiales?|oficilaes?)/i,
+        /[0-9]+(?:\.[0-9]+)?%\s*(?:de\s+)?(?:reducci[oó]n|ahorro|mejora|dso|avance)/i,
+    ];
+
+    for (const regex of patterns) {
+        const match = text.match(regex);
+        if (match) {
+            return match[0]
+                .replace(/usurarios/i, 'usuarios')
+                .replace(/oficilaes/i, 'oficiales')
+                .trim();
+        }
+    }
+    return undefined;
+};
+
+/**
+ * Extracts ALL substantive initiative entries for a given pillar, sorted by impact relevance
+ * (quantified impacts first, qualitative second, "No cuantificado" last, excluding "Documentación pendiente").
+ */
+const extractAllPillarItems = (
     initiatives: InitiativeSummaryItem[],
     allValues: Record<string, ValueRecord>,
-    pillarKey: keyof ValueRecord,
-    maxItems = 4
+    pillarKey: keyof ValueRecord
 ): ExtractedBullet[] => {
-    const bullets: ExtractedBullet[] = [];
+    const items: ExtractedBullet[] = [];
 
     for (const init of initiatives) {
         const val = allValues[init.id]?.[pillarKey];
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
+        if (!isSubstantivePillar(val)) continue;
 
         const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
+        if (!clean || isNAPillar(clean) || isPendingDocumentation(clean)) continue;
 
         const lines = clean
             .split('\n')
             .map(l => l.replace(/^[•\-\*–—\d\.\)]\s*/, '').trim())
-            .filter(l => l.length > 5 && !isNAPillar(l));
+            .filter(l => l.length > 3 && !isNAPillar(l) && !isPendingDocumentation(l));
 
-        for (let i = 0; i < lines.length && i < 2; i++) {
-            bullets.push({
-                id: `${init.id}-${pillarKey}-${i}`,
-                text: lines[i],
-                initiative: init
-            });
-            if (bullets.length >= maxItems) break;
+        if (lines.length === 0) continue;
+
+        const combinedText = lines.join(' • ');
+        const unquantified = isUnquantifiedPillarText(combinedText);
+        const highlightBadge = !unquantified ? extractHighlightBadge(combinedText) : undefined;
+
+        let score = 10;
+        if (unquantified) {
+            score = 1;
+        } else if (highlightBadge) {
+            score = 30;
+        } else if (/[0-9]+/.test(combinedText)) {
+            score = 20;
         }
-        if (bullets.length >= maxItems) break;
+
+        items.push({
+            id: `${init.id}-${pillarKey}`,
+            text: combinedText,
+            initiative: init,
+            highlightBadge,
+            isUnquantified: unquantified,
+            score,
+        });
     }
 
-    return bullets;
-};
-
-// Extractor de números FTE
-const extractTotalFte = (
-    initiatives: InitiativeSummaryItem[],
-    allValues: Record<string, ValueRecord>
-): { totalFte: number; impactedCount: number } => {
-    let totalFte = 0;
-    let impactedCount = 0;
-
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.fte_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        // Buscar números cerca de FTE, personas, posiciones, etc.
-        const fteMatch = clean.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?|posicion(?:es)?|recurso(?:s)?|persona(?:s)?)/i)
-            || clean.match(/(?:liberaci[oó]n|ahorro|impacto|reasignaci[oó]n)\s*(?:de)?\s*([0-9]+(?:\.[0-9]+)?)/i);
-
-        if (fteMatch) {
-            const num = parseFloat(fteMatch[1]);
-            if (!isNaN(num) && num > 0 && num < 1000) {
-                totalFte += num;
-                impactedCount++;
-                continue;
-            }
-        }
-
-        // Si no se encontró número específico pero hay texto sustancial (que no sea N/A), se cuenta como impacto cualitativo
-        if (clean.length > 10 && !isNAPillar(clean)) {
-            impactedCount++;
-        }
-    }
-
-    return { totalFte: Math.round(totalFte * 10) / 10, impactedCount };
-};
-
-// Extractor de Ahorros Financieros
-const extractSavings = (
-    initiatives: InitiativeSummaryItem[],
-    allValues: Record<string, ValueRecord>
-): { totalSavings: number; quantifiedCount: number } => {
-    let totalSavings = 0;
-    let quantifiedCount = 0;
-
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.estimated_savings_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        // Buscar expresiones de dinero: $100,000 o 100k o 1.5M
-        const moneyMatch = clean.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(k|m|mdp|mil|millones)?/i)
-            || clean.match(/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(?:USD|MXN)/i);
-
-        if (moneyMatch) {
-            let amountStr = moneyMatch[1].replace(/,/g, '');
-            let amount = parseFloat(amountStr);
-            const multiplier = (moneyMatch[2] || '').toLowerCase();
-
-            if (multiplier === 'k' || multiplier === 'mil') amount *= 1000;
-            else if (multiplier === 'm' || multiplier === 'millones' || multiplier === 'mdp') amount *= 1000000;
-
-            if (!isNaN(amount) && amount > 0) {
-                totalSavings += amount;
-                quantifiedCount++;
-                continue;
-            }
-        }
-
-        if (clean.length > 10 && !isNAPillar(clean)) {
-            quantifiedCount++;
-        }
-    }
-
-    return { totalSavings, quantifiedCount };
-};
-
-// Extractor de Usuarios Alcanzados
-const extractUsersReached = (
-    initiatives: InitiativeSummaryItem[],
-    allValues: Record<string, ValueRecord>
-): { totalUsers: number; areasImpacted: string[] } => {
-    let totalUsers = 0;
-    const areas = new Set<string>();
-
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.users_reached_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        if (init.area) areas.add(init.area);
-
-        // Buscar cantidades de usuarios
-        const userMatch = clean.match(/(?:^|\s|\+|>)([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:usuarios?|personas?|colaboradores?|empleados?)/i);
-        if (userMatch) {
-            const num = parseInt(userMatch[1].replace(/,/g, ''), 10);
-            if (!isNaN(num) && num > 0 && num < 100000) {
-                totalUsers += num;
-            }
-        }
-    }
-
-    return { totalUsers, areasImpacted: Array.from(areas) };
+    return items.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.initiative.name.localeCompare(b.initiative.name);
+    });
 };
 
 // Categorías cualitativas detectadas
@@ -231,7 +160,7 @@ const detectQualitativeCategories = (
         const matchedInits: InitiativeSummaryItem[] = [];
         for (const init of initiatives) {
             const raw = allValues[init.id]?.qualitative_benefit;
-            if (!raw || isNAPillar(raw)) continue;
+            if (!isSubstantivePillar(raw)) continue;
             const text = stripHtml(raw).toLowerCase();
             if (rule.keywords.some(kw => text.includes(kw))) {
                 matchedInits.push(init);
@@ -249,12 +178,8 @@ const detectQualitativeCategories = (
         }
     }
 
-    // Si no se encontraron con keywords específicas, agregar tags por defecto basados en iniciativas con datos
     if (results.length === 0) {
-        const initsWithQual = initiatives.filter(i => {
-            const v = allValues[i.id]?.qualitative_benefit;
-            return v && !isNAPillar(v) && isPillarFilled(v);
-        });
+        const initsWithQual = initiatives.filter(i => isSubstantivePillar(allValues[i.id]?.qualitative_benefit));
         if (initsWithQual.length > 0) {
             results.push(
                 { name: 'Eficiencia y Calidad', count: initsWithQual.length, icon: Sparkles, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/40', sampleInitiatives: initsWithQual },
@@ -266,49 +191,118 @@ const detectQualitativeCategories = (
     return results;
 };
 
-// ─── Componente de Inspección Hover-to-Reveal ────────────────────────────────────
+// ─── Tarjeta Individual dentro del Scroll de cada Pilar ──────────────────────────
 
-const InteractiveBullet: React.FC<{
+const ScrollablePillarItem: React.FC<{
     bullet: ExtractedBullet;
+    accentDotClass: string;
+    accentBadgeClass: string;
     onClick: () => void;
-}> = ({ bullet, onClick }) => {
+}> = ({ bullet, accentDotClass, accentBadgeClass, onClick }) => {
     return (
         <div
             onClick={onClick}
-            className="group relative cursor-pointer p-2 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-800/60 transition-all duration-200 text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2 border border-transparent hover:border-gray-200 dark:hover:border-gray-700/60"
+            title={`Clic para abrir "${bullet.initiative.name}" (${bullet.initiative.area || 'General'})`}
+            className={clsx(
+                'group relative cursor-pointer p-2.5 rounded-lg transition-all duration-150 text-xs flex flex-col gap-1 border',
+                bullet.isUnquantified
+                    ? 'bg-gray-50/50 dark:bg-gray-800/25 border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/60'
+                    : 'bg-gray-50/70 dark:bg-gray-800/40 border-gray-100/90 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800/60'
+            )}
         >
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />
-            <div className="flex-1 min-w-0 pr-5">
-                <p className="line-clamp-2 leading-relaxed">{bullet.text}</p>
-            </div>
-
-            {/* Subtle external jump icon on hover */}
-            <ExternalLink
-                size={13}
-                className="opacity-0 group-hover:opacity-100 text-indigo-500 dark:text-indigo-400 transition-opacity absolute right-2.5 top-2.5 flex-shrink-0"
-            />
-
-            {/* Contextual Popover Tooltip */}
-            <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900/95 dark:bg-black/95 text-white text-xs rounded-xl shadow-2xl border border-gray-700/60 backdrop-blur-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
-                <p className="font-bold text-indigo-300 text-[10px] uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Award size={11} />
-                    Proveniente de Iniciativa:
-                </p>
-                <p className="font-bold text-white text-xs mb-1.5 line-clamp-2 leading-snug">
-                    {bullet.initiative.name}
-                </p>
-                <div className="space-y-0.5 text-[10px] text-gray-300 border-t border-gray-800 pt-1.5">
-                    <div><span className="text-gray-400">Área:</span> {bullet.initiative.area || 'General'}</div>
-                    <div><span className="text-gray-400">Responsable:</span> {bullet.initiative.transformation_lead || 'N/A'}</div>
-                    {bullet.initiative.status && (
-                        <div><span className="text-gray-400">Estatus:</span> {bullet.initiative.status}</div>
+            {/* Header row: Initiative Name + Area + Highlight Badge + External Link Icon */}
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', accentDotClass)} />
+                    <span className="font-bold text-[11px] text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {bullet.initiative.name}
+                    </span>
+                    {bullet.initiative.area && (
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate hidden sm:inline">
+                            · {bullet.initiative.area}
+                        </span>
                     )}
                 </div>
-                <div className="mt-2 text-[10px] text-indigo-400 font-semibold flex items-center justify-end gap-1">
-                    <span>Clic para editar iniciativa</span>
-                    <ExternalLink size={10} />
+
+                <div className="flex items-center gap-1 flex-shrink-0">
+                    {bullet.highlightBadge && (
+                        <span className={clsx('px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tabular-nums', accentBadgeClass)}>
+                            {bullet.highlightBadge}
+                        </span>
+                    )}
+                    {bullet.isUnquantified && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-200/70 dark:bg-gray-700/60 text-gray-500 dark:text-gray-400">
+                            Por cuantificar
+                        </span>
+                    )}
+                    <ExternalLink
+                        size={12}
+                        className="opacity-40 group-hover:opacity-100 text-indigo-500 dark:text-indigo-400 transition-opacity flex-shrink-0"
+                    />
                 </div>
             </div>
+
+            {/* Full impact description */}
+            <p className="text-[11px] leading-relaxed text-gray-600 dark:text-gray-300 pl-3">
+                {bullet.text}
+            </p>
+        </div>
+    );
+};
+
+// ─── Contenedor Scrollable Reutilizable para cada Pilar ──────────────────────────
+
+const PillarScrollList: React.FC<{
+    title: string;
+    items: ExtractedBullet[];
+    emptyText: string;
+    accentDotClass: string;
+    accentBadgeClass: string;
+    maxHeightClass?: string;
+    onSelectInitiative: (id: string, name: string) => void;
+}> = ({
+    title,
+    items,
+    emptyText,
+    accentDotClass,
+    accentBadgeClass,
+    maxHeightClass = 'max-h-[230px]',
+    onSelectInitiative
+}) => {
+    return (
+        <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    {title} ({items.length})
+                </p>
+                {items.length > 2 && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                        <ChevronsUpDown size={11} />
+                        <span>Scroll para ver más</span>
+                    </span>
+                )}
+            </div>
+
+            {items.length > 0 ? (
+                <div
+                    className={clsx(
+                        'space-y-1.5 overflow-y-auto pr-1 custom-scrollbar',
+                        maxHeightClass
+                    )}
+                >
+                    {items.map(bullet => (
+                        <ScrollablePillarItem
+                            key={bullet.id}
+                            bullet={bullet}
+                            accentDotClass={accentDotClass}
+                            accentBadgeClass={accentBadgeClass}
+                            onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <p className="text-xs text-gray-400 italic py-3">{emptyText}</p>
+            )}
         </div>
     );
 };
@@ -318,90 +312,62 @@ const InteractiveBullet: React.FC<{
 export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProps> = ({
     initiatives,
     allValues,
-    pillarSummary,
     onSelectInitiative
 }) => {
-    // Totales y estadísticas del portafolio
-    const totalInitiatives = initiatives.length;
+    const [showAllAreas, setShowAllAreas] = useState(false);
 
-    // Métricas por pilar
-    const metrics = useMemo(() => {
-        let hasBusinessValue = 0;
-        let hasOperationalEfficiency = 0;
-        let hasFte = 0;
-        let hasQualitative = 0;
-        let hasUsers = 0;
-        let hasSavings = 0;
+    // Estadísticas analíticas consolidadas compartidas con PDF y Excel
+    const stats = useMemo(
+        () => analyzePortfolioValue(initiatives, allValues as Record<string, Record<string, string>>),
+        [initiatives, allValues]
+    );
 
-        for (const init of initiatives) {
+    // Listas completas desplazables para cada uno de los 6 pilares
+    const businessBullets = useMemo(
+        () => extractAllPillarItems(initiatives, allValues, 'business_value'),
+        [initiatives, allValues]
+    );
+    const operationalBullets = useMemo(
+        () => extractAllPillarItems(initiatives, allValues, 'operational_efficiency'),
+        [initiatives, allValues]
+    );
+    const fteBullets = useMemo(
+        () => extractAllPillarItems(initiatives, allValues, 'fte_detail'),
+        [initiatives, allValues]
+    );
+    const qualitativeBullets = useMemo(
+        () => extractAllPillarItems(initiatives, allValues, 'qualitative_benefit'),
+        [initiatives, allValues]
+    );
+    const usersBullets = useMemo(
+        () => extractAllPillarItems(initiatives, allValues, 'users_reached_detail'),
+        [initiatives, allValues]
+    );
+    const savingsBullets = useMemo(
+        () => extractAllPillarItems(initiatives, allValues, 'estimated_savings_detail'),
+        [initiatives, allValues]
+    );
+
+    const qualitativeCategories = useMemo(
+        () => detectQualitativeCategories(initiatives, allValues),
+        [initiatives, allValues]
+    );
+
+    const pendingMgmtInitiatives = useMemo(() => {
+        return initiatives.filter(init => {
             const v = allValues[init.id];
-            if (!v) continue;
-            if (isPillarFilled(v.business_value) && !isNAPillar(v.business_value)) hasBusinessValue++;
-            if (isPillarFilled(v.operational_efficiency) && !isNAPillar(v.operational_efficiency)) hasOperationalEfficiency++;
-            if (isPillarFilled(v.fte_detail) && !isNAPillar(v.fte_detail)) hasFte++;
-            if (isPillarFilled(v.qualitative_benefit) && !isNAPillar(v.qualitative_benefit)) hasQualitative++;
-            if (isPillarFilled(v.users_reached_detail) && !isNAPillar(v.users_reached_detail)) hasUsers++;
-            if (isPillarFilled(v.estimated_savings_detail) && !isNAPillar(v.estimated_savings_detail)) hasSavings++;
-        }
-
-        // Cálculo de avance global (6/6 pilares):
-        // Un pilar marcado como "N/A", "NA" o "No Aplica" cuenta como completado / documentado
-        const getInitDocCount = (initId: string): number => {
-            const v = allValues[initId];
-            if (!v) return pillarSummary[initId] ?? 0;
-            let count = 0;
-            if (isPillarFilled(v.business_value)) count++;
-            if (isPillarFilled(v.operational_efficiency)) count++;
-            if (isPillarFilled(v.fte_detail)) count++;
-            if (isPillarFilled(v.qualitative_benefit)) count++;
-            if (isPillarFilled(v.users_reached_detail)) count++;
-            if (isPillarFilled(v.estimated_savings_detail)) count++;
-            return count;
-        };
-
-        const complete = initiatives.filter(i => getInitDocCount(i.id) === 6).length;
-        const partial = initiatives.filter(i => {
-            const c = getInitDocCount(i.id);
-            return c > 0 && c < 6;
-        }).length;
-        const empty = totalInitiatives - complete - partial;
-
-        return {
-            hasBusinessValue,
-            hasOperationalEfficiency,
-            hasFte,
-            hasQualitative,
-            hasUsers,
-            hasSavings,
-            complete,
-            partial,
-            empty,
-            pctComplete: totalInitiatives > 0 ? Math.round((complete / totalInitiatives) * 100) : 0,
-        };
-    }, [initiatives, allValues, pillarSummary, totalInitiatives]);
-
-    // Extracción de datos específicos
-    const businessBullets = useMemo(() => extractBulletsFromPillar(initiatives, allValues, 'business_value', 3), [initiatives, allValues]);
-    const operationalBullets = useMemo(() => extractBulletsFromPillar(initiatives, allValues, 'operational_efficiency', 3), [initiatives, allValues]);
-    const fteBullets = useMemo(() => extractBulletsFromPillar(initiatives, allValues, 'fte_detail', 3), [initiatives, allValues]);
-    const qualitativeBullets = useMemo(() => extractBulletsFromPillar(initiatives, allValues, 'qualitative_benefit', 2), [initiatives, allValues]);
-    const usersBullets = useMemo(() => extractBulletsFromPillar(initiatives, allValues, 'users_reached_detail', 2), [initiatives, allValues]);
-    const savingsBullets = useMemo(() => extractBulletsFromPillar(initiatives, allValues, 'estimated_savings_detail', 3), [initiatives, allValues]);
-
-    const { totalFte, impactedCount: fteInitiativesCount } = useMemo(() => extractTotalFte(initiatives, allValues), [initiatives, allValues]);
-    const { totalSavings, quantifiedCount: savingsInitiativesCount } = useMemo(() => extractSavings(initiatives, allValues), [initiatives, allValues]);
-    const { totalUsers, areasImpacted } = useMemo(() => extractUsersReached(initiatives, allValues), [initiatives, allValues]);
-    const qualitativeCategories = useMemo(() => detectQualitativeCategories(initiatives, allValues), [initiatives, allValues]);
-
-    // Helper de moneda
-    const formattedSavings = useMemo(() => {
-        if (totalSavings === 0) return '$0 USD';
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            maximumFractionDigits: 0
-        }).format(totalSavings);
-    }, [totalSavings]);
+            if (!v) return false;
+            const vals = [
+                v.business_value,
+                v.operational_efficiency,
+                v.fte_detail,
+                v.qualitative_benefit,
+                v.users_reached_detail,
+                v.estimated_savings_detail
+            ];
+            return vals.some(p => isPendingDocumentation(p)) && vals.filter(p => isPillarCompleted(p)).length < 6;
+        });
+    }, [initiatives, allValues]);
 
     return (
         <div className="flex-1 flex flex-col space-y-4 min-h-0 overflow-y-auto custom-scrollbar pb-6">
@@ -415,27 +381,49 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                         </h3>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Consolidado analítico de los 6 pilares estratégicos en <span className="font-semibold text-gray-700 dark:text-gray-200">{totalInitiatives} iniciativas</span>. Pasa el cursor sobre cualquier dato para inspeccionar su iniciativa de origen.
+                        Consolidado analítico de los 6 pilares estratégicos en{' '}
+                        <span className="font-semibold text-gray-700 dark:text-gray-200">
+                            {stats.totalInits} iniciativas
+                        </span>
+                        . Desplázate dentro de cada pilar o haz clic en cualquier iniciativa para ver y editar su detalle.
                     </p>
                 </div>
 
-                {/* Contadores horizontales alineados a la derecha + Botón de Exportación */}
+                {/* Contadores horizontales alineados a la derecha */}
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Completas */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
+                    <div
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40"
+                        title="Iniciativas con los 6 pilares sustantivamente documentados (o N/A justificado)"
+                    >
                         <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                         <div>
-                            <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300">{metrics.complete}</span>
-                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 ml-1 font-medium">Completas</span>
+                            <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 font-mono tabular-nums">
+                                {stats.completeInits}
+                            </span>
+                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 ml-1 font-medium">
+                                Completas
+                            </span>
                         </div>
                     </div>
 
-                    {/* En Progreso */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40">
+                    {/* En Progreso / Pendiente por Gerencia */}
+                    <div
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40"
+                        title={
+                            pendingMgmtInitiatives.length > 0
+                                ? `Incluye pendientes por gerencia: ${pendingMgmtInitiatives.map(i => i.name).join(', ')}`
+                                : 'Iniciativas con documentación parcial'
+                        }
+                    >
                         <Clock size={15} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
                         <div>
-                            <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300">{metrics.partial}</span>
-                            <span className="text-[11px] text-amber-600 dark:text-amber-400 ml-1 font-medium">En Progreso</span>
+                            <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300 font-mono tabular-nums">
+                                {stats.partialInits}
+                            </span>
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 ml-1 font-medium">
+                                {pendingMgmtInitiatives.length > 0 ? 'Pend. Gerencia / Parcial' : 'En Progreso'}
+                            </span>
                         </div>
                     </div>
 
@@ -443,33 +431,39 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60">
                         <FileQuestion size={15} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
                         <div>
-                            <span className="text-xs font-extrabold text-gray-700 dark:text-gray-300">{metrics.empty}</span>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-1 font-medium">Sin Documentar</span>
+                            <span className="text-xs font-extrabold text-gray-700 dark:text-gray-300 font-mono tabular-nums">
+                                {stats.emptyInits}
+                            </span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-1 font-medium">
+                                Sin Documentar
+                            </span>
                         </div>
                     </div>
 
                     {/* Barra de progreso */}
                     <div className="w-28 pl-1">
                         <div className="flex justify-between text-[10px] font-bold text-gray-500 mb-1">
-                            <span>Avance</span>
-                            <span className="text-indigo-600 dark:text-indigo-400">{metrics.pctComplete}%</span>
+                            <span>Adopción Real</span>
+                            <span className="text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">
+                                {stats.pctGlobalComplete}%
+                            </span>
                         </div>
                         <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500"
-                                style={{ width: `${metrics.pctComplete}%` }}
+                                className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-500"
+                                style={{ width: `${stats.pctGlobalComplete}%` }}
                             />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ─── 2. Grid Consolidado (2 filas × 3 columnas) ─────────────────────────── */}
+            {/* ─── 2. Grid Consolidado (2 filas × 3 columnas con Scroll en cada Pilar) ──── */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
-                {/* PILAR 1: VALOR DE NEGOCIO (Púrpura) */}
+                {/* PILAR 1: VALOR DE NEGOCIO (Violeta) */}
                 <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-violet-100 dark:border-violet-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div>
+                    <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
                                 <div className="p-2 bg-violet-100 dark:bg-violet-900/50 rounded-lg text-violet-600 dark:text-violet-400">
@@ -479,48 +473,47 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                     Valor de Negocio
                                 </h4>
                             </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/40">
-                                {metrics.hasBusinessValue} de {totalInitiatives}
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/40 font-mono tabular-nums">
+                                {stats.hasBusiness} de {stats.totalInits}
                             </span>
                         </div>
 
                         {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-violet-50/50 dark:bg-violet-950/20 rounded-xl border border-violet-100/60 dark:border-violet-900/30">
+                        <div className="grid grid-cols-2 gap-2 mb-3.5 p-3 bg-violet-50/50 dark:bg-violet-950/20 rounded-xl border border-violet-100/60 dark:border-violet-900/30">
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Alineación</span>
-                                <p className="text-xl font-black text-violet-700 dark:text-violet-300">
-                                    {totalInitiatives > 0 ? Math.round((metrics.hasBusinessValue / totalInitiatives) * 100) : 0}%
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Alineación
+                                </span>
+                                <p className="text-xl font-black text-violet-700 dark:text-violet-300 font-mono tabular-nums">
+                                    {stats.pctBusiness}%
                                 </p>
                             </div>
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Ejes Clave</span>
-                                <p className="text-xl font-black text-gray-800 dark:text-gray-200">
-                                    {businessBullets.length > 0 ? `${businessBullets.length}+` : '0'}
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Iniciativas Documentadas
+                                </span>
+                                <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
+                                    {businessBullets.length}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Bullets con Hover-to-reveal */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Ejes Principales Documentados</p>
-                            {businessBullets.length > 0 ? (
-                                businessBullets.map(bullet => (
-                                    <InteractiveBullet
-                                        key={bullet.id}
-                                        bullet={bullet}
-                                        onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin información de valor de negocio aún.</p>
-                            )}
-                        </div>
+                        {/* Scrollable List of ALL Business Value Initiatives */}
+                        <PillarScrollList
+                            title="Impactos de Negocio Documentados"
+                            items={businessBullets}
+                            emptyText="Sin información de valor de negocio aún."
+                            accentDotClass="bg-violet-500"
+                            accentBadgeClass="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
+                            maxHeightClass="max-h-[240px]"
+                            onSelectInitiative={onSelectInitiative}
+                        />
                     </div>
                 </div>
 
-                {/* PILAR 2: EFICIENCIA OPERATIVA (Naranja) */}
+                {/* PILAR 2: EFICIENCIA OPERATIVA (Ámbar) */}
                 <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-amber-100 dark:border-amber-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div>
+                    <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
                                 <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg text-amber-600 dark:text-amber-400">
@@ -530,48 +523,47 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                     Eficiencia Operativa
                                 </h4>
                             </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/40">
-                                {metrics.hasOperationalEfficiency} procesos
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/40 font-mono tabular-nums">
+                                {stats.hasOperational} procesos
                             </span>
                         </div>
 
                         {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-100/60 dark:border-amber-900/30">
+                        <div className="grid grid-cols-2 gap-2 mb-3.5 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-100/60 dark:border-amber-900/30">
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Procesos Optimizados</span>
-                                <p className="text-xl font-black text-amber-700 dark:text-amber-300">
-                                    {metrics.hasOperationalEfficiency}
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Procesos Optimizados
+                                </span>
+                                <p className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono tabular-nums">
+                                    {stats.hasOperational}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Áreas Impactadas</span>
-                                <p className="text-xl font-black text-gray-800 dark:text-gray-200">
-                                    {areasImpacted.length || 0}
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Áreas Impactadas
+                                </span>
+                                <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
+                                    {stats.operationalAreas.length}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Bullets con Hover-to-reveal */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Optimizaciones Destacadas</p>
-                            {operationalBullets.length > 0 ? (
-                                operationalBullets.map(bullet => (
-                                    <InteractiveBullet
-                                        key={bullet.id}
-                                        bullet={bullet}
-                                        onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin datos de optimización operativa aún.</p>
-                            )}
-                        </div>
+                        {/* Scrollable List of ALL Operational Efficiency Initiatives */}
+                        <PillarScrollList
+                            title="Optimizaciones Operativas"
+                            items={operationalBullets}
+                            emptyText="Sin datos de optimización operativa aún."
+                            accentDotClass="bg-amber-500"
+                            accentBadgeClass="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
+                            maxHeightClass="max-h-[240px]"
+                            onSelectInitiative={onSelectInitiative}
+                        />
                     </div>
                 </div>
 
-                {/* PILAR 3: FTE (Azul) */}
+                {/* PILAR 3: IMPACTO EN FTE Y HORAS LIBERADAS (Cian) */}
                 <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-cyan-100 dark:border-cyan-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div>
+                    <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
                                 <div className="p-2 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg text-cyan-600 dark:text-cyan-400">
@@ -581,48 +573,49 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                     Impacto en FTE
                                 </h4>
                             </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/40">
-                                {fteInitiativesCount} iniciativas
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/40 font-mono tabular-nums">
+                                {stats.fteImpactedCount} activas · {stats.ftePendingCount} en cuantif.
                             </span>
                         </div>
 
                         {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-xl border border-cyan-100/60 dark:border-cyan-900/30">
+                        <div className="grid grid-cols-2 gap-2 mb-3.5 p-3 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-xl border border-cyan-100/60 dark:border-cyan-900/30">
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">FTEs Liberados</span>
-                                <p className="text-xl font-black text-cyan-700 dark:text-cyan-300">
-                                    {totalFte > 0 ? `${totalFte} FTEs` : (fteInitiativesCount > 0 ? `${fteInitiativesCount} iniciativas` : '0 FTEs')}
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    FTEs de Referencia
+                                </span>
+                                <p className="text-xl font-black text-cyan-700 dark:text-cyan-300 font-mono tabular-nums">
+                                    {stats.totalFte > 0 ? `${stats.totalFte} FTEs` : `${stats.fteImpactedCount} inits`}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">% Carga Optimizada</span>
-                                <p className="text-xl font-black text-gray-800 dark:text-gray-200">
-                                    {totalInitiatives > 0 ? Math.round((fteInitiativesCount / totalInitiatives) * 100) : 0}%
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Horas Liberadas / Mes
+                                </span>
+                                <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
+                                    {stats.totalHoursPerMonth > 0
+                                        ? `+${stats.totalHoursPerMonth.toLocaleString()} hrs`
+                                        : `${stats.pctFte}%`}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Bullets con Hover-to-reveal */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Capacidad Reasignada o Liberada</p>
-                            {fteBullets.length > 0 ? (
-                                fteBullets.map(bullet => (
-                                    <InteractiveBullet
-                                        key={bullet.id}
-                                        bullet={bullet}
-                                        onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin registro de FTEs liberados aún.</p>
-                            )}
-                        </div>
+                        {/* Scrollable List of ALL FTE & Capacity Initiatives */}
+                        <PillarScrollList
+                            title="Capacidad Reasignada o Liberada"
+                            items={fteBullets}
+                            emptyText="Sin registro de FTEs liberados aún."
+                            accentDotClass="bg-cyan-500"
+                            accentBadgeClass="bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"
+                            maxHeightClass="max-h-[240px]"
+                            onSelectInitiative={onSelectInitiative}
+                        />
                     </div>
                 </div>
 
-                {/* PILAR 4: BENEFICIO CUALITATIVO (Rojo/Rosa) */}
+                {/* PILAR 4: BENEFICIO CUALITATIVO (Rosa) */}
                 <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-rose-100 dark:border-rose-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div>
+                    <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
                                 <div className="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-lg text-rose-600 dark:text-rose-400">
@@ -632,14 +625,16 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                     Beneficio Cualitativo
                                 </h4>
                             </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/40">
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/40 font-mono tabular-nums">
                                 {qualitativeCategories.length} categorías
                             </span>
                         </div>
 
                         {/* Badges / Tags interactivos */}
-                        <div className="mb-4">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Categorías Identificadas</p>
+                        <div className="mb-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                                Categorías Identificadas
+                            </p>
                             <div className="flex flex-wrap gap-1.5">
                                 {qualitativeCategories.map((cat, idx) => {
                                     const IconComponent = cat.icon;
@@ -649,45 +644,39 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                             key={idx}
                                             onClick={() => primaryInit && onSelectInitiative(primaryInit.id, primaryInit.name)}
                                             className={clsx(
-                                                'group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all hover:scale-[1.02] cursor-pointer',
+                                                'group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all active:scale-[0.98] cursor-pointer',
                                                 cat.bg,
                                                 cat.color
                                             )}
-                                            title={`Ver iniciativa: ${primaryInit?.name || ''}`}
+                                            title={`Ver iniciativa ejemplo: ${primaryInit?.name || ''}`}
                                         >
                                             <IconComponent size={12} />
                                             <span>{cat.name}</span>
-                                            <span className="px-1.5 py-0.2 rounded-full bg-white/70 dark:bg-black/30 text-[10px] font-bold">
+                                            <span className="px-1.5 py-0.2 rounded-full bg-white/70 dark:bg-black/30 text-[10px] font-bold font-mono tabular-nums">
                                                 {cat.count}
                                             </span>
-                                            <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 ml-0.5 transition-opacity" />
                                         </button>
                                     );
                                 })}
                             </div>
                         </div>
 
-                        {/* Bullets con Hover-to-reveal */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Impactos Cualitativos Destacados</p>
-                            {qualitativeBullets.length > 0 ? (
-                                qualitativeBullets.map(bullet => (
-                                    <InteractiveBullet
-                                        key={bullet.id}
-                                        bullet={bullet}
-                                        onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin beneficios cualitativos registrados.</p>
-                            )}
-                        </div>
+                        {/* Scrollable List of ALL Qualitative Benefits */}
+                        <PillarScrollList
+                            title="Impactos Cualitativos Documentados"
+                            items={qualitativeBullets}
+                            emptyText="Sin beneficios cualitativos registrados."
+                            accentDotClass="bg-rose-500"
+                            accentBadgeClass="bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300"
+                            maxHeightClass="max-h-[195px]"
+                            onSelectInitiative={onSelectInitiative}
+                        />
                     </div>
                 </div>
 
-                {/* PILAR 5: USUARIOS ALCANZADOS (Cian / Esmeralda) */}
+                {/* PILAR 5: USUARIOS ALCANZADOS (Esmeralda) */}
                 <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div>
+                    <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
                                 <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -697,62 +686,69 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                     Usuarios Alcanzados
                                 </h4>
                             </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40">
-                                {metrics.hasUsers} iniciativas
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40 font-mono tabular-nums">
+                                {stats.hasUsers} iniciativas
                             </span>
                         </div>
 
                         {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100/60 dark:border-emerald-900/30">
+                        <div className="grid grid-cols-2 gap-2 mb-3 p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100/60 dark:border-emerald-900/30">
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Usuarios Estimados</span>
-                                <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
-                                    {totalUsers > 0 ? `+${totalUsers.toLocaleString()}` : `${metrics.hasUsers} iniciativas`}
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Usuarios Directos
+                                </span>
+                                <p className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono tabular-nums">
+                                    {stats.totalUsers > 0 ? `+${stats.totalUsers.toLocaleString()}` : `${stats.hasUsers} inits`}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Áreas Impactadas</span>
-                                <p className="text-xl font-black text-gray-800 dark:text-gray-200">
-                                    {areasImpacted.length}
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Áreas Impactadas
+                                </span>
+                                <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
+                                    {stats.usersAreas.length}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Tags de áreas operativas alcanzadas */}
-                        {areasImpacted.length > 0 && (
-                            <div className="mb-3 flex flex-wrap gap-1">
-                                {areasImpacted.slice(0, 4).map((area, i) => (
-                                    <span key={i} className="text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md">
+                        {/* Tags de áreas operativas alcanzadas con opción de expandir todas */}
+                        {stats.usersAreas.length > 0 && (
+                            <div className="mb-3 flex flex-wrap items-center gap-1">
+                                {(showAllAreas ? stats.usersAreas : stats.usersAreas.slice(0, 4)).map((area, i) => (
+                                    <span
+                                        key={i}
+                                        className="text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md"
+                                    >
                                         {area}
                                     </span>
                                 ))}
-                                {areasImpacted.length > 4 && (
-                                    <span className="text-[10px] text-gray-400">+{areasImpacted.length - 4} más</span>
+                                {stats.usersAreas.length > 4 && (
+                                    <button
+                                        onClick={() => setShowAllAreas(prev => !prev)}
+                                        className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline px-1.5 py-0.5 cursor-pointer"
+                                    >
+                                        {showAllAreas ? 'Ver menos' : `+${stats.usersAreas.length - 4} más`}
+                                    </button>
                                 )}
                             </div>
                         )}
 
-                        {/* Bullets con Hover-to-reveal */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Alcance a Equipos y Usuarios</p>
-                            {usersBullets.length > 0 ? (
-                                usersBullets.map(bullet => (
-                                    <InteractiveBullet
-                                        key={bullet.id}
-                                        bullet={bullet}
-                                        onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin datos de usuarios alcanzados aún.</p>
-                            )}
-                        </div>
+                        {/* Scrollable List of ALL Users Reached Initiatives */}
+                        <PillarScrollList
+                            title="Alcance a Equipos y Usuarios"
+                            items={usersBullets}
+                            emptyText="Sin datos de usuarios alcanzados aún."
+                            accentDotClass="bg-emerald-500"
+                            accentBadgeClass="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300"
+                            maxHeightClass="max-h-[205px]"
+                            onSelectInitiative={onSelectInitiative}
+                        />
                     </div>
                 </div>
 
                 {/* PILAR 6: AHORRO ESTIMADO (Verde) */}
                 <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-green-100 dark:border-green-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div>
+                    <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
                                 <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg text-green-600 dark:text-green-400">
@@ -762,42 +758,54 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                     Ahorro Estimado
                                 </h4>
                             </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-300 border border-green-200/50 dark:border-green-800/40">
-                                {savingsInitiativesCount} con ahorro
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-300 border border-green-200/50 dark:border-green-800/40 font-mono tabular-nums">
+                                {stats.savingsQuantifiedCount} con ahorro · {stats.savingsPendingCount} en cuantif.
                             </span>
                         </div>
 
                         {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-green-50/50 dark:bg-green-950/20 rounded-xl border border-green-100/60 dark:border-green-900/30">
+                        <div className="grid grid-cols-2 gap-2 mb-3.5 p-3 bg-green-50/50 dark:bg-green-950/20 rounded-xl border border-green-100/60 dark:border-green-900/30">
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Ahorro Acumulado</span>
-                                <p className="text-xl font-black text-green-700 dark:text-green-300 truncate" title={formattedSavings}>
-                                    {formattedSavings}
-                                </p>
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Ahorro Directo + Aclaración
+                                </span>
+                                <div className="flex items-baseline gap-1.5 flex-wrap">
+                                    <p
+                                        className="text-lg font-black text-green-700 dark:text-green-300 font-mono tabular-nums"
+                                        title={stats.formattedSavings}
+                                    >
+                                        {stats.formattedSavings}
+                                    </p>
+                                    {stats.savingsSecondaryHighlight && (
+                                        <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                                            {stats.savingsSecondaryHighlight}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">Iniciativas Cuantificadas</span>
-                                <p className="text-xl font-black text-gray-800 dark:text-gray-200">
-                                    {savingsInitiativesCount} <span className="text-xs text-gray-400 font-normal">/ {totalInitiatives}</span>
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                    Con Beneficio Documentado
+                                </span>
+                                <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
+                                    {stats.savingsQuantifiedCount}{' '}
+                                    <span className="text-xs text-gray-400 font-normal">
+                                        / {stats.totalInits}
+                                    </span>
                                 </p>
                             </div>
                         </div>
 
-                        {/* Bullets con Hover-to-reveal */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Ahorros Financieros Registrados</p>
-                            {savingsBullets.length > 0 ? (
-                                savingsBullets.map(bullet => (
-                                    <InteractiveBullet
-                                        key={bullet.id}
-                                        bullet={bullet}
-                                        onClick={() => onSelectInitiative(bullet.initiative.id, bullet.initiative.name)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin ahorros cuantificados registrados aún.</p>
-                            )}
-                        </div>
+                        {/* Scrollable List of ALL Estimated Savings Initiatives */}
+                        <PillarScrollList
+                            title="Ahorros y Optimizaciones Financieras"
+                            items={savingsBullets}
+                            emptyText="Sin ahorros cuantificados registrados aún."
+                            accentDotClass="bg-green-500"
+                            accentBadgeClass="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"
+                            maxHeightClass="max-h-[240px]"
+                            onSelectInitiative={onSelectInitiative}
+                        />
                     </div>
                 </div>
 

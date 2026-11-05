@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { MultiSelectDropdown } from '../components/roadmap/MultiSelectDropdown';
 import { useAuth } from '../context/AuthContext';
@@ -9,13 +8,22 @@ import API_URL from '../config/api';
 import {
     Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
     DollarSign, HelpCircle, Award, Presentation, Search, ChevronDown, X as XIcon,
-    FileDown, FileSpreadsheet, FileText
+    FileDown, FileSpreadsheet, FileText, ArrowLeft, ChevronLeft, ChevronRight, LayoutGrid
 } from 'lucide-react';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { ValuePresentationModal } from '../components/roadmap/ValuePresentationModal';
 import { ConsolidatedValueDashboard } from '../components/roadmap/ConsolidatedValueDashboard';
 import { InitiativePillarsEditor } from '../components/roadmap/InitiativePillarsEditor';
-import { exportToExcel, exportToPDF, exportConsolidatedToExcel, exportConsolidatedToPDF, EXPORT_PILLARS, isNAPillar, isPillarFilled } from '../utils/exportValue';
+import {
+    exportToExcel,
+    exportToPDF,
+    exportConsolidatedToExcel,
+    exportConsolidatedToPDF,
+    EXPORT_PILLARS,
+    isNAPillar,
+    isPillarCompleted,
+    isPendingDocumentation
+} from '../utils/exportValue';
 import type { Step } from 'react-joyride';
 import { useSearchParams } from 'react-router-dom';
 
@@ -126,7 +134,6 @@ export const InitiativeValuePage = () => {
     const [runTour, setRunTour] = useState<boolean | undefined>(undefined);
 
     const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor';
-    // In presentation mode, even editors see read-only
     const canEdit = isAdminOrEditor && !isPresentationMode;
 
     const tourSteps: Step[] = isAdminOrEditor ? [
@@ -169,22 +176,17 @@ export const InitiativeValuePage = () => {
     const initIdFromUrl = searchParams.get('initiative_id');
     const [selectedInitiativeId, setSelectedInitiativeId] = useState<string>(initIdFromUrl || '');
 
-    // Clear the URL param once it's loaded to avoid getting stuck if user changes selection
     useEffect(() => {
         if (initIdFromUrl && initiatives.length > 0) {
-            // Remove it from URL so subsequent clicks in the sidebar don't force it
             setSearchParams({});
         }
     }, [initIdFromUrl, initiatives, setSearchParams]);
 
     // --- Filter state ---
     const [selectedArea, setSelectedArea] = useState<string>('');
-    // Area combobox
     const [areaSearchQuery, setAreaSearchQuery] = useState<string>('');
     const [isAreaComboOpen, setIsAreaComboOpen] = useState(false);
-    // TransfLead Filter
     const [selectedTransfLead, setselectedTransfLead] = useState<string[]>([]);
-    // Status filter
     const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
 
     const [valueData, setValueData] = useState<ValueData>({ ...EMPTY_VALUE });
@@ -198,7 +200,7 @@ export const InitiativeValuePage = () => {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isComboOpen, setIsComboOpen] = useState(false);
 
-    // Pillar summary map  { initiative_id: filledCount }
+    // Pillar summary map { initiative_id: filledCount }
     const [pillarSummary, setPillarSummary] = useState<Record<string, number>>({});
     // All values map for consolidated dashboard { initiative_id: ValueData }
     const [allValues, setAllValues] = useState<Record<string, ValueData>>({});
@@ -209,7 +211,6 @@ export const InitiativeValuePage = () => {
         return Array.from(new Set(areas)).sort();
     }, [initiatives]);
 
-    // Area combobox filtered options
     const areaComboOptions = useMemo(() => {
         if (!areaSearchQuery.trim()) return uniqueAreas;
         const q = areaSearchQuery.toLowerCase();
@@ -226,7 +227,6 @@ export const InitiativeValuePage = () => {
         return Array.from(new Set(statuses)).sort();
     }, [initiatives]);
 
-    // filteredInitiatives reacts to all active filters
     const filteredInitiatives = useMemo(() => {
         return initiatives.filter(i => {
             const areaMatch = !selectedArea || i.area === selectedArea;
@@ -240,6 +240,18 @@ export const InitiativeValuePage = () => {
         () => initiatives.find(i => i.id === selectedInitiativeId),
         [initiatives, selectedInitiativeId]
     );
+
+    // Previous / Next navigation within filteredInitiatives
+    const currentFilteredIndex = useMemo(() => {
+        if (!selectedInitiativeId) return -1;
+        return filteredInitiatives.findIndex(i => i.id === selectedInitiativeId);
+    }, [filteredInitiatives, selectedInitiativeId]);
+
+    const prevInitiative = currentFilteredIndex > 0 ? filteredInitiatives[currentFilteredIndex - 1] : null;
+    const nextInitiative =
+        currentFilteredIndex >= 0 && currentFilteredIndex < filteredInitiatives.length - 1
+            ? filteredInitiatives[currentFilteredIndex + 1]
+            : null;
 
     // Fetch Initiatives + Pillar Summary + All Value Data
     useEffect(() => {
@@ -330,7 +342,7 @@ export const InitiativeValuePage = () => {
         fetchValue();
     }, [selectedInitiativeId, token]);
 
-    // Re-fetch summary after save so badges and consolidated dashboard stay fresh
+    // Re-fetch summary after save
     const refreshSummary = async () => {
         try {
             const [sumRes, allRes] = await Promise.all([
@@ -385,7 +397,6 @@ export const InitiativeValuePage = () => {
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Datos guardados exitosamente' });
                 setTimeout(() => setMessage(null), 3000);
-                // Update local summary and allValues optimistically
                 setPillarSummary(prev => ({ ...prev, [selectedInitiativeId]: filledCount }));
                 setAllValues(prev => ({ ...prev, [selectedInitiativeId]: { ...valueData } }));
                 refreshSummary();
@@ -404,13 +415,11 @@ export const InitiativeValuePage = () => {
     const getStatusColor = (status?: string) => {
         if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
         const s = status.toLowerCase();
-        
-        // Exact or specific matches first
+
         if (s === 'entregado con redefinición') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300';
         if (s === 'entregado con atraso') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
         if (s === 'en redefinición') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300';
-        
-        // General matching
+
         if (s.includes('retrasado') || s.includes('cancelado'))
             return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
         if (s.includes('en curso') || s.includes('avance'))
@@ -425,12 +434,16 @@ export const InitiativeValuePage = () => {
     };
 
     // Combobox: filtered list based on search + area + champion + status
+    // If searchQuery matches the currently selected initiative's exact name, show all filteredInitiatives so user can switch easily!
     const comboOptions = useMemo(() => {
         const baseList = filteredInitiatives;
-        if (!searchQuery.trim()) return baseList;
-        const q = searchQuery.toLowerCase();
-        return baseList.filter(i => i.name.toLowerCase().includes(q));
-    }, [filteredInitiatives, searchQuery]);
+        const trimmed = searchQuery.trim();
+        if (!trimmed || (selectedInitiative && trimmed.toLowerCase() === selectedInitiative.name.toLowerCase())) {
+            return baseList;
+        }
+        const q = trimmed.toLowerCase();
+        return baseList.filter(i => i.name.toLowerCase().includes(q) || (i.area && i.area.toLowerCase().includes(q)));
+    }, [filteredInitiatives, searchQuery, selectedInitiative]);
 
     // Combobox: select an initiative
     const handleSelectInitiative = (id: string, name: string) => {
@@ -439,7 +452,7 @@ export const InitiativeValuePage = () => {
         setIsComboOpen(false);
     };
 
-    // Combobox: clear
+    // Combobox: clear / return to Consolidated Dashboard
     const handleClearInitiative = () => {
         setSelectedInitiativeId('');
         setSearchQuery('');
@@ -463,9 +476,9 @@ export const InitiativeValuePage = () => {
         setSearchQuery('');
     };
 
-    // Helper: count filled pillars (including N/A)
+    // Helper: count filled pillars (excluding "Documentación pendiente por gerencia")
     const filledCount = useMemo(() => {
-        return PILLARS.filter(p => isPillarFilled(valueData[p.key])).length;
+        return PILLARS.filter(p => isPillarCompleted(valueData[p.key])).length;
     }, [valueData]);
 
     // Export handlers
@@ -500,6 +513,7 @@ export const InitiativeValuePage = () => {
                 name: selectedInitiative.name,
                 area: selectedInitiative.area,
                 champion: selectedInitiative.champion,
+                transformation_lead: selectedInitiative.transformation_lead,
                 status: selectedInitiative.status,
                 progress: selectedInitiative.progress,
                 technologies: selectedInitiative.technologies,
@@ -516,6 +530,7 @@ export const InitiativeValuePage = () => {
                 name: selectedInitiative.name,
                 area: selectedInitiative.area,
                 champion: selectedInitiative.champion,
+                transformation_lead: selectedInitiative.transformation_lead,
                 status: selectedInitiative.status,
                 progress: selectedInitiative.progress,
                 technologies: selectedInitiative.technologies,
@@ -534,17 +549,23 @@ export const InitiativeValuePage = () => {
             />
 
             {/* Header / Selectors */}
-            <div className="bg-white dark:bg-[#1E2630] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-4 tour-iv-header">
+            <div className="bg-white dark:bg-[#1E2630] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3.5 tour-iv-header">
                 {/* Row 1: Title + Selectors + Actions */}
                 <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between tour-iv-selectors">
-                    <div className="flex flex-col md:flex-row gap-4 w-full items-end">
-                        {/* Section Icon + Title */}
-                        <div className="hidden md:flex items-center gap-3 pr-4 border-r border-gray-200 dark:border-gray-700 mr-2 self-center">
-                            <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
+                    <div className="flex flex-col md:flex-row gap-3.5 w-full items-end">
+                        {/* Section Icon + Title (clickable to return to Consolidated Dashboard) */}
+                        <div
+                            onClick={selectedInitiativeId ? handleClearInitiative : undefined}
+                            title={selectedInitiativeId ? 'Clic para volver al Dashboard Consolidado' : undefined}
+                            className={`hidden md:flex items-center gap-3 pr-4 border-r border-gray-200 dark:border-gray-700 mr-1 self-center ${
+                                selectedInitiativeId ? 'cursor-pointer group' : ''
+                            }`}
+                        >
+                            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-md shadow-indigo-500/20 group-hover:bg-indigo-700 transition-colors">
                                 <Award size={20} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-sm font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide leading-tight">
+                                <h2 className="text-sm font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                     Impacto
                                 </h2>
                                 <h2 className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide leading-tight">
@@ -554,7 +575,7 @@ export const InitiativeValuePage = () => {
                         </div>
 
                         {/* Area Selector — Combobox con búsqueda */}
-                        <div className="w-52 relative">
+                        <div className="w-48 relative">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Área</label>
                             <div className="relative flex items-center">
                                 <Search size={13} className="absolute left-2.5 text-gray-400 pointer-events-none" />
@@ -597,7 +618,7 @@ export const InitiativeValuePage = () => {
                         </div>
 
                         {/* TransfLead Filter */}
-                        <div className="w-44 pt-[18px]">
+                        <div className="w-40 pt-[18px]">
                             <MultiSelectDropdown
                                 label="RESPONSABLE"
                                 options={uniqueTransfLeads}
@@ -611,7 +632,7 @@ export const InitiativeValuePage = () => {
                         </div>
 
                         {/* Status Filter */}
-                        <div className="w-44 pt-[18px]">
+                        <div className="w-40 pt-[18px]">
                             <MultiSelectDropdown
                                 label="ESTATUS"
                                 options={uniqueStatuses}
@@ -628,7 +649,6 @@ export const InitiativeValuePage = () => {
                         <div className="flex-1 relative">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Iniciativa</label>
                             <div className="relative">
-                                {/* Search input */}
                                 <div className="relative flex items-center">
                                     <Search size={15} className="absolute left-2.5 text-gray-400 pointer-events-none" />
                                     <input
@@ -640,7 +660,7 @@ export const InitiativeValuePage = () => {
                                             if (!e.target.value) setSelectedInitiativeId('');
                                         }}
                                         onFocus={() => setIsComboOpen(true)}
-                                        onBlur={() => setTimeout(() => setIsComboOpen(false), 150)}
+                                        onBlur={() => setTimeout(() => setIsComboOpen(false), 180)}
                                         placeholder="Buscar iniciativa..."
                                         disabled={loading}
                                         className="w-full pl-8 pr-8 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm disabled:opacity-50"
@@ -648,6 +668,7 @@ export const InitiativeValuePage = () => {
                                     {searchQuery ? (
                                         <button
                                             onClick={handleClearInitiative}
+                                            title="Limpiar selección y volver al inicio"
                                             className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                                         >
                                             <XIcon size={14} />
@@ -659,25 +680,38 @@ export const InitiativeValuePage = () => {
 
                                 {/* Dropdown list */}
                                 {isComboOpen && (
-                                    <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                                        {selectedInitiativeId && (
+                                            <button
+                                                onMouseDown={handleClearInitiative}
+                                                className="w-full text-left px-3 py-2 flex items-center gap-2 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs border-b border-indigo-100 dark:border-indigo-900/50 transition-colors"
+                                            >
+                                                <ArrowLeft size={13} />
+                                                <span>Volver al Dashboard Consolidado ({filteredInitiatives.length} iniciativas)</span>
+                                            </button>
+                                        )}
                                         {comboOptions.length === 0 ? (
                                             <div className="px-3 py-2 text-xs text-gray-400 italic">Sin resultados</div>
                                         ) : (
                                             comboOptions.map(i => {
                                                 const v = allValues[i.id];
-                                                const filled = v ? [
+                                                const pillarVals = v ? [
                                                     v.business_value,
                                                     v.operational_efficiency,
                                                     v.fte_detail,
                                                     v.qualitative_benefit,
                                                     v.users_reached_detail,
                                                     v.estimated_savings_detail
-                                                ].filter(isPillarFilled).length : (pillarSummary[i.id] ?? 0);
+                                                ] : [];
+                                                const completed = v
+                                                    ? pillarVals.filter(isPillarCompleted).length
+                                                    : (pillarSummary[i.id] ?? 0);
+                                                const hasPendingMgmt = v ? pillarVals.some(isPendingDocumentation) : false;
                                                 const isSelected = i.id === selectedInitiativeId;
                                                 const badgeColor =
-                                                    filled === PILLARS.length
+                                                    completed === PILLARS.length
                                                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                                        : filled > 0
+                                                        : completed > 0 || hasPendingMgmt
                                                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
                                                         : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
                                                 return (
@@ -695,19 +729,22 @@ export const InitiativeValuePage = () => {
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                            {/* mini dot bar */}
                                                             <div className="flex gap-0.5">
                                                                 {PILLARS.map((_, idx) => (
                                                                     <div
                                                                         key={idx}
                                                                         className={`w-1.5 h-1.5 rounded-full ${
-                                                                            idx < filled ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'
+                                                                            idx < completed
+                                                                                ? 'bg-indigo-500'
+                                                                                : hasPendingMgmt
+                                                                                ? 'bg-amber-400'
+                                                                                : 'bg-gray-300 dark:bg-gray-600'
                                                                         }`}
                                                                     />
                                                                 ))}
                                                             </div>
-                                                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${badgeColor}`}>
-                                                                {filled}/{PILLARS.length}
+                                                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded font-mono tabular-nums ${badgeColor}`}>
+                                                                {hasPendingMgmt && completed === 0 ? 'Pend.' : `${completed}/${PILLARS.length}`}
                                                             </span>
                                                         </div>
                                                     </button>
@@ -720,30 +757,53 @@ export const InitiativeValuePage = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-2.5 flex-shrink-0">
+                        {/* Visible Back to Consolidated Button when an initiative is active */}
+                        {selectedInitiativeId && (
+                            <button
+                                onClick={handleClearInitiative}
+                                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-200 dark:border-indigo-800/60 shadow-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all font-bold text-xs whitespace-nowrap active:scale-95 cursor-pointer"
+                                title="Regresar al Dashboard Consolidado de los 6 Pilares"
+                            >
+                                <ArrowLeft size={16} />
+                                <span>Inicio / Consolidado</span>
+                            </button>
+                        )}
+
                         {/* Completion Badge */}
                         {selectedInitiativeId && (
-                            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <div className="flex gap-0.5">
                                     {PILLARS.map((p, i) => {
-                                        const filled = isPillarFilled(valueData[p.key]);
+                                        const completed = isPillarCompleted(valueData[p.key]);
                                         const isNa = isNAPillar(valueData[p.key]);
+                                        const isPending = isPendingDocumentation(valueData[p.key]);
                                         return (
                                             <div
                                                 key={i}
                                                 className={`w-2 h-2 rounded-full transition-colors ${
-                                                    filled
+                                                    completed
                                                         ? isNa
                                                             ? 'bg-indigo-400'
                                                             : 'bg-indigo-500'
+                                                        : isPending
+                                                        ? 'bg-amber-400'
                                                         : 'bg-gray-300 dark:bg-gray-600'
                                                 }`}
-                                                title={`${p.label}: ${filled ? (isNa ? 'No Aplica (Documentado)' : 'Completado') : 'Pendiente'}`}
+                                                title={`${p.label}: ${
+                                                    completed
+                                                        ? isNa
+                                                            ? 'No Aplica (Documentado)'
+                                                            : 'Completado'
+                                                        : isPending
+                                                        ? 'Documentación pendiente por gerencia'
+                                                        : 'Pendiente'
+                                                }`}
                                             />
                                         );
                                     })}
                                 </div>
-                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1 font-mono tabular-nums">
                                     {filledCount}/{PILLARS.length}
                                 </span>
                             </div>
@@ -755,7 +815,7 @@ export const InitiativeValuePage = () => {
                                 onClick={() => setShowExportMenu(prev => !prev)}
                                 onBlur={() => setTimeout(() => setShowExportMenu(false), 200)}
                                 className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-900/50 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all font-bold text-xs whitespace-nowrap active:scale-95"
-                                title={selectedInitiativeId ? "Exportar Ficha de Iniciativa" : "Exportar Reporte Consolidado"}
+                                title={selectedInitiativeId ? 'Exportar Ficha de Iniciativa' : 'Exportar Reporte Consolidado'}
                             >
                                 <FileDown size={18} />
                                 <span>Exportar</span>
@@ -764,7 +824,6 @@ export const InitiativeValuePage = () => {
 
                             {showExportMenu && (
                                 <div className="absolute right-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-[#1E2630] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                                    {/* Header */}
                                     <div className="px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700">
                                         <p className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             {selectedInitiativeId ? 'Ficha de Iniciativa' : 'Consolidado de Portafolio'}
@@ -774,7 +833,6 @@ export const InitiativeValuePage = () => {
                                         </p>
                                     </div>
 
-                                    {/* Excel option */}
                                     <button
                                         onMouseDown={() => {
                                             setShowExportMenu(false);
@@ -799,10 +857,8 @@ export const InitiativeValuePage = () => {
                                         </div>
                                     </button>
 
-                                    {/* Divider */}
                                     <div className="h-px bg-gray-100 dark:bg-gray-700 mx-3" />
 
-                                    {/* PDF option */}
                                     <button
                                         onMouseDown={() => {
                                             setShowExportMenu(false);
@@ -839,7 +895,7 @@ export const InitiativeValuePage = () => {
                             className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                             title="Repetir recorrido"
                         >
-                            <HelpCircle size={24} />
+                            <HelpCircle size={22} />
                         </button>
 
                         {/* Preview Button */}
@@ -859,7 +915,7 @@ export const InitiativeValuePage = () => {
                             <button
                                 onClick={handleSave}
                                 disabled={saving || !selectedInitiativeId}
-                                className="tour-iv-save flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-[#E10600] to-red-800 hover:from-red-600 hover:to-red-900 text-white rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 h-fit whitespace-nowrap transform hover:-translate-y-0.5 active:translate-y-0"
+                                className="tour-iv-save flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-[#E10600] to-red-800 hover:from-red-600 hover:to-red-900 text-white rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 h-fit whitespace-nowrap transform hover:-translate-y-0.5 active:translate-y-0"
                             >
                                 <Save size={18} />
                                 <span>{saving ? 'Guardando...' : 'Guardar'}</span>
@@ -870,7 +926,7 @@ export const InitiativeValuePage = () => {
 
                 {/* Presentation Modal */}
                 {selectedInitiative && (
-                    <ValuePresentationModal 
+                    <ValuePresentationModal
                         isOpen={showPresentation}
                         onClose={() => setShowPresentation(false)}
                         initiative={{
@@ -884,42 +940,80 @@ export const InitiativeValuePage = () => {
                     />
                 )}
 
-                {/* Row 2: Metadata Badges */}
+                {/* Row 2: Navigation Bar + Metadata Badges when an Initiative is Selected */}
                 {selectedInitiative && (
-                    <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(selectedInitiative.status)}`}>
-                            {selectedInitiative.status === 'En espera' ? 'On Hold' : selectedInitiative.status || 'Sin Estatus'}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span className="font-bold">Resp. Transformación:</span>
-                            <span className="text-gray-700 dark:text-gray-200">{selectedInitiative.transformation_lead || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span className="font-bold">Área:</span>
-                            <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                                {selectedInitiative.area}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span className="font-bold">Tecnología:</span>
-                            <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                                {selectedInitiative.technologies && selectedInitiative.technologies.length > 0
-                                    ? selectedInitiative.technologies.join(', ')
-                                    : 'N/A'}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span className="font-bold">Progreso:</span>
-                            <div className="flex items-center gap-1">
-                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-indigo-600 rounded-full transition-all duration-500"
-                                        style={{ width: `${selectedInitiative.progress || 0}%` }}
-                                    />
-                                </div>
-                                <span className="text-gray-700 dark:text-gray-200 font-medium">
-                                    {selectedInitiative.progress || 0}%
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-gray-100 dark:border-gray-700/80">
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Back to Dashboard + Prev/Next Initiative Navigation */}
+                            <div className="flex items-center gap-1.5 pr-2 border-r border-gray-200 dark:border-gray-700">
+                                <button
+                                    onClick={handleClearInitiative}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-gray-100 hover:bg-indigo-50 dark:bg-gray-800 dark:hover:bg-indigo-900/40 text-gray-700 hover:text-indigo-600 dark:text-gray-200 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                                    title="Volver a la vista general de los 6 pilares"
+                                >
+                                    <LayoutGrid size={13} />
+                                    <span>Volver al Consolidado</span>
+                                </button>
+
+                                {filteredInitiatives.length > 1 && currentFilteredIndex >= 0 && (
+                                    <div className="flex items-center gap-1 ml-1">
+                                        <button
+                                            onClick={() => prevInitiative && handleSelectInitiative(prevInitiative.id, prevInitiative.name)}
+                                            disabled={!prevInitiative}
+                                            title={prevInitiative ? `Anterior: ${prevInitiative.name}` : 'Primera iniciativa'}
+                                            className="p-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                        >
+                                            <ChevronLeft size={14} />
+                                        </button>
+                                        <span className="text-[11px] font-mono tabular-nums text-gray-500 dark:text-gray-400 px-1">
+                                            {currentFilteredIndex + 1}/{filteredInitiatives.length}
+                                        </span>
+                                        <button
+                                            onClick={() => nextInitiative && handleSelectInitiative(nextInitiative.id, nextInitiative.name)}
+                                            disabled={!nextInitiative}
+                                            title={nextInitiative ? `Siguiente: ${nextInitiative.name}` : 'Última iniciativa'}
+                                            className="p-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                        >
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(selectedInitiative.status)}`}>
+                                {selectedInitiative.status === 'En espera' ? 'On Hold' : selectedInitiative.status || 'Sin Estatus'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span className="font-bold">Resp. Transformación:</span>
+                                <span className="text-gray-700 dark:text-gray-200">{selectedInitiative.transformation_lead || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span className="font-bold">Área:</span>
+                                <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                                    {selectedInitiative.area}
                                 </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span className="font-bold">Tecnología:</span>
+                                <span className="text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                                    {selectedInitiative.technologies && selectedInitiative.technologies.length > 0
+                                        ? selectedInitiative.technologies.join(', ')
+                                        : 'N/A'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span className="font-bold">Progreso:</span>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                                            style={{ width: `${selectedInitiative.progress || 0}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-gray-700 dark:text-gray-200 font-medium font-mono tabular-nums">
+                                        {selectedInitiative.progress || 0}%
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 /**
  * exportValue.ts
  * Professional export utilities for Initiative Value data.
- * Supports Excel (.xlsx) and PDF formats.
+ * Supports Excel (.xlsx) and PDF formats with full text wrapping and smart analytical extraction.
  */
 
 import * as XLSX from 'xlsx';
@@ -13,6 +13,7 @@ export interface ExportInitiative {
     name: string;
     area: string;
     champion?: string;
+    transformation_lead?: string;
     status?: string;
     progress?: number;
     technologies?: string[];
@@ -66,11 +67,12 @@ export function stripHtml(html?: string): string {
 
 export function isNAPillar(text?: string): boolean {
     if (!text) return false;
-    const clean = stripHtml(text).trim().toLowerCase();
+    const clean = stripHtml(text).trim().toLowerCase().replace(/^\•\s*/, '');
     return (
         clean === 'n/a' ||
         clean === 'na' ||
         clean === 'no aplica' ||
+        clean === 'no aplica.' ||
         clean === 'no-aplica' ||
         clean === 'n.a.' ||
         clean === 'n / a' ||
@@ -78,10 +80,78 @@ export function isNAPillar(text?: string): boolean {
     );
 }
 
+/**
+ * Detects placeholder texts such as "Documentación pendiente por gerencia" or "Documentación pendiente"
+ * so they are not counted as completed substantive documentation or shown as top executive highlights.
+ */
+export function isPendingDocumentation(text?: string): boolean {
+    if (!text) return false;
+    const clean = stripHtml(text)
+        .replace(/^[•\-\*–—\s]+/, '')
+        .trim()
+        .toLowerCase();
+    if (!clean) return false;
+    return (
+        clean === 'documentación pendiente por gerencia' ||
+        clean === 'documentacion pendiente por gerencia' ||
+        clean === 'documentación pendiente por gerencia.' ||
+        clean === 'documentacion pendiente por gerencia.' ||
+        clean === 'documentación pendiente' ||
+        clean === 'documentacion pendiente' ||
+        clean === 'documentación pendiente.' ||
+        clean === 'documentacion pendiente.' ||
+        clean === 'pendiente por gerencia' ||
+        clean === 'pendiente de documentar' ||
+        clean === 'por documentar' ||
+        clean === 'información pendiente por gerencia'
+    );
+}
+
+/**
+ * Detects when a pillar text explicitly states that the metric is not yet quantified or has no direct saving.
+ */
+export function isUnquantifiedPillarText(text?: string): boolean {
+    if (!text) return false;
+    const clean = stripHtml(text)
+        .replace(/^[•\-\*–—\s]+/, '')
+        .trim()
+        .toLowerCase();
+    if (!clean) return false;
+    return (
+        clean.startsWith('no cuantificado') ||
+        clean.startsWith('pendiente de cuantificar') ||
+        clean.startsWith('pendiente de cuantificación') ||
+        clean.startsWith('beneficio en fte pendiente de cuantificación') ||
+        clean.startsWith('ahorro económico pendiente de cuantificación') ||
+        clean.startsWith('no aplica ahorro directo') ||
+        clean.startsWith('sin cuantificar') ||
+        isPendingDocumentation(clean)
+    );
+}
+
 export function isPillarFilled(val?: string): boolean {
     if (!val) return false;
     const clean = stripHtml(val).trim();
     return clean.length > 0 && clean !== '<p></p>';
+}
+
+/**
+ * Returns true if the pillar has real completed documentation (or valid N/A),
+ * excluding "Documentación pendiente por gerencia" placeholders.
+ */
+export function isPillarCompleted(val?: string): boolean {
+    if (!isPillarFilled(val)) return false;
+    return !isPendingDocumentation(val);
+}
+
+/**
+ * Returns true if the pillar has substantive content (not empty, not N/A, and not "Documentación pendiente").
+ */
+export function isSubstantivePillar(val?: string): boolean {
+    if (!isPillarFilled(val)) return false;
+    if (isNAPillar(val)) return false;
+    if (isPendingDocumentation(val)) return false;
+    return true;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -96,7 +166,302 @@ function safeFileName(name: string): string {
     return name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').slice(0, 40);
 }
 
-// ─── Excel Export ─────────────────────────────────────────────────────────────
+// ─── Shared Portfolio Intelligence Extractor ──────────────────────────────────
+
+export interface ConsolidatedInitiativeExport {
+    id: string;
+    name: string;
+    area?: string;
+    champion?: string;
+    transformation_lead?: string;
+    status?: string;
+    progress?: number;
+    technologies?: string[];
+}
+
+export interface PortfolioAnalytics {
+    totalInits: number;
+    completeInits: number;
+    partialInits: number;
+    pendingMgmtInits: number;
+    emptyInits: number;
+    pctGlobalComplete: number;
+    pctPartial: number;
+    pctEmpty: number;
+    hasBusiness: number;
+    pctBusiness: number;
+    hasOperational: number;
+    operationalAreas: string[];
+    totalFte: number;
+    totalHoursPerMonth: number;
+    fteImpactedCount: number;
+    fteQuantifiedCount: number;
+    ftePendingCount: number;
+    pctFte: number;
+    hasQualitative: number;
+    qualCategories: { name: string; count: number; areas: string[] }[];
+    hasUsers: number;
+    totalUsers: number;
+    usersAreas: string[];
+    totalSavingsUsd: number;
+    totalSavingsMdp: number;
+    formattedSavings: string;
+    savingsSecondaryHighlight: string;
+    savingsDocumentedCount: number;
+    savingsQuantifiedCount: number;
+    savingsPendingCount: number;
+    pctSavings: number;
+}
+
+export function analyzePortfolioValue(
+    initiatives: ConsolidatedInitiativeExport[],
+    allValues: Record<string, ExportValueData>
+): PortfolioAnalytics {
+    const totalInits = initiatives.length;
+
+    let completeInits = 0;
+    let partialInits = 0;
+    let pendingMgmtInits = 0;
+    let emptyInits = 0;
+
+    let hasBusiness = 0;
+    let hasOperational = 0;
+    let hasQualitative = 0;
+    let hasUsers = 0;
+
+    const operationalAreasSet = new Set<string>();
+    const usersAreasSet = new Set<string>();
+
+    for (const init of initiatives) {
+        const val = allValues[init.id] || {};
+        const pillarVals = [
+            val.business_value,
+            val.operational_efficiency,
+            val.fte_detail,
+            val.qualitative_benefit,
+            val.users_reached_detail,
+            val.estimated_savings_detail,
+        ];
+
+        const rawFilledCount = pillarVals.filter(v => isPillarFilled(v)).length;
+        const completedCount = pillarVals.filter(v => isPillarCompleted(v)).length;
+        const pendingCount = pillarVals.filter(v => isPendingDocumentation(v)).length;
+
+        if (rawFilledCount === 0) {
+            emptyInits++;
+        } else if (completedCount === 6) {
+            completeInits++;
+        } else {
+            partialInits++;
+            if (pendingCount > 0) pendingMgmtInits++;
+        }
+
+        if (isSubstantivePillar(val.business_value)) hasBusiness++;
+        if (isSubstantivePillar(val.operational_efficiency)) {
+            hasOperational++;
+            if (init.area) operationalAreasSet.add(init.area);
+        }
+        if (isSubstantivePillar(val.qualitative_benefit)) hasQualitative++;
+        if (isSubstantivePillar(val.users_reached_detail)) {
+            hasUsers++;
+            if (init.area) usersAreasSet.add(init.area);
+        }
+    }
+
+    const pctGlobalComplete = totalInits > 0 ? Math.round((completeInits / totalInits) * 100) : 0;
+    const pctPartial = totalInits > 0 ? Math.round((partialInits / totalInits) * 100) : 0;
+    const pctEmpty = totalInits > 0 ? Math.round((emptyInits / totalInits) * 100) : 0;
+    const pctBusiness = totalInits > 0 ? Math.round((hasBusiness / totalInits) * 100) : 0;
+
+    // FTE & Hours Liberated
+    let totalFte = 0;
+    let totalHoursPerMonth = 0;
+    let fteImpactedCount = 0;
+    let fteQuantifiedCount = 0;
+    let ftePendingCount = 0;
+
+    for (const init of initiatives) {
+        const valFte = allValues[init.id]?.fte_detail;
+        const valEff = allValues[init.id]?.operational_efficiency;
+
+        if (isSubstantivePillar(valFte)) {
+            const clean = stripHtml(valFte);
+            if (isUnquantifiedPillarText(clean)) {
+                ftePendingCount++;
+            } else {
+                fteImpactedCount++;
+            }
+
+            const fteMatch = clean.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?|posicion(?:es)?|recurso(?:s)?|persona(?:s)?)/i)
+                || clean.match(/un\s+solo\s+FTE/i)
+                || clean.match(/(?:liberaci[oó]n|ahorro|impacto|reasignaci[oó]n)\s*(?:de)?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?)/i);
+
+            if (fteMatch) {
+                const num = fteMatch[0].toLowerCase().includes('un solo fte') ? 1 : parseFloat(fteMatch[1]);
+                if (!isNaN(num) && num > 0 && num < 500) {
+                    totalFte += num;
+                    fteQuantifiedCount++;
+                }
+            }
+        }
+
+        // Also scan for hours saved in FTE or Operational Efficiency
+        const combinedTimeText = `${stripHtml(valFte)} \n ${stripHtml(valEff)}`;
+        const weekHrsMatch = combinedTimeText.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:hrs?|horas?)\s*\/\s*semana/i)
+            || combinedTimeText.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:hrs?|horas?)\s*semanales/i);
+        const monthHrsMatch = combinedTimeText.match(/(?:entre\s+[0-9]+\s+y\s+)?([0-9]+(?:\.[0-9]+)?)\s*(?:hrs?|horas?)\s*(?:\/\s*mes|mensuales)/i);
+
+        if (weekHrsMatch) {
+            const hrs = parseFloat(weekHrsMatch[1]);
+            if (!isNaN(hrs) && hrs > 0) {
+                totalHoursPerMonth += hrs * 4;
+                if (isSubstantivePillar(valFte)) fteQuantifiedCount++;
+            }
+        } else if (monthHrsMatch) {
+            const hrs = parseFloat(monthHrsMatch[1]);
+            if (!isNaN(hrs) && hrs > 0) {
+                totalHoursPerMonth += hrs;
+                if (isSubstantivePillar(valFte)) fteQuantifiedCount++;
+            }
+        }
+    }
+
+    totalFte = Math.round(totalFte * 10) / 10;
+    totalHoursPerMonth = Math.round(totalHoursPerMonth);
+    const pctFte = totalInits > 0 ? Math.round((fteImpactedCount / totalInits) * 100) : 0;
+
+    // Savings & Quantified Value
+    let totalSavingsUsd = 0;
+    let totalSavingsMdp = 0;
+    let savingsDocumentedCount = 0;
+    let savingsQuantifiedCount = 0;
+    let savingsPendingCount = 0;
+
+    for (const init of initiatives) {
+        const val = allValues[init.id]?.estimated_savings_detail;
+        if (!isSubstantivePillar(val)) continue;
+
+        const clean = stripHtml(val);
+        savingsDocumentedCount++;
+
+        if (isUnquantifiedPillarText(clean)) {
+            savingsPendingCount++;
+            continue;
+        }
+
+        // USD Match
+        const usdMatch = clean.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(?:USD)?/i)
+            || clean.match(/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?)\s*USD/i);
+
+        // MDP Match
+        const mdpMatch = clean.match(/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?)\s*(?:MDP|millones\s+de\s+pesos)/i);
+
+        let matchedQuant = false;
+        if (mdpMatch) {
+            const mdpVal = parseFloat(mdpMatch[1].replace(/,/g, ''));
+            if (!isNaN(mdpVal) && mdpVal > 0) {
+                totalSavingsMdp += mdpVal;
+                matchedQuant = true;
+            }
+        } else if (usdMatch) {
+            const usdVal = parseFloat(usdMatch[1].replace(/,/g, ''));
+            if (!isNaN(usdVal) && usdVal > 0) {
+                totalSavingsUsd += usdVal;
+                matchedQuant = true;
+            }
+        }
+
+        // Also check if it quantifies hours, minutes, or storage (e.g. 222x, 35 min, 15 horas)
+        if (matchedQuant || /[0-9]+\s*(?:%|x\b|veces|horas?|hrs?|minutos?|min\b|gb\b|mb\b)/i.test(clean)) {
+            savingsQuantifiedCount++;
+        } else {
+            // Qualitative/indirect savings documented (like risk/rework avoidance)
+            savingsQuantifiedCount++;
+        }
+    }
+
+    const pctSavings = totalInits > 0 ? Math.round((savingsQuantifiedCount / totalInits) * 100) : 0;
+    const formattedSavings = totalSavingsUsd > 0
+        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalSavingsUsd)
+        : '$0 USD';
+    const savingsSecondaryHighlight = totalSavingsMdp > 0 ? `+ $${totalSavingsMdp} MDP` : '';
+
+    // Users Reached (handling typos like "usurarios", "Oficilaes", etc.)
+    let totalUsers = 0;
+    for (const init of initiatives) {
+        const val = allValues[init.id]?.users_reached_detail;
+        if (!isSubstantivePillar(val)) continue;
+        const clean = stripHtml(val);
+
+        const matches = Array.from(
+            clean.matchAll(/(?:^|\s|\+|>)([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:usuarios?|usurarios?|personas?|colaboradores?|empleados?|oficiales?|oficilaes?|analistas?|especialistas?|integrantes?)/gi)
+        );
+        for (const m of matches) {
+            const num = parseInt(m[1].replace(/,/g, ''), 10);
+            if (!isNaN(num) && num > 0 && num < 100000) {
+                totalUsers += num;
+            }
+        }
+    }
+
+    // Qualitative Categories
+    const qualRules = [
+        { name: 'Mitigación de Riesgos', keywords: ['riesgo', 'mitiga', 'auditor', 'vulnerab'] },
+        { name: 'Cumplimiento & Normativa', keywords: ['cumplimiento', 'normativ', 'fiscal', 'legal', 'sox'] },
+        { name: 'Calidad de Datos', keywords: ['calidad', 'consisten', 'precisi', 'integridad'] },
+        { name: 'Visibilidad & Control', keywords: ['gobernanza', 'control', 'visibilidad', 'trazabil'] },
+        { name: 'Automatización & RPA', keywords: ['automatiz', 'rpa', 'robot', 'digital'] },
+        { name: 'Agilidad Operativa', keywords: ['agil', 'tiempo', 'velocidad', 'productiv'] },
+    ];
+
+    const qualCategories = qualRules.map(rule => {
+        const matched = initiatives.filter(init => {
+            const raw = allValues[init.id]?.qualitative_benefit;
+            if (!isSubstantivePillar(raw)) return false;
+            const text = stripHtml(raw).toLowerCase();
+            return rule.keywords.some(kw => text.includes(kw));
+        });
+        return {
+            name: rule.name,
+            count: matched.length,
+            areas: Array.from(new Set(matched.map(m => m.area).filter(Boolean))) as string[]
+        };
+    });
+
+    return {
+        totalInits,
+        completeInits,
+        partialInits,
+        pendingMgmtInits,
+        emptyInits,
+        pctGlobalComplete,
+        pctPartial,
+        pctEmpty,
+        hasBusiness,
+        pctBusiness,
+        hasOperational,
+        operationalAreas: Array.from(operationalAreasSet),
+        totalFte,
+        totalHoursPerMonth,
+        fteImpactedCount,
+        fteQuantifiedCount,
+        ftePendingCount,
+        pctFte,
+        hasQualitative,
+        qualCategories,
+        hasUsers,
+        totalUsers,
+        usersAreas: Array.from(usersAreasSet),
+        totalSavingsUsd,
+        totalSavingsMdp,
+        formattedSavings,
+        savingsSecondaryHighlight,
+        savingsDocumentedCount,
+        savingsQuantifiedCount,
+        savingsPendingCount,
+        pctSavings,
+    };
+}
 
 // ─── Individual Excel Export (Single Sheet "Ficha de Iniciativa") ───────────────
 
@@ -109,9 +474,8 @@ export function exportToExcel(
     const exportDate = new Date().toLocaleDateString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric',
     });
-    const filledCount = pillars.filter(p => isPillarFilled(valueData[p.key])).length;
+    const filledCount = pillars.filter(p => isPillarCompleted(valueData[p.key])).length;
 
-    // ── Single Sheet: Ficha de Iniciativa ──────────────────────────────────────
     const s1: any[][] = [
         ['TFBE ROADMAP — FICHA TÉCNICA DE IMPACTO & VALOR', '', ''],
         [`Generado el ${exportDate} | Estado de Adopción: ${filledCount} de ${pillars.length} Pilares Documentados`, '', ''],
@@ -119,7 +483,7 @@ export function exportToExcel(
         ['INFORMACIÓN GENERAL DE LA INICIATIVA', '', ''],
         ['Iniciativa', initiative.name, ''],
         ['Área', initiative.area || '—', ''],
-        ['Champion / Responsable', initiative.champion || '—', ''],
+        ['Champion / Responsable', initiative.champion || initiative.transformation_lead || '—', ''],
         ['Estatus', initiative.status || 'Sin Estatus', ''],
         ['Progreso (%)', `${initiative.progress ?? 0}%`, ''],
         ['Tecnologías', initiative.technologies?.join(', ') || '—', ''],
@@ -134,10 +498,13 @@ export function exportToExcel(
         const clean = stripHtml(raw);
         const isFilled = isPillarFilled(raw);
         const isNa = isNAPillar(raw);
+        const isPending = isPendingDocumentation(raw);
 
         let statusText = '⬜ Pendiente';
         if (isNa) {
             statusText = '⚪ No Aplica';
+        } else if (isPending) {
+            statusText = '⏳ Pendiente Gerencia';
         } else if (isFilled) {
             statusText = '✅ Completo';
         }
@@ -150,8 +517,19 @@ export function exportToExcel(
 
     const ws1 = XLSX.utils.aoa_to_sheet(s1);
 
-    ws1['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 95 }];
-    ws1['!rows'] = s1.map((_, i) => (i === 0 ? { hpt: 26 } : { hpt: 20 }));
+    ws1['!cols'] = [{ wch: 28 }, { wch: 22 }, { wch: 100 }];
+    ws1['!rows'] = s1.map((row, i) => {
+        if (i === 0) return { hpt: 28 };
+        if (i >= 14 && i < 14 + pillars.length) {
+            const text = String(row[2] || '');
+            const lineCount = Math.max(
+                text.split('\n').reduce((acc, l) => acc + Math.max(1, Math.ceil(l.length / 90)), 0),
+                2
+            );
+            return { hpt: Math.min(Math.max(lineCount * 15, 26), 180) };
+        }
+        return { hpt: 20 };
+    });
 
     const totalRows = s1.length;
     ws1['!merges'] = [
@@ -174,7 +552,6 @@ export function exportToExcel(
         ws1[ref].s = style;
     };
 
-    // Title banner
     setStyle('A1', {
         font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '312E81' } },
@@ -184,15 +561,12 @@ export function exportToExcel(
         font: { sz: 9, italic: true, color: { rgb: '6366F1' } },
         alignment: { horizontal: 'center', vertical: 'center' }
     });
-
-    // Info section banner (Row 4)
     setStyle('A4', {
         font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '4F46E5' } },
         alignment: { vertical: 'center' }
     });
 
-    // Info rows labels (Rows 5 to 11)
     for (let r = 5; r <= 11; r++) {
         setStyle(`A${r}`, {
             font: { bold: true, sz: 9, color: { rgb: '374151' } },
@@ -202,18 +576,16 @@ export function exportToExcel(
         setStyle(`B${r}`, {
             font: { sz: 9 },
             fill: { fgColor: { rgb: 'F9FAFB' } },
-            alignment: { vertical: 'center' }
+            alignment: { vertical: 'center', wrapText: true }
         });
     }
 
-    // Pillars section banner (Row 13)
     setStyle('A13', {
         font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '4F46E5' } },
         alignment: { vertical: 'center' }
     });
 
-    // Pillars table header (Row 14)
     ['A14', 'B14', 'C14'].forEach(cell => {
         setStyle(cell, {
             font: { bold: true, sz: 9, color: { rgb: 'FFFFFF' } },
@@ -222,7 +594,6 @@ export function exportToExcel(
         });
     });
 
-    // Pillar rows (Rows 15 to 20)
     pillars.forEach((pillar, i) => {
         const row = 15 + i;
         const isEven = i % 2 === 0;
@@ -247,7 +618,7 @@ export function exportToExcel(
     XLSX.writeFile(wb, `Ficha_ImpactoValor_${safeFileName(initiative.name)}.xlsx`);
 }
 
-// ─── Individual PDF Export (Executive One-Pager: 1-2 Pages Max) ───────────────
+// ─── Individual PDF Export (Dynamic Card Heights, Zero Text Truncation) ───────
 
 export function exportToPDF(
     initiative: ExportInitiative,
@@ -261,78 +632,107 @@ export function exportToPDF(
     const exportDate = new Date().toLocaleDateString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric',
     });
-    const filledCount = pillars.filter(p => isPillarFilled(valueData[p.key])).length;
+    const filledCount = pillars.filter(p => isPillarCompleted(valueData[p.key])).length;
 
-    // Helper: Draw Header on Page 1
-    const drawHeader = () => {
-        // Deep Indigo Banner
+    const drawHeader = (isContinuation = false) => {
         doc.setFillColor(30, 27, 75);
-        doc.roundedRect(MARGIN, 10, CONTENT_W, 20, 2, 2, 'F');
+        doc.roundedRect(MARGIN, 10, CONTENT_W, isContinuation ? 15 : 21, 2, 2, 'F');
 
-        // Top Accent Line
         doc.setFillColor(99, 102, 241);
         doc.rect(MARGIN, 10, CONTENT_W, 1.5, 'F');
 
-        // Small App Subtitle
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(199, 210, 254);
-        doc.text('TFBE ROADMAP — FICHA TÉCNICA EJECUTIVA DE IMPACTO & VALOR', MARGIN + 4, 16);
+        doc.text(
+            isContinuation
+                ? 'TFBE ROADMAP — FICHA TÉCNICA EJECUTIVA (CONTINUACIÓN)'
+                : 'TFBE ROADMAP — FICHA TÉCNICA EJECUTIVA DE IMPACTO & VALOR',
+            MARGIN + 4,
+            15.5
+        );
 
-        // Initiative Name
-        doc.setFontSize(13);
+        doc.setFontSize(isContinuation ? 10 : 12);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        const nameLines = doc.splitTextToSize(initiative.name, 122);
-        doc.text(nameLines.slice(0, 2), MARGIN + 4, 23);
+        const nameLines = doc.splitTextToSize(initiative.name, 125);
+        doc.text(nameLines.slice(0, 2), MARGIN + 4, isContinuation ? 21.5 : 22);
 
-        // Right side: date & pill adoption badge
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(203, 213, 225);
-        doc.text(`Generado: ${exportDate}`, W - MARGIN - 4, 16, { align: 'right' });
+        if (!isContinuation) {
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(203, 213, 225);
+            doc.text(`Generado: ${exportDate}`, W - MARGIN - 4, 16, { align: 'right' });
 
-        doc.setFontSize(8.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.text(`${filledCount}/${pillars.length} Pilares Documentados`, W - MARGIN - 4, 24, { align: 'right' });
+            doc.setFontSize(8.5);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255);
+            doc.text(`${filledCount}/${pillars.length} Pilares Documentados`, W - MARGIN - 4, 24, { align: 'right' });
+        }
     };
 
-    // Helper: Draw Compact Metadata Strip
-    const drawMetadataStrip = (yPos: number) => {
+    const drawMetadataStrip = (yPos: number): number => {
+        const stripH = 18;
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(226, 232, 240);
-        doc.roundedRect(MARGIN, yPos, CONTENT_W, 15, 2, 2, 'FD');
+        doc.roundedRect(MARGIN, yPos, CONTENT_W, stripH, 2, 2, 'FD');
 
-        // Accent left bar
         doc.setFillColor(99, 102, 241);
-        doc.rect(MARGIN, yPos, 2.5, 15, 'F');
+        doc.rect(MARGIN, yPos, 2.5, stripH, 'F');
 
-        const colWidth = (CONTENT_W - 8) / 5;
+        const colWidthsMeta = [38, 42, 36, 22, 42]; // sum = 180
         const metaFields = [
             { label: 'ÁREA', value: initiative.area || '—' },
-            { label: 'CHAMPION / RESP.', value: initiative.champion || '—' },
+            { label: 'CHAMPION / RESP.', value: initiative.champion || initiative.transformation_lead || '—' },
             { label: 'ESTATUS', value: initiative.status || 'Sin Estatus' },
             { label: 'PROGRESO', value: `${initiative.progress ?? 0}%` },
-            { label: 'TECNOLOGÍAS', value: initiative.technologies?.slice(0, 3).join(', ') || '—' },
+            { label: 'TECNOLOGÍAS', value: initiative.technologies?.join(', ') || '—' },
         ];
 
+        let mx = MARGIN + 5;
         metaFields.forEach((meta, idx) => {
-            const mx = MARGIN + 5 + idx * colWidth;
+            const cw = colWidthsMeta[idx];
             doc.setFontSize(6.5);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(100, 116, 139);
-            doc.text(meta.label, mx, yPos + 5.5);
+            doc.text(meta.label, mx, yPos + 5);
 
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 41, 59);
-            const truncVal = meta.value.length > 22 ? meta.value.slice(0, 20) + '…' : meta.value;
-            doc.text(truncVal, mx, yPos + 11.5);
+            const wrappedVal = doc.splitTextToSize(meta.value, cw - 3);
+            doc.text(wrappedVal.slice(0, 2), mx, yPos + 10);
+            mx += cw;
         });
+
+        return stripH;
     };
 
-    // Helper: Draw a single Pillar Card Box
+    const colWidth = (CONTENT_W - 5) / 2; // 90.5mm
+    const col1X = MARGIN;
+    const col2X = MARGIN + colWidth + 5;
+    const lineSpacing = 3.6;
+
+    // Calculate exact height needed for a pillar card so NO text is ever cut off
+    const calculatePillarCardHeight = (pillar: ExportPillar): number => {
+        const raw = valueData[pillar.key] || '';
+        const clean = stripHtml(raw);
+        if (!clean || clean === '<p></p>') return 28;
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        const lines = clean.split('\n').filter(l => l.trim().length > 0);
+        let h = 13; // header + top padding
+        for (const rawLine of lines) {
+            const isBullet = rawLine.trim().startsWith('•');
+            const displayText = isBullet ? rawLine.trim().slice(1).trim() : rawLine.trim();
+            const textWidth = isBullet ? colWidth - 11 : colWidth - 7;
+            const wrapped = doc.splitTextToSize(displayText, textWidth);
+            h += wrapped.length * lineSpacing + 0.8;
+        }
+        return Math.max(h + 4, 34);
+    };
+
     const drawPillarCard = (
         pillar: ExportPillar,
         x: number,
@@ -344,40 +744,36 @@ export function exportToPDF(
         const clean = stripHtml(raw);
         const isFilled = isPillarFilled(raw);
         const isNa = isNAPillar(raw);
+        const isPending = isPendingDocumentation(raw);
         const [pr, pg, pb] = hexToRgb(pillar.hexColor);
 
-        // Box container
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.3);
         doc.roundedRect(x, y, width, height, 2.5, 2.5, 'FD');
 
-        // Card Header Bar
         doc.setFillColor(pr, pg, pb);
         doc.roundedRect(x, y, width, 8, 2.5, 2.5, 'F');
-        doc.rect(x, y + 4, width, 4, 'F'); // Square bottom corners of header
+        doc.rect(x, y + 4, width, 4, 'F');
 
-        // Header Title
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
         doc.text(pillar.label.toUpperCase(), x + 3.5, y + 5.5);
 
-        // Header Status Badge
         doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
         let statusBadge = '○ Pendiente';
         if (isNa) {
             statusBadge = '⚪ No Aplica';
+        } else if (isPending) {
+            statusBadge = '⏳ Pend. Gerencia';
         } else if (isFilled) {
             statusBadge = '✓ Documentado';
         }
         doc.text(statusBadge, x + width - 3.5, y + 5.5, { align: 'right' });
 
-        // Card Body Text
         let cy = y + 12.5;
-        const maxTextY = y + height - 3;
-        const lineSpacing = 3.6;
 
         if (!clean || clean === '<p></p>') {
             doc.setFontSize(7.5);
@@ -393,14 +789,12 @@ export function exportToPDF(
 
         const lines = clean.split('\n').filter(l => l.trim().length > 0);
         for (const rawLine of lines) {
-            if (cy > maxTextY) break;
             const isBullet = rawLine.trim().startsWith('•');
             const displayText = isBullet ? rawLine.trim().slice(1).trim() : rawLine.trim();
             const textWidth = isBullet ? width - 11 : width - 7;
             const wrapped = doc.splitTextToSize(displayText, textWidth);
 
             for (let wIdx = 0; wIdx < wrapped.length; wIdx++) {
-                if (cy > maxTextY) break;
                 if (isBullet && wIdx === 0) {
                     doc.setFillColor(pr, pg, pb);
                     doc.circle(x + 4.5, cy - 1, 0.9, 'F');
@@ -412,116 +806,55 @@ export function exportToPDF(
                 }
                 cy += lineSpacing;
             }
-            cy += 0.5;
+            cy += 0.8;
         }
     };
 
-    // Calculate layout: 2 Columns × 3 Rows
-    const colWidth = (CONTENT_W - 5) / 2; // 90.5mm
-    const col1X = MARGIN;
-    const col2X = MARGIN + colWidth + 5;
-
-    // Pairs of pillars:
-    // Pair 0: Pillars 0 & 1 (Valor de Negocio & Eficiencia Operativa)
-    // Pair 1: Pillars 2 & 3 (Impacto en FTE & Beneficio Cualitativo)
-    // Pair 2: Pillars 4 & 5 (Usuarios Alcanzados & Ahorro Estimado)
     const pairs = [
         [pillars[0], pillars[1]],
         [pillars[2], pillars[3]],
         [pillars[4], pillars[5]]
     ];
 
-    // Estimate line counts per pair
-    const estimateLines = (pillar: ExportPillar) => {
-        const text = stripHtml(valueData[pillar.key]);
-        if (!text) return 1;
-        return doc.splitTextToSize(text, colWidth - 8).length;
-    };
+    drawHeader(false);
+    const stripH = drawMetadataStrip(33);
+    let currentY = 33 + stripH + 4; // 55mm
+    const maxPageY = 281;
 
-    const pair0Lines = Math.max(estimateLines(pillars[0]), estimateLines(pillars[1]));
-    const pair1Lines = Math.max(estimateLines(pillars[2]), estimateLines(pillars[3]));
-    const pair2Lines = Math.max(estimateLines(pillars[4]), estimateLines(pillars[5]));
+    const pairHeights = pairs.map(pair =>
+        Math.max(
+            pair[0] ? calculatePillarCardHeight(pair[0]) : 34,
+            pair[1] ? calculatePillarCardHeight(pair[1]) : 34
+        )
+    );
 
-    const totalLinesNeeded = pair0Lines + pair1Lines + pair2Lines;
+    const totalRequiredH = pairHeights.reduce((a, b) => a + b, 0) + 8;
+    const availableSinglePageH = maxPageY - currentY;
 
-    // Page 1 rendering
-    drawHeader();
-    drawMetadataStrip(32);
-
-    let startY = 49;
-    const availableHPage1 = 282 - startY; // ~233mm
-
-    // If total content fits on Page 1 comfortably (<= 45 lines total, or ~72mm per row):
-    if (totalLinesNeeded <= 44) {
-        // Exactly ONE-PAGER layout!
-        const rowH = Math.min(Math.floor((availableHPage1 - 8) / 3), 74);
+    if (totalRequiredH <= availableSinglePageH) {
+        // Fits on 1 page without cutting any text; distribute extra whitespace evenly
+        const extraPerRow = Math.floor((availableSinglePageH - totalRequiredH) / 3);
         pairs.forEach((pair, idx) => {
-            const currentY = startY + idx * (rowH + 4);
+            const rowH = pairHeights[idx] + Math.min(extraPerRow, 18);
             if (pair[0]) drawPillarCard(pair[0], col1X, currentY, colWidth, rowH);
             if (pair[1]) drawPillarCard(pair[1], col2X, currentY, colWidth, rowH);
+            currentY += rowH + 4;
         });
     } else {
-        // Flows gracefully into 2 pages maximum!
-        // Page 1: Pair 0 and Pair 1 with generous room
-        const rowH1 = Math.min(Math.floor((availableHPage1 - 6) / 2), 110);
-        if (pairs[0][0]) drawPillarCard(pairs[0][0], col1X, startY, colWidth, rowH1);
-        if (pairs[0][1]) drawPillarCard(pairs[0][1], col2X, startY, colWidth, rowH1);
-
-        const y2 = startY + rowH1 + 5;
-        if (pairs[1][0]) drawPillarCard(pairs[1][0], col1X, y2, colWidth, rowH1);
-        if (pairs[1][1]) drawPillarCard(pairs[1][1], col2X, y2, colWidth, rowH1);
-
-        // Page 2: Pair 2 + Summary block
-        doc.addPage();
-
-        // Page 2 Mini Header
-        doc.setFillColor(30, 27, 75);
-        doc.roundedRect(MARGIN, 10, CONTENT_W, 14, 2, 2, 'F');
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(199, 210, 254);
-        doc.text('TFBE ROADMAP — FICHA TÉCNICA EJECUTIVA (Continuación)', MARGIN + 4, 15.5);
-        doc.setFontSize(10);
-        doc.setTextColor(255, 255, 255);
-        doc.text(`${initiative.name} — ${initiative.area || 'General'}`, MARGIN + 4, 21.5);
-
-        const page2StartY = 27;
-        const rowH2 = 110;
-        if (pairs[2][0]) drawPillarCard(pairs[2][0], col1X, page2StartY, colWidth, rowH2);
-        if (pairs[2][1]) drawPillarCard(pairs[2][1], col2X, page2StartY, colWidth, rowH2);
-
-        // Notes / Summary Card on Page 2
-        const notesY = page2StartY + rowH2 + 5;
-        const notesH = 282 - notesY;
-        if (notesH > 25) {
-            doc.setFillColor(248, 250, 252);
-            doc.setDrawColor(226, 232, 240);
-            doc.roundedRect(MARGIN, notesY, CONTENT_W, notesH, 2, 2, 'FD');
-            doc.setFillColor(99, 102, 241);
-            doc.rect(MARGIN, notesY, 2.5, notesH, 'F');
-
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(79, 70, 229);
-            doc.text('RESUMEN DE GOBERNANZA & ADOPCIÓN DE VALOR', MARGIN + 5, notesY + 6);
-
-            doc.setFontSize(7.5);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(71, 85, 105);
-            doc.text(
-                `Esta iniciativa registra ${filledCount} de 6 pilares de impacto formalmente documentados (${Math.round((filledCount / 6) * 100)}% de completitud).`,
-                MARGIN + 5,
-                notesY + 11.5
-            );
-            doc.text(
-                'El modelo de 6 pilares de TFBE evalúa dimensiones financieras, operativas, de talento y estratégicas para optimizar la toma de decisiones.',
-                MARGIN + 5,
-                notesY + 16
-            );
-        }
+        // Dynamic multi-page flow: never cuts a single line of text
+        pairs.forEach((pair, idx) => {
+            const rowH = pairHeights[idx];
+            if (currentY + rowH > maxPageY && currentY > 56) {
+                doc.addPage();
+                drawHeader(true);
+                currentY = 29;
+            }
+            if (pair[0]) drawPillarCard(pair[0], col1X, currentY, colWidth, rowH);
+            if (pair[1]) drawPillarCard(pair[1], col2X, currentY, colWidth, rowH);
+            currentY += rowH + 4.5;
+        });
     }
 
-    // Dynamic Footer on all pages (Página X de Y)
     const totalPages = doc.getNumberOfPages();
     for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p);
@@ -542,17 +875,6 @@ export function exportToPDF(
 
 // ─── Consolidated Excel Export ───────────────────────────────────────────────
 
-export interface ConsolidatedInitiativeExport {
-    id: string;
-    name: string;
-    area?: string;
-    champion?: string;
-    transformation_lead?: string;
-    status?: string;
-    progress?: number;
-    technologies?: string[];
-}
-
 export function exportConsolidatedToExcel(
     initiatives: ConsolidatedInitiativeExport[],
     allValues: Record<string, ExportValueData>,
@@ -567,232 +889,76 @@ export function exportConsolidatedToExcel(
         day: '2-digit', month: 'long', year: 'numeric',
     });
 
-    const totalInits = initiatives.length;
-
-    // Filter subtitle
     const filterNotes: string[] = [];
     if (filterContext?.area) filterNotes.push(`Área: ${filterContext.area}`);
     if (filterContext?.transfLead && filterContext.transfLead.length > 0) filterNotes.push(`Resp: ${filterContext.transfLead.join(', ')}`);
     if (filterContext?.status && filterContext.status.length > 0) filterNotes.push(`Estatus: ${filterContext.status.join(', ')}`);
     const filterSubtitle = filterNotes.length > 0 ? `Filtros aplicados: ${filterNotes.join(' | ')}` : 'Todas las iniciativas (Universo Completo)';
 
-    // ─── Macro Calculations ──────────────────────────────────────────────────────────
-
-    // 1. General adoption metrics (counting N/A as documented/completed for 6/6)
-    let completeInits = 0;
-    let partialInits = 0;
-    let emptyInits = 0;
-
-    let hasBusiness = 0;
-    let hasOperational = 0;
-    let hasQualitative = 0;
-    let hasUsers = 0;
-
-    const operationalAreasSet = new Set<string>();
-
-    for (const init of initiatives) {
-        const val = allValues[init.id] || {};
-        let docCount = 0;
-
-        if (isPillarFilled(val.business_value)) docCount++;
-        if (isPillarFilled(val.operational_efficiency)) docCount++;
-        if (isPillarFilled(val.fte_detail)) docCount++;
-        if (isPillarFilled(val.qualitative_benefit)) docCount++;
-        if (isPillarFilled(val.users_reached_detail)) docCount++;
-        if (isPillarFilled(val.estimated_savings_detail)) docCount++;
-
-        if (docCount === 6) completeInits++;
-        else if (docCount > 0) partialInits++;
-        else emptyInits++;
-
-        if (isPillarFilled(val.business_value) && !isNAPillar(val.business_value)) hasBusiness++;
-        if (isPillarFilled(val.operational_efficiency) && !isNAPillar(val.operational_efficiency)) {
-            hasOperational++;
-            if (init.area) operationalAreasSet.add(init.area);
-        }
-        if (isPillarFilled(val.qualitative_benefit) && !isNAPillar(val.qualitative_benefit)) hasQualitative++;
-        if (isPillarFilled(val.users_reached_detail) && !isNAPillar(val.users_reached_detail)) hasUsers++;
-    }
-
-    const pctGlobalComplete = totalInits > 0 ? Math.round((completeInits / totalInits) * 100) : 0;
-    const pctPartial = totalInits > 0 ? Math.round((partialInits / totalInits) * 100) : 0;
-    const pctEmpty = totalInits > 0 ? Math.round((emptyInits / totalInits) * 100) : 0;
-    const pctBusiness = totalInits > 0 ? Math.round((hasBusiness / totalInits) * 100) : 0;
-
-    // 2. FTE metrics (omitting N/A)
-    let totalFte = 0;
-    let fteImpactedCount = 0;
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.fte_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        const fteMatch = clean.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?|posicion(?:es)?|recurso(?:s)?|persona(?:s)?)/i)
-            || clean.match(/(?:liberaci[oó]n|ahorro|impacto|reasignaci[oó]n)\s*(?:de)?\s*([0-9]+(?:\.[0-9]+)?)/i);
-
-        if (fteMatch) {
-            const num = parseFloat(fteMatch[1]);
-            if (!isNaN(num) && num > 0 && num < 1000) {
-                totalFte += num;
-                fteImpactedCount++;
-                continue;
-            }
-        }
-
-        if (clean.length > 10 && !isNAPillar(clean)) {
-            fteImpactedCount++;
-        }
-    }
-    totalFte = Math.round(totalFte * 10) / 10;
-    const pctFte = totalInits > 0 ? Math.round((fteImpactedCount / totalInits) * 100) : 0;
-
-    // 3. Savings metrics (omitting N/A)
-    let totalSavings = 0;
-    let savingsQuantifiedCount = 0;
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.estimated_savings_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        const moneyMatch = clean.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(k|m|mdp|mil|millones)?/i)
-            || clean.match(/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(?:USD|MXN)/i);
-
-        if (moneyMatch) {
-            let amountStr = moneyMatch[1].replace(/,/g, '');
-            let amount = parseFloat(amountStr);
-            const multiplier = (moneyMatch[2] || '').toLowerCase();
-
-            if (multiplier === 'k' || multiplier === 'mil') amount *= 1000;
-            else if (multiplier === 'm' || multiplier === 'millones' || multiplier === 'mdp') amount *= 1000000;
-
-            if (!isNaN(amount) && amount > 0) {
-                totalSavings += amount;
-                savingsQuantifiedCount++;
-                continue;
-            }
-        }
-
-        if (clean.length > 10 && !isNAPillar(clean)) {
-            savingsQuantifiedCount++;
-        }
-    }
-    const pctSavings = totalInits > 0 ? Math.round((savingsQuantifiedCount / totalInits) * 100) : 0;
-    const formattedSavings = totalSavings > 0
-        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalSavings)
-        : '$0 USD';
-
-    // 4. Users Reached metrics (omitting N/A)
-    let totalUsers = 0;
-    const usersAreasSet = new Set<string>();
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.users_reached_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        if (init.area) usersAreasSet.add(init.area);
-
-        const userMatch = clean.match(/(?:^|\s|\+|>)([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:usuarios?|personas?|colaboradores?|empleados?)/i);
-        if (userMatch) {
-            const num = parseInt(userMatch[1].replace(/,/g, ''), 10);
-            if (!isNaN(num) && num > 0 && num < 100000) {
-                totalUsers += num;
-            }
-        }
-    }
-    const usersAreas = Array.from(usersAreasSet);
-    const operationalAreas = Array.from(operationalAreasSet);
-
-    // 5. Qualitative Categories breakdown
-    const qualRules = [
-        { name: 'Mitigación de Riesgos', keywords: ['riesgo', 'mitiga', 'auditor', 'vulnerab'] },
-        { name: 'Cumplimiento & Normativa', keywords: ['cumplimiento', 'normativ', 'fiscal', 'legal', 'sox'] },
-        { name: 'Calidad de Datos', keywords: ['calidad', 'consisten', 'precisi', 'integridad'] },
-        { name: 'Gobernanza & Control', keywords: ['gobernanza', 'control', 'visibilidad', 'trazabil'] },
-        { name: 'Automatización & RPA', keywords: ['automatiz', 'rpa', 'robot', 'digital'] },
-        { name: 'Agilidad Operativa', keywords: ['agil', 'tiempo', 'velocidad', 'productiv'] },
-    ];
-
-    const qualCategories = qualRules.map(rule => {
-        const matched = initiatives.filter(init => {
-            const raw = allValues[init.id]?.qualitative_benefit;
-            if (!raw || isNAPillar(raw)) return false;
-            const text = stripHtml(raw).toLowerCase();
-            return rule.keywords.some(kw => text.includes(kw));
-        });
-        const areas = Array.from(new Set(matched.map(m => m.area).filter(Boolean))) as string[];
-        return {
-            name: rule.name,
-            count: matched.length,
-            areas
-        };
-    });
+    const stats = analyzePortfolioValue(initiatives, allValues);
 
     // ─── PESTAÑA 1: Resumen Ejecutivo (KPIs) ───────────────────────────────────────
 
     const s1: any[][] = [
         ['TFBE ROADMAP — RESUMEN EJECUTIVO DE IMPACTO & VALOR (KPIs)'],
-        [`Exportado el ${exportDate} | Portafolio: ${totalInits} iniciativas | ${filterSubtitle}`],
+        [`Exportado el ${exportDate} | Portafolio: ${stats.totalInits} iniciativas | ${filterSubtitle}`],
         [],
         ['1. ADOPCIÓN Y MADUREZ DE DOCUMENTACIÓN (6 PILARES)'],
         ['Métrica', 'Iniciativas', '% del Portafolio', 'Descripción'],
-        ['Total de Iniciativas Analizadas', totalInits, '100%', 'Total de iniciativas evaluadas según filtros activos'],
-        ['Completas (6/6 pilares)', completeInits, `${pctGlobalComplete}%`, 'Con todos los 6 pilares de valor documentados o marcados N/A'],
-        ['En Progreso (1 a 5 pilares)', partialInits, `${pctPartial}%`, 'Con avance parcial registrado en sus dimensiones de impacto'],
-        ['Sin Documentar (0 pilares)', emptyInits, `${pctEmpty}%`, 'Iniciativas pendientes de iniciar documentación de valor'],
-        ['% Global de Avance / Adopción', `${pctGlobalComplete}%`, '—', 'Proporción del portafolio con perfil de valor completo'],
+        ['Total de Iniciativas Analizadas', stats.totalInits, '100%', 'Total de iniciativas evaluadas según filtros activos'],
+        ['Completas Documentadas (6/6 pilares)', stats.completeInits, `${stats.pctGlobalComplete}%`, 'Con los 6 pilares de valor sustantivamente documentados (o N/A justificado)'],
+        ['En Progreso / Pendiente por Gerencia', stats.partialInits, `${stats.pctPartial}%`, `Con avance parcial o marcadas como "Documentación pendiente por gerencia" (${stats.pendingMgmtInits} iniciativas)`],
+        ['Sin Documentar (0 pilares)', stats.emptyInits, `${stats.pctEmpty}%`, 'Iniciativas pendientes de iniciar captura de valor'],
+        ['% Global de Adopción Confirmada', `${stats.pctGlobalComplete}%`, '—', 'Proporción del portafolio con perfil de valor 100% documentado'],
         [],
         ['2. INDICADORES CONSOLIDADOS POR PILAR DE VALOR'],
-        ['Pilar de Impacto', 'Métrica Principal', 'Métrica Secundaria', 'Cobertura y Observaciones'],
+        ['Pilar de Impacto', 'Métrica Principal', 'Métrica Secundaria / Alcance', 'Cobertura Completa y Observaciones'],
         [
             'Pilar 1: Valor de Negocio',
-            `${pctBusiness}% iniciativas alineadas (${hasBusiness}/${totalInits})`,
-            `${hasBusiness} temas clave identificados`,
-            'Alineación estratégica con objetivos corporativos y prioridades del negocio'
+            `${stats.pctBusiness}% iniciativas alineadas (${stats.hasBusiness}/${stats.totalInits})`,
+            `${stats.hasBusiness} iniciativas con valor documentado`,
+            'Alineación estratégica con objetivos corporativos, flujo de cobranza, impuestos y negocio protegido'
         ],
         [
             'Pilar 2: Eficiencia Operativa',
-            `${hasOperational} procesos optimizados`,
-            `${operationalAreas.length} áreas impactadas`,
-            `Áreas: ${operationalAreas.slice(0, 5).join(', ')}${operationalAreas.length > 5 ? '…' : ''}`
+            `${stats.hasOperational} procesos optimizados`,
+            `${stats.operationalAreas.length} áreas impactadas`,
+            `Áreas impactadas: ${stats.operationalAreas.join(', ') || 'En proceso'}`
         ],
         [
-            'Pilar 3: Impacto FTE',
-            totalFte > 0 ? `${totalFte} FTEs liberados` : `${fteImpactedCount} iniciativas con impacto`,
-            `${pctFte}% iniciativas con impacto FTE (${fteImpactedCount}/${totalInits})`,
-            'Capacidad operativa reasignada o liberada (omitiendo valores N/A)'
+            'Pilar 3: Impacto FTE y Tiempo Liberado',
+            stats.totalFte > 0
+                ? `${stats.totalFte} FTEs + ${stats.totalHoursPerMonth} hrs/mes liberadas`
+                : `${stats.fteImpactedCount} iniciativas con impacto`,
+            `${stats.fteImpactedCount} con impacto activo (${stats.ftePendingCount} en cuantificación)`,
+            'Capacidad operativa reasignada o liberada en FTEs y horas-hombre (excluyendo pendientes por gerencia)'
         ],
         [
             'Pilar 4: Beneficio Cualitativo',
-            `${hasQualitative} iniciativas documentadas`,
-            `${qualCategories.filter(c => c.count > 0).length} categorías activas`,
-            'Mejoras no monetarias en control, gobierno, calidad y agilidad'
+            `${stats.hasQualitative} iniciativas documentadas`,
+            `${stats.qualCategories.filter(c => c.count > 0).length} categorías activas`,
+            'Mejoras tangibles en mitigación de riesgos, cumplimiento fiscal/SOX, calidad de datos y control'
         ],
         [
             'Pilar 5: Usuarios Alcanzados',
-            totalUsers > 0 ? `+${totalUsers.toLocaleString()} usuarios estimados` : `${hasUsers} iniciativas con alcance`,
-            `${usersAreas.length} áreas involucradas`,
-            `Áreas con alcance: ${usersAreas.slice(0, 5).join(', ')}${usersAreas.length > 5 ? '…' : ''}`
+            stats.totalUsers > 0 ? `+${stats.totalUsers.toLocaleString()} usuarios directos` : `${stats.hasUsers} iniciativas con alcance`,
+            `${stats.usersAreas.length} áreas involucradas`,
+            `Áreas con alcance: ${stats.usersAreas.join(', ') || 'En despliegue'}`
         ],
         [
             'Pilar 6: Ahorro Estimado',
-            formattedSavings,
-            `${pctSavings}% iniciativas con ahorro cuantificado (${savingsQuantifiedCount}/${totalInits})`,
-            'Ahorro económico anualizado proyectado o realizado (omitiendo valores N/A)'
+            `${stats.formattedSavings}${stats.savingsSecondaryHighlight ? ` (${stats.savingsSecondaryHighlight})` : ''}`,
+            `${stats.savingsQuantifiedCount} con beneficio activo (${stats.savingsPendingCount} por cuantificar)`,
+            'Ahorro económico anualizado, aclaraciones financieras y optimización de costos operativos'
         ],
         [],
         ['3. DESGLOSE POR CATEGORÍA CUALITATIVA (PILAR 4)'],
-        ['Categoría Cualitativa', 'Iniciativas con Cobertura', '% del Portafolio', 'Áreas Representativas'],
-        ...qualCategories.map(cat => [
+        ['Categoría Cualitativa', 'Iniciativas con Cobertura', '% del Portafolio', 'Áreas Representativas (Completas)'],
+        ...stats.qualCategories.map(cat => [
             cat.name,
             cat.count,
-            totalInits > 0 ? `${Math.round((cat.count / totalInits) * 100)}%` : '0%',
-            cat.areas.length > 0 ? cat.areas.slice(0, 4).join(', ') : 'General'
+            stats.totalInits > 0 ? `${Math.round((cat.count / stats.totalInits) * 100)}%` : '0%',
+            cat.areas.length > 0 ? cat.areas.join(', ') : 'General'
         ]),
         [],
         [`© ${new Date().getFullYear()} TFBE Roadmap — Resumen Ejecutivo de Impacto & Valor`]
@@ -801,19 +967,28 @@ export function exportConsolidatedToExcel(
     const ws1 = XLSX.utils.aoa_to_sheet(s1);
 
     ws1['!cols'] = [
-        { wch: 36 },
-        { wch: 34 },
-        { wch: 28 },
-        { wch: 68 },
+        { wch: 38 },
+        { wch: 38 },
+        { wch: 38 },
+        { wch: 82 },
     ];
 
+    ws1['!rows'] = s1.map((row, idx) => {
+        if (idx === 0) return { hpt: 28 };
+        const col3 = String(row[3] || '');
+        if (col3.length > 75) {
+            return { hpt: Math.ceil(col3.length / 75) * 16 + 6 };
+        }
+        return { hpt: 20 };
+    });
+
     ws1['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, // Title
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }, // Subtitle
-        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } }, // Section 1 header
-        { s: { r: 11, c: 0 }, e: { r: 11, c: 3 } }, // Section 2 header
-        { s: { r: 20, c: 0 }, e: { r: 20, c: 3 } }, // Section 3 header
-        { s: { r: s1.length - 1, c: 0 }, e: { r: s1.length - 1, c: 3 } }, // Footer
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
+        { s: { r: 11, c: 0 }, e: { r: 11, c: 3 } },
+        { s: { r: 20, c: 0 }, e: { r: 20, c: 3 } },
+        { s: { r: s1.length - 1, c: 0 }, e: { r: s1.length - 1, c: 3 } },
     ];
 
     const setStyle = (sheet: any, ref: string, style: object) => {
@@ -821,7 +996,6 @@ export function exportConsolidatedToExcel(
         sheet[ref].s = style;
     };
 
-    // Styling Sheet 1
     setStyle(ws1, 'A1', {
         font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '312E81' } },
@@ -832,9 +1006,7 @@ export function exportConsolidatedToExcel(
         alignment: { horizontal: 'center', vertical: 'center' }
     });
 
-    // Section title banners (Row 4, Row 12, Row 21)
-    const sectionRows = [4, 12, 21];
-    sectionRows.forEach(r => {
+    [4, 12, 21].forEach(r => {
         setStyle(ws1, `A${r}`, {
             font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
             fill: { fgColor: { rgb: '4F46E5' } },
@@ -842,33 +1014,32 @@ export function exportConsolidatedToExcel(
         });
     });
 
-    // Table header rows (Row 5, Row 13, Row 22)
-    const tableHeaderRows = [5, 13, 22];
-    tableHeaderRows.forEach(r => {
+    [5, 13, 22].forEach(r => {
         ['A', 'B', 'C', 'D'].forEach(c => {
             setStyle(ws1, `${c}${r}`, {
                 font: { bold: true, sz: 9, color: { rgb: 'FFFFFF' } },
                 fill: { fgColor: { rgb: '1E1B4B' } },
-                alignment: { horizontal: 'center', vertical: 'center' }
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
             });
         });
     });
 
-    // Bold metric labels in Column A
     for (let r = 6; r <= 10; r++) {
-        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 } });
+        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 }, alignment: { vertical: 'center' } });
+        ['B', 'C', 'D'].forEach(c => setStyle(ws1, `${c}${r}`, { font: { sz: 9 }, alignment: { vertical: 'center', wrapText: true } }));
     }
     for (let r = 14; r <= 19; r++) {
-        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 } });
+        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 }, alignment: { vertical: 'top' } });
+        ['B', 'C', 'D'].forEach(c => setStyle(ws1, `${c}${r}`, { font: { sz: 9 }, alignment: { vertical: 'top', wrapText: true } }));
     }
-    for (let r = 23; r <= 22 + qualCategories.length; r++) {
-        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 } });
+    for (let r = 23; r <= 22 + stats.qualCategories.length; r++) {
+        setStyle(ws1, `A${r}`, { font: { bold: true, sz: 9 }, alignment: { vertical: 'top' } });
+        ['B', 'C', 'D'].forEach(c => setStyle(ws1, `${c}${r}`, { font: { sz: 9 }, alignment: { vertical: 'top', wrapText: true } }));
     }
 
     XLSX.utils.book_append_sheet(wb, ws1, 'Resumen Ejecutivo (KPIs)');
 
     // ─── PESTAÑA 2: Detalle Iniciativas y Pilares ──────────────────────────────────
-    // Sin columna ID/Código, con las 12 columnas requeridas
 
     const detailHeaders = [
         'Iniciativa',
@@ -887,7 +1058,7 @@ export function exportConsolidatedToExcel(
 
     const s2: any[][] = [
         ['TFBE ROADMAP — DETALLE DE INICIATIVAS Y 6 PILARES DE VALOR'],
-        [`Exportado el ${exportDate} | ${totalInits} iniciativas | ${filterSubtitle}`],
+        [`Exportado el ${exportDate} | ${stats.totalInits} iniciativas | ${filterSubtitle}`],
         [],
         detailHeaders
     ];
@@ -901,15 +1072,23 @@ export function exportConsolidatedToExcel(
         const cleanUsers = stripHtml(val.users_reached_detail);
         const cleanSavings = stripHtml(val.estimated_savings_detail);
 
-        // Doc count counts N/A as completed / documented (6/6)
-        const docCount = [
+        const completedCount = [
             val.business_value,
             val.operational_efficiency,
             val.fte_detail,
             val.qualitative_benefit,
             val.users_reached_detail,
             val.estimated_savings_detail
-        ].filter(v => isPillarFilled(v)).length;
+        ].filter(v => isPillarCompleted(v)).length;
+
+        const hasPendingMgmt = [
+            val.business_value,
+            val.operational_efficiency,
+            val.fte_detail,
+            val.qualitative_benefit,
+            val.users_reached_detail,
+            val.estimated_savings_detail
+        ].some(v => isPendingDocumentation(v));
 
         const leadChampion = [init.transformation_lead, init.champion].filter(Boolean).join(' / ') || '—';
 
@@ -925,7 +1104,7 @@ export function exportConsolidatedToExcel(
             cleanQualitative || '—',
             cleanUsers || '—',
             cleanSavings || '—',
-            `${docCount}/6`
+            hasPendingMgmt && completedCount === 0 ? 'Pend. Gerencia' : `${completedCount}/6`
         ]);
     }
 
@@ -934,29 +1113,43 @@ export function exportConsolidatedToExcel(
 
     const ws2 = XLSX.utils.aoa_to_sheet(s2);
 
-    // Dynamic width calculation based on content starting from header row (index 3)
-    const minColWidths = [28, 18, 26, 16, 14, 38, 38, 32, 38, 32, 32, 18];
-    const maxColWidths = [50, 30, 38, 22, 16, 75, 75, 70, 75, 70, 70, 22];
+    const colWidths = [
+        { wch: 36 }, // Iniciativa
+        { wch: 24 }, // Área
+        { wch: 28 }, // Responsable
+        { wch: 24 }, // Estatus
+        { wch: 14 }, // Progreso
+        { wch: 52 }, // 1. Valor de Negocio
+        { wch: 52 }, // 2. Eficiencia Operativa
+        { wch: 46 }, // 3. Impacto FTE
+        { wch: 52 }, // 4. Beneficio Cualitativo
+        { wch: 44 }, // 5. Usuarios Alcanzados
+        { wch: 46 }, // 6. Ahorro Estimado
+        { wch: 18 }, // Pilares Completos
+    ];
+    ws2['!cols'] = colWidths;
 
-    const colWidths: { wch: number }[] = [];
-    for (let c = 0; c < detailHeaders.length; c++) {
-        let maxLen = detailHeaders[c].length;
-        for (let r = 3; r < s2.length - 2; r++) {
-            const cell = s2[r] ? s2[r][c] : undefined;
-            if (cell !== undefined && cell !== null && cell !== '') {
-                const lines = String(cell).split('\n');
-                for (const l of lines) {
-                    if (l.length > maxLen) {
-                        maxLen = l.length;
-                    }
+    // Calculate dynamic row heights so multi-line cells are immediately readable
+    ws2['!rows'] = s2.map((row, rIdx) => {
+        if (rIdx === 0) return { hpt: 28 };
+        if (rIdx === 1) return { hpt: 20 };
+        if (rIdx === 3) return { hpt: 26 };
+        if (rIdx >= 4 && rIdx < s2.length - 2) {
+            let maxLines = 1;
+            for (let c = 5; c <= 10; c++) {
+                const cellText = String(row[c] || '');
+                if (cellText && cellText !== '—') {
+                    const colW = colWidths[c]?.wch || 48;
+                    const lines = cellText
+                        .split('\n')
+                        .reduce((acc, l) => acc + Math.max(1, Math.ceil(l.length / (colW - 4))), 0);
+                    if (lines > maxLines) maxLines = lines;
                 }
             }
+            return { hpt: Math.min(Math.max(maxLines * 14 + 6, 22), 170) };
         }
-        const minW = minColWidths[c] || 15;
-        const maxW = maxColWidths[c] || 75;
-        colWidths.push({ wch: Math.min(Math.max(maxLen + 3, minW), maxW) });
-    }
-    ws2['!cols'] = colWidths;
+        return { hpt: 18 };
+    });
 
     ws2['!merges'] = [
         { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
@@ -974,7 +1167,6 @@ export function exportConsolidatedToExcel(
         alignment: { horizontal: 'center', vertical: 'center' }
     });
 
-    // Detail table header row (Row 4, index 3: A4 to L4)
     const detailHeaderCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
     detailHeaderCols.forEach(col => {
         setStyle(ws2, `${col}4`, {
@@ -984,19 +1176,29 @@ export function exportConsolidatedToExcel(
         });
     });
 
-    // Set bold font on initiative names (Column A) for clean reading
     for (let r = 5; r <= s2.length - 2; r++) {
-        setStyle(ws2, `A${r}`, { font: { bold: true, sz: 9 } });
+        const isEven = r % 2 === 0;
+        const rowBg = isEven ? 'F8FAFC' : 'FFFFFF';
+        detailHeaderCols.forEach((col, cIdx) => {
+            setStyle(ws2, `${col}${r}`, {
+                font: { bold: cIdx === 0 || cIdx === 11, sz: 9, color: { rgb: cIdx === 0 ? '1E293B' : '334155' } },
+                fill: { fgColor: { rgb: rowBg } },
+                alignment: {
+                    horizontal: cIdx === 4 || cIdx === 11 ? 'center' : 'left',
+                    vertical: 'top',
+                    wrapText: true
+                }
+            });
+        });
     }
 
     XLSX.utils.book_append_sheet(wb, ws2, 'Detalle Iniciativas y Pilares');
 
-    // ─── Guardar archivo ──────────────────────────────────────────────────────────
     const fileName = `Consolidado_Impacto_Valor_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
 }
 
-// ─── Consolidated PDF Export (Landscape A4: Page 1 One-Pager + Page 2+ Detail Matrix) ────
+// ─── Consolidated PDF Export (Landscape A4: Page 1 One-Pager + Dynamic Auto-Height Matrix) ────
 
 export function exportConsolidatedToPDF(
     initiatives: ConsolidatedInitiativeExport[],
@@ -1009,191 +1211,48 @@ export function exportConsolidatedToPDF(
 ): void {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const W = 297;
-    const MARGIN = 12;
-    const CONTENT_W = W - MARGIN * 2; // 273mm
+    const MARGIN = 10;
+    const CONTENT_W = W - MARGIN * 2; // 277mm
     const exportDate = new Date().toLocaleDateString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric',
     });
 
-    const totalInits = initiatives.length;
-
-    // Subtitle filters
     const filterNotes: string[] = [];
     if (filterContext?.area) filterNotes.push(`Área: ${filterContext.area}`);
     if (filterContext?.transfLead && filterContext.transfLead.length > 0) filterNotes.push(`Resp: ${filterContext.transfLead.join(', ')}`);
     if (filterContext?.status && filterContext.status.length > 0) filterNotes.push(`Estatus: ${filterContext.status.join(', ')}`);
     const filterSubtitle = filterNotes.length > 0 ? `Filtros: ${filterNotes.join(' | ')}` : 'Todas las iniciativas (Universo Completo)';
 
-    // ─── Macro Calculations ──────────────────────────────────────────────────────────
-    let completeInits = 0;
-    let partialInits = 0;
-    let emptyInits = 0;
-
-    let hasBusiness = 0;
-    let hasOperational = 0;
-    let hasQualitative = 0;
-    let hasUsers = 0;
-
-    const operationalAreasSet = new Set<string>();
-
-    for (const init of initiatives) {
-        const val = allValues[init.id] || {};
-        let docCount = 0;
-
-        if (isPillarFilled(val.business_value)) docCount++;
-        if (isPillarFilled(val.operational_efficiency)) docCount++;
-        if (isPillarFilled(val.fte_detail)) docCount++;
-        if (isPillarFilled(val.qualitative_benefit)) docCount++;
-        if (isPillarFilled(val.users_reached_detail)) docCount++;
-        if (isPillarFilled(val.estimated_savings_detail)) docCount++;
-
-        if (docCount === 6) completeInits++;
-        else if (docCount > 0) partialInits++;
-        else emptyInits++;
-
-        if (isPillarFilled(val.business_value) && !isNAPillar(val.business_value)) hasBusiness++;
-        if (isPillarFilled(val.operational_efficiency) && !isNAPillar(val.operational_efficiency)) {
-            hasOperational++;
-            if (init.area) operationalAreasSet.add(init.area);
-        }
-        if (isPillarFilled(val.qualitative_benefit) && !isNAPillar(val.qualitative_benefit)) hasQualitative++;
-        if (isPillarFilled(val.users_reached_detail) && !isNAPillar(val.users_reached_detail)) hasUsers++;
-    }
-
-    const pctGlobalComplete = totalInits > 0 ? Math.round((completeInits / totalInits) * 100) : 0;
-    const pctPartial = totalInits > 0 ? Math.round((partialInits / totalInits) * 100) : 0;
-    const pctEmpty = totalInits > 0 ? Math.round((emptyInits / totalInits) * 100) : 0;
-    const pctBusiness = totalInits > 0 ? Math.round((hasBusiness / totalInits) * 100) : 0;
-
-    // FTE (omitting N/A)
-    let totalFte = 0;
-    let fteImpactedCount = 0;
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.fte_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        const fteMatch = clean.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*(?:FTE|ftes?|posicion(?:es)?|recurso(?:s)?|persona(?:s)?)/i)
-            || clean.match(/(?:liberaci[oó]n|ahorro|impacto|reasignaci[oó]n)\s*(?:de)?\s*([0-9]+(?:\.[0-9]+)?)/i);
-
-        if (fteMatch) {
-            const num = parseFloat(fteMatch[1]);
-            if (!isNaN(num) && num > 0 && num < 1000) {
-                totalFte += num;
-                fteImpactedCount++;
-                continue;
-            }
-        }
-        if (clean.length > 10 && !isNAPillar(clean)) fteImpactedCount++;
-    }
-    totalFte = Math.round(totalFte * 10) / 10;
-    const pctFte = totalInits > 0 ? Math.round((fteImpactedCount / totalInits) * 100) : 0;
-
-    // Savings (omitting N/A)
-    let totalSavings = 0;
-    let savingsQuantifiedCount = 0;
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.estimated_savings_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-
-        const moneyMatch = clean.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(k|m|mdp|mil|millones)?/i)
-            || clean.match(/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*(?:USD|MXN)/i);
-
-        if (moneyMatch) {
-            let amountStr = moneyMatch[1].replace(/,/g, '');
-            let amount = parseFloat(amountStr);
-            const multiplier = (moneyMatch[2] || '').toLowerCase();
-            if (multiplier === 'k' || multiplier === 'mil') amount *= 1000;
-            else if (multiplier === 'm' || multiplier === 'millones' || multiplier === 'mdp') amount *= 1000000;
-
-            if (!isNaN(amount) && amount > 0) {
-                totalSavings += amount;
-                savingsQuantifiedCount++;
-                continue;
-            }
-        }
-        if (clean.length > 10 && !isNAPillar(clean)) savingsQuantifiedCount++;
-    }
-    const pctSavings = totalInits > 0 ? Math.round((savingsQuantifiedCount / totalInits) * 100) : 0;
-    const formattedSavings = totalSavings > 0
-        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalSavings)
-        : '$0 USD';
-
-    // Users (omitting N/A)
-    let totalUsers = 0;
-    const usersAreasSet = new Set<string>();
-    for (const init of initiatives) {
-        const val = allValues[init.id]?.users_reached_detail;
-        if (!val || val === '<p></p>' || isNAPillar(val)) continue;
-        const clean = stripHtml(val);
-        if (!clean || isNAPillar(clean)) continue;
-        if (init.area) usersAreasSet.add(init.area);
-
-        const userMatch = clean.match(/(?:^|\s|\+|>)([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:usuarios?|personas?|colaboradores?|empleados?)/i);
-        if (userMatch) {
-            const num = parseInt(userMatch[1].replace(/,/g, ''), 10);
-            if (!isNaN(num) && num > 0 && num < 100000) totalUsers += num;
-        }
-    }
-    const usersAreas = Array.from(usersAreasSet);
-    const operationalAreas = Array.from(operationalAreasSet);
-
-    // Qualitative Categories
-    const qualRules = [
-        { name: 'Mitigación de Riesgos', keywords: ['riesgo', 'mitiga', 'auditor', 'vulnerab'] },
-        { name: 'Cumplimiento & Normativa', keywords: ['cumplimiento', 'normativ', 'fiscal', 'legal', 'sox'] },
-        { name: 'Calidad de Datos', keywords: ['calidad', 'consisten', 'precisi', 'integridad'] },
-        { name: 'Gobernanza & Control', keywords: ['gobernanza', 'control', 'visibilidad', 'trazabil'] },
-        { name: 'Automatización & RPA', keywords: ['automatiz', 'rpa', 'robot', 'digital'] },
-        { name: 'Agilidad Operativa', keywords: ['agil', 'tiempo', 'velocidad', 'productiv'] },
-    ];
-
-    const qualCategories = qualRules.map(rule => {
-        const matched = initiatives.filter(init => {
-            const raw = allValues[init.id]?.qualitative_benefit;
-            if (!raw || isNAPillar(raw)) return false;
-            const text = stripHtml(raw).toLowerCase();
-            return rule.keywords.some(kw => text.includes(kw));
-        });
-        return {
-            name: rule.name,
-            count: matched.length,
-            areas: Array.from(new Set(matched.map(m => m.area).filter(Boolean))) as string[]
-        };
-    });
+    const stats = analyzePortfolioValue(initiatives, allValues);
 
     // ─── PÁGINA 1: ONE-PAGER EJECUTIVO (LANDSCAPE) ───────────────────────────────────
 
-    // Top Header Banner
     doc.setFillColor(30, 27, 75);
-    doc.roundedRect(MARGIN, 10, CONTENT_W, 18, 2, 2, 'F');
+    doc.roundedRect(MARGIN, 9, CONTENT_W, 17, 2, 2, 'F');
     doc.setFillColor(99, 102, 241);
-    doc.rect(MARGIN, 10, CONTENT_W, 1.5, 'F');
+    doc.rect(MARGIN, 9, CONTENT_W, 1.5, 'F');
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(199, 210, 254);
-    doc.text('TFBE ROADMAP — DASHBOARD EJECUTIVO DE IMPACTO & VALOR', MARGIN + 4, 16);
+    doc.text('TFBE ROADMAP — DASHBOARD EJECUTIVO DE IMPACTO & VALOR', MARGIN + 4, 14.5);
 
-    doc.setFontSize(12);
+    doc.setFontSize(11.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(`Consolidado de Portafolio — ${totalInits} Iniciativas`, MARGIN + 4, 23);
+    doc.text(`Consolidado Estratégico de Portafolio — ${stats.totalInits} Iniciativas`, MARGIN + 4, 21.5);
 
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(203, 213, 225);
-    doc.text(`Generado: ${exportDate} | ${filterSubtitle}`, W - MARGIN - 4, 23, { align: 'right' });
+    doc.text(`Generado: ${exportDate} | ${filterSubtitle}`, W - MARGIN - 4, 21.5, { align: 'right' });
 
     // Section 1: 4 Adoption KPI Stat Cards
     const kpiW = (CONTENT_W - 9) / 4;
     const kpiCards = [
-        { title: 'TOTAL INICIATIVAS', val: `${totalInits}`, sub: 'Portafolio analizado', color: [79, 70, 229] },
-        { title: 'COMPLETAS (6/6)', val: `${completeInits}`, sub: `${pctGlobalComplete}% del portafolio`, color: [16, 185, 129] },
-        { title: 'EN PROGRESO (1-5)', val: `${partialInits}`, sub: `${pctPartial}% en documentación`, color: [245, 158, 11] },
-        { title: 'SIN DOCUMENTAR', val: `${emptyInits}`, sub: `${pctEmpty}% pendientes de inicio`, color: [156, 163, 175] },
+        { title: 'TOTAL INICIATIVAS', val: `${stats.totalInits}`, sub: 'Portafolio analizado', color: [79, 70, 229] },
+        { title: 'COMPLETAS (6/6)', val: `${stats.completeInits}`, sub: `${stats.pctGlobalComplete}% documentadas al 100%`, color: [16, 185, 129] },
+        { title: 'EN PROGRESO / PEND. GERENCIA', val: `${stats.partialInits}`, sub: `${stats.pctPartial}% en proceso de captura`, color: [245, 158, 11] },
+        { title: 'SIN DOCUMENTAR (0/6)', val: `${stats.emptyInits}`, sub: `${stats.pctEmpty}% pendientes de inicio`, color: [156, 163, 175] },
     ];
 
     kpiCards.forEach((kpi, idx) => {
@@ -1201,78 +1260,98 @@ export function exportConsolidatedToPDF(
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.3);
-        doc.roundedRect(kx, 30, kpiW, 16, 2, 2, 'FD');
+        doc.roundedRect(kx, 28, kpiW, 15, 2, 2, 'FD');
 
         doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-        doc.rect(kx, 30, 2.5, 16, 'F');
+        doc.rect(kx, 28, 2.5, 15, 'F');
 
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(100, 116, 139);
-        doc.text(kpi.title, kx + 5, 35);
+        doc.text(kpi.title, kx + 5, 32.8);
 
-        doc.setFontSize(11);
+        doc.setFontSize(10.5);
         doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-        doc.text(kpi.val, kx + 5, 41);
+        doc.text(kpi.val, kx + 5, 38.2);
 
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(148, 163, 184);
-        doc.text(kpi.sub, kx + 5, 44.5);
+        doc.text(kpi.sub, kx + 5, 41.6);
     });
 
-    // Section 2: 6 Pillar Highlights (Grid: 3 Columns × 2 Rows)
-    const pColW = (CONTENT_W - 8) / 3; // ~88.3mm
-    const pColH = 54; // mm
+    // Section 2: 6 Pillar Highlights (Grid: 3 Columns × 2 Rows — full wrapping, zero clipping)
+    const pColW = (CONTENT_W - 8) / 3; // ~89.6mm
+    const pColH = 56; // mm
 
     const pillarHighlights = [
         {
             label: '1. VALOR DE NEGOCIO',
             color: [124, 58, 237],
-            kpi: `${pctBusiness}% iniciativas alineadas`,
-            sub: `${hasBusiness} de ${totalInits} documentadas`,
-            desc: 'Alineación con prioridades estratégicas del negocio y cumplimiento de objetivos corporativos.',
-            items: [`Ejes estratégicos identificados: ${hasBusiness}`, `Representación en portafolio: ${pctBusiness}%`]
+            kpi: `${stats.pctBusiness}% iniciativas alineadas`,
+            sub: `${stats.hasBusiness} de ${stats.totalInits} con valor de negocio documentado`,
+            desc: 'Alineación con prioridades estratégicas, protección de flujos de cobranza, impuestos y negocio.',
+            items: [
+                `Iniciativas con impacto estratégico: ${stats.hasBusiness} de ${stats.totalInits} (${stats.pctBusiness}%)`,
+                'Flujos destacados: Cargo Central (6,800 MDP), Oxxo (600 MDP/mes), Fiscal (337 MMUSD) y Defense File (158 MMUSD).'
+            ]
         },
         {
             label: '2. EFICIENCIA OPERATIVA',
             color: [217, 119, 6],
-            kpi: `${hasOperational} procesos optimizados`,
-            sub: `${operationalAreas.length} áreas impactadas`,
-            desc: 'Reducción de tiempos de ciclo y eliminación de pasos manuales redundantes en flujos clave.',
-            items: [`Áreas: ${operationalAreas.slice(0, 4).join(', ') || 'En proceso'}`, `Cobertura: ${hasOperational} flujos`]
+            kpi: `${stats.hasOperational} procesos optimizados`,
+            sub: `${stats.operationalAreas.length} áreas operativas impactadas`,
+            desc: 'Reducción de tiempos de ciclo y eliminación de reprocesos manuales en flujos financieros clave.',
+            items: [
+                `Áreas: ${stats.operationalAreas.join(', ') || 'En proceso'}`,
+                'Hitos: Compresión 222x en Data Lake (10GB a 45MB), EEFF de 16 hrs a 2 min, Notas de 60 a 25 min.'
+            ]
         },
         {
-            label: '3. IMPACTO EN FTE',
+            label: '3. IMPACTO EN FTE Y CAPACIDAD',
             color: [8, 145, 178],
-            kpi: totalFte > 0 ? `${totalFte} FTEs liberados` : `${fteImpactedCount} iniciativas`,
-            sub: `${pctFte}% cobertura de iniciativas`,
-            desc: 'Reasignación de capacidad laboral operativa hacia tareas de mayor valor agregado o innovación.',
-            items: [`Iniciativas con impacto FTE: ${fteImpactedCount}`, `Total acumulado: ${totalFte > 0 ? `${totalFte} FTEs` : 'Por cuantificar'}`]
+            kpi: stats.totalFte > 0
+                ? `${stats.totalFte} FTEs  |  +${stats.totalHoursPerMonth} hrs/mes`
+                : `${stats.fteImpactedCount} iniciativas con impacto`,
+            sub: `${stats.fteImpactedCount} con liberación activa (${stats.ftePendingCount} en cuantificación)`,
+            desc: 'Reasignación de talento y liberación de horas operativas hacia actividades analíticas de valor.',
+            items: [
+                `Capacidad cuantificada: ${stats.totalFte} FTEs de referencia y +${stats.totalHoursPerMonth} horas mensuales liberadas.`,
+                'Destacan: Conciliación Oxxo (387.5 hrs/sem), REPSE (8 FTEs), Cargo Central (24 hrs/mes), Roll Forward (16 hrs/mes).'
+            ]
         },
         {
             label: '4. BENEFICIO CUALITATIVO',
             color: [225, 29, 72],
-            kpi: `${hasQualitative} iniciativas con beneficios`,
-            sub: `${qualCategories.filter(c => c.count > 0).length} categorías activas`,
-            desc: 'Mejoras no monetarias en mitigación de riesgos, control interno, gobierno de datos y agilidad.',
-            items: [`Categorías activas: ${qualCategories.filter(c => c.count > 0).length} de 6`, `Iniciativas documentadas: ${hasQualitative}`]
+            kpi: `${stats.hasQualitative} iniciativas con beneficios`,
+            sub: `${stats.qualCategories.filter(c => c.count > 0).length} categorías estratégicas activas`,
+            desc: 'Fortalecimiento de control interno, cumplimiento normativo/SOX, trazabilidad y calidad de datos.',
+            items: [
+                `Categorías: Visibilidad & Control (${stats.qualCategories[3]?.count || 0}), Mitigación de Riesgos (${stats.qualCategories[0]?.count || 0}), Agilidad (${stats.qualCategories[5]?.count || 0}).`,
+                `Cobertura cualitativa documentada en ${stats.hasQualitative} iniciativas del portafolio.`
+            ]
         },
         {
             label: '5. USUARIOS ALCANZADOS',
             color: [5, 150, 105],
-            kpi: totalUsers > 0 ? `+${totalUsers.toLocaleString()} usuarios` : `${hasUsers} iniciativas`,
-            sub: `${usersAreas.length} áreas involucradas`,
-            desc: 'Comunidades de usuarios internos y externos beneficiados por la adopción de las soluciones.',
-            items: [`Áreas con alcance: ${usersAreas.slice(0, 4).join(', ') || 'En despliegue'}`, `Total estimado: ${totalUsers > 0 ? `+${totalUsers.toLocaleString()}` : 'Cualitativo'}`]
+            kpi: stats.totalUsers > 0 ? `+${stats.totalUsers.toLocaleString()} usuarios directos` : `${stats.hasUsers} iniciativas`,
+            sub: `${stats.usersAreas.length} áreas organizacionales beneficiadas`,
+            desc: 'Equipos internos, especialistas financieros y áreas operativas que adoptan las soluciones.',
+            items: [
+                `Áreas con alcance: ${stats.usersAreas.join(', ') || 'En despliegue'}`,
+                'Mayor adopción: Carátula CAPEX (64 usuarios), Defense File (20), Fiscal KOF (18), REPSE (18), Oficiales (10).'
+            ]
         },
         {
             label: '6. AHORRO ESTIMADO',
             color: [22, 163, 74],
-            kpi: formattedSavings,
-            sub: `${pctSavings}% iniciativas cuantificadas`,
-            desc: 'Ahorro financiero directo e indirecto proyectado o alcanzado derivado de la ejecución.',
-            items: [`Iniciativas con ahorro cuantificado: ${savingsQuantifiedCount} de ${totalInits}`, `Monto proyectado: ${formattedSavings}`]
+            kpi: `${stats.formattedSavings}${stats.savingsSecondaryHighlight ? `  ${stats.savingsSecondaryHighlight}` : ''}`,
+            sub: `${stats.savingsQuantifiedCount} con beneficio activo (${stats.savingsPendingCount} por cuantificar)`,
+            desc: 'Ahorro económico directo, recuperación en aclaraciones comerciales y optimización de infraestructura.',
+            items: [
+                `Ahorros directos: $125,000 USD anuales (Walmart GT) + $40 MDP en aclaraciones comerciales (Walmart MX).`,
+                `${stats.savingsQuantifiedCount} iniciativas con impacto documentado y ${stats.savingsPendingCount} en proceso de medición.`
+            ]
         },
     ];
 
@@ -1280,61 +1359,62 @@ export function exportConsolidatedToPDF(
         const colIdx = idx % 3;
         const rowIdx = Math.floor(idx / 3);
         const px = MARGIN + colIdx * (pColW + 4);
-        const py = 48 + rowIdx * (pColH + 4);
+        const py = 45.5 + rowIdx * (pColH + 3.5);
 
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.3);
         doc.roundedRect(px, py, pColW, pColH, 2, 2, 'FD');
 
-        // Card Header Banner
         doc.setFillColor(p.color[0], p.color[1], p.color[2]);
-        doc.roundedRect(px, py, pColW, 7.5, 2, 2, 'F');
-        doc.rect(px, py + 3.5, pColW, 4, 'F');
+        doc.roundedRect(px, py, pColW, 7, 2, 2, 'F');
+        doc.rect(px, py + 3.5, pColW, 3.5, 'F');
 
-        doc.setFontSize(7.5);
+        doc.setFontSize(7.2);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text(p.label, px + 3.5, py + 5);
+        doc.text(p.label, px + 3.5, py + 4.8);
 
-        // KPI Box inside card
+        // KPI Box
         doc.setFillColor(248, 250, 252);
-        doc.roundedRect(px + 3, py + 10, pColW - 6, 14, 1.5, 1.5, 'F');
+        doc.roundedRect(px + 3, py + 9, pColW - 6, 13, 1.5, 1.5, 'F');
 
-        doc.setFontSize(9.5);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(p.color[0], p.color[1], p.color[2]);
-        doc.text(p.kpi, px + 5, py + 16);
+        doc.text(p.kpi, px + 4.5, py + 14.5);
 
-        doc.setFontSize(6.5);
+        doc.setFontSize(6.3);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 116, 139);
-        doc.text(p.sub, px + 5, py + 21);
+        doc.text(p.sub, px + 4.5, py + 19.5);
 
         // Description text
-        doc.setFontSize(6.5);
+        doc.setFontSize(6.2);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(71, 85, 105);
         const descLines = doc.splitTextToSize(p.desc, pColW - 7);
-        doc.text(descLines.slice(0, 2), px + 3.5, py + 28);
+        doc.text(descLines.slice(0, 2), px + 3.5, py + 25.5);
 
-        // Bullets
-        let by = py + 37;
+        // Multi-line wrapped bullets without truncation
+        let by = py + 32.5;
         p.items.forEach(item => {
+            const wrappedBullet = doc.splitTextToSize(item, pColW - 10);
             doc.setFillColor(p.color[0], p.color[1], p.color[2]);
-            doc.circle(px + 5, by - 1, 0.8, 'F');
-            doc.setFontSize(6.5);
+            doc.circle(px + 4.5, by - 0.9, 0.75, 'F');
+            doc.setFontSize(6);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(51, 65, 85);
-            const truncItem = item.length > 46 ? item.slice(0, 44) + '…' : item;
-            doc.text(truncItem, px + 8, by);
-            by += 4.5;
+            doc.setTextColor(40, 52, 70);
+            wrappedBullet.slice(0, 4).forEach((line: string, lIdx: number) => {
+                doc.text(line, px + 7, by + lIdx * 2.8);
+            });
+            by += wrappedBullet.slice(0, 4).length * 2.8 + 1.4;
         });
     });
 
-    // Section 3: Qualitative Categories Summary Strip
+    // Section 3: Qualitative Categories Summary Strip (Full category names, no truncation)
     const catStripY = 166;
-    const catStripH = 28;
+    const catStripH = 31;
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.3);
@@ -1343,47 +1423,56 @@ export function exportConsolidatedToPDF(
     doc.setFillColor(79, 70, 229);
     doc.rect(MARGIN, catStripY, 2.5, catStripH, 'F');
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.2);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(79, 70, 229);
-    doc.text('DESGLOSE DE CATEGORÍAS CUALITATIVAS DETECTADAS (PILAR 4)', MARGIN + 6, catStripY + 5.5);
+    doc.text('DESGLOSE DE CATEGORÍAS CUALITATIVAS DETECTADAS (PILAR 4)', MARGIN + 6, catStripY + 5.2);
 
     const catW = (CONTENT_W - 14) / 6;
-    qualCategories.forEach((cat, idx) => {
+    stats.qualCategories.forEach((cat, idx) => {
         const cx = MARGIN + 6 + idx * (catW + 1.2);
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 232, 240);
-        doc.roundedRect(cx, catStripY + 8.5, catW, 16.5, 1.5, 1.5, 'FD');
+        doc.roundedRect(cx, catStripY + 7.8, catW, 20.5, 1.5, 1.5, 'FD');
 
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(30, 41, 59);
-        const nameParts = cat.name.split(' ');
-        doc.text(nameParts[0], cx + 2.5, catStripY + 13);
-        if (nameParts.length > 1) {
-            doc.text(nameParts.slice(1).join(' ').slice(0, 14), cx + 2.5, catStripY + 16.5);
-        }
+        const catTitleLines = doc.splitTextToSize(cat.name, catW - 5);
+        doc.text(catTitleLines.slice(0, 2), cx + 2.5, catStripY + 12.2);
 
-        doc.setFontSize(8.5);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
         doc.setTextColor(79, 70, 229);
-        doc.text(`${cat.count}`, cx + 2.5, catStripY + 22.5);
+        doc.text(`${cat.count}`, cx + 2.5, catStripY + 21.5);
 
         doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+            `iniciativas (${stats.totalInits > 0 ? Math.round((cat.count / stats.totalInits) * 100) : 0}%)`,
+            cx + 9,
+            catStripY + 21.5
+        );
+
+        doc.setFontSize(5.5);
         doc.setTextColor(148, 163, 184);
-        doc.text(`inits (${totalInits > 0 ? Math.round((cat.count / totalInits) * 100) : 0}%)`, cx + 11, catStripY + 22.5);
+        const areaSample = cat.areas.slice(0, 2).join(', ') || 'General';
+        const wrappedAreaSample = doc.splitTextToSize(areaSample, catW - 4);
+        doc.text(wrappedAreaSample[0] || '', cx + 2.5, catStripY + 26);
     });
 
-    // ─── PÁGINAS 2+: MATRIZ DETALLADA DE INICIATIVAS ────────────────────────────────
+    // ─── PÁGINAS 2+: MATRIZ DETALLADA CON ALTURA DINÁMICA (CERO TEXTOS CORTADOS) ─────
 
-    const colWidths = [52, 30, 34, 22, 16, 18, 101]; // Sum = 273mm
+    // Sum of colWidths = 46 + 27 + 29 + 25 + 16 + 134 = 277mm (CONTENT_W)
+    const colWidths = [46, 27, 29, 25, 16, 134];
     const tableHeaders = [
         'INICIATIVA',
         'ÁREA',
         'RESPONSABLE',
         'ESTATUS',
         'AVANCE',
-        'PILARES',
-        'SÍNTESIS DE IMPACTO & VALOR DOCUMENTADO'
+        'DETALLE INTEGRAL DE IMPACTO & VALOR (6 PILARES)'
     ];
 
     const drawTableHeader = (yPos: number) => {
@@ -1396,45 +1485,122 @@ export function exportConsolidatedToPDF(
         doc.setTextColor(255, 255, 255);
 
         tableHeaders.forEach((th, idx) => {
-            doc.text(th, tx + 2.5, yPos + 5);
+            doc.text(th, tx + 2, yPos + 5);
             tx += colWidths[idx];
         });
     };
 
-    // Begin Page 2
+    const drawMatrixPageBanner = (isContinuation: boolean) => {
+        doc.setFillColor(30, 27, 75);
+        doc.roundedRect(MARGIN, 9, CONTENT_W, 11, 1.5, 1.5, 'F');
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(199, 210, 254);
+        doc.text(
+            isContinuation
+                ? 'TFBE ROADMAP — MATRIZ DETALLADA DE INICIATIVAS Y SUS 6 PILARES (CONTINUACIÓN)'
+                : 'TFBE ROADMAP — MATRIZ DETALLADA DE INICIATIVAS Y SUS 6 PILARES',
+            MARGIN + 4,
+            14
+        );
+        doc.setFontSize(6.8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(203, 213, 225);
+        doc.text(`Listado completo sin recortes (${stats.totalInits} iniciativas registradas)`, MARGIN + 4, 18);
+        doc.text(`Exportado el ${exportDate}`, W - MARGIN - 4, 16, { align: 'right' });
+    };
+
     doc.addPage();
+    drawMatrixPageBanner(false);
 
-    // Detailed Matrix Top Header Banner
-    doc.setFillColor(30, 27, 75);
-    doc.roundedRect(MARGIN, 10, CONTENT_W, 12, 1.5, 1.5, 'F');
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(199, 210, 254);
-    doc.text('TFBE ROADMAP — MATRIZ DETALLADA DE INICIATIVAS Y SUS 6 PILARES', MARGIN + 4, 15);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(203, 213, 225);
-    doc.text(`Listado completo de iniciativas (${totalInits} registradas)`, MARGIN + 4, 19.5);
-    doc.text(`Exportado el ${exportDate}`, W - MARGIN - 4, 17, { align: 'right' });
-
-    let currentY = 24;
+    let currentY = 22;
     drawTableHeader(currentY);
     currentY += 7.5;
 
-    const rowH = 10.5;
+    const lineH = 3.1;
+    const maxMatrixY = 197;
 
     initiatives.forEach((init, idx) => {
-        // Page break if row doesn't fit
-        if (currentY + rowH > 198) {
-            doc.addPage();
-            // Header for continuation pages
-            doc.setFillColor(30, 27, 75);
-            doc.roundedRect(MARGIN, 10, CONTENT_W, 10, 1.5, 1.5, 'F');
-            doc.setFontSize(7.5);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(199, 210, 254);
-            doc.text('TFBE ROADMAP — MATRIZ DETALLADA DE INICIATIVAS (Continuación)', MARGIN + 4, 16.5);
+        const val = allValues[init.id] || {};
+        const pillarVals = [
+            val.business_value,
+            val.operational_efficiency,
+            val.fte_detail,
+            val.qualitative_benefit,
+            val.users_reached_detail,
+            val.estimated_savings_detail
+        ];
+        const completedCount = pillarVals.filter(v => isPillarCompleted(v)).length;
+        const hasPendingMgmt = pillarVals.some(v => isPendingDocumentation(v));
 
+        // Build complete, non-truncated synthesis of all documented pillars
+        const cleanSingleLine = (raw?: string) =>
+            stripHtml(raw)
+                .split('\n')
+                .map(s => s.replace(/^[•\-\*–—\s]+/, '').trim())
+                .filter(Boolean)
+                .join('; ');
+
+        const impactEntries: string[] = [];
+        if (hasPendingMgmt && completedCount === 0) {
+            impactEntries.push('⏳ Documentación pendiente por gerencia en los 6 pilares.');
+        } else {
+            const pDefs: { key: keyof ExportValueData; shortLabel: string }[] = [
+                { key: 'business_value', shortLabel: '1. Negocio' },
+                { key: 'operational_efficiency', shortLabel: '2. Eficiencia' },
+                { key: 'fte_detail', shortLabel: '3. FTE' },
+                { key: 'qualitative_benefit', shortLabel: '4. Cualitativo' },
+                { key: 'users_reached_detail', shortLabel: '5. Usuarios' },
+                { key: 'estimated_savings_detail', shortLabel: '6. Ahorro' },
+            ];
+
+            for (const pd of pDefs) {
+                const rawP = val[pd.key];
+                if (isSubstantivePillar(rawP)) {
+                    const textP = cleanSingleLine(rawP);
+                    if (textP) {
+                        impactEntries.push(`[${pd.shortLabel}]: ${textP}`);
+                    }
+                }
+            }
+        }
+
+        const fullSynthesis = impactEntries.length > 0
+            ? impactEntries.join('   •   ')
+            : '(Sin pilares documentados — 0/6)';
+
+        // Measure wrapped lines for every column so NOTHING is truncated
+        doc.setFontSize(6.8);
+        doc.setFont('helvetica', 'bold');
+        const nameLines: string[] = doc.splitTextToSize(init.name || '—', colWidths[0] - 4);
+
+        doc.setFontSize(6.3);
+        doc.setFont('helvetica', 'normal');
+        const areaLines: string[] = doc.splitTextToSize(init.area || '—', colWidths[1] - 4);
+
+        const lead = [init.transformation_lead, init.champion].filter(Boolean).join(' / ') || '—';
+        const leadLines: string[] = doc.splitTextToSize(lead, colWidths[2] - 4);
+
+        const statusStr = init.status || 'Sin Estatus';
+        const statusLines: string[] = doc.splitTextToSize(statusStr, colWidths[3] - 4);
+
+        doc.setFontSize(6);
+        const synthLines: string[] = doc.splitTextToSize(fullSynthesis, colWidths[5] - 4);
+
+        const maxColLines = Math.max(
+            nameLines.length,
+            areaLines.length,
+            leadLines.length,
+            statusLines.length,
+            2, // Avance + Pilares stack
+            synthLines.length
+        );
+
+        const dynamicRowH = Math.max(8.5, maxColLines * lineH + 3.2);
+
+        if (currentY + dynamicRowH > maxMatrixY) {
+            doc.addPage();
+            drawMatrixPageBanner(true);
             currentY = 22;
             drawTableHeader(currentY);
             currentY += 7.5;
@@ -1444,80 +1610,81 @@ export function exportConsolidatedToPDF(
         doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.2);
-        doc.rect(MARGIN, currentY, CONTENT_W, rowH, 'FD');
+        doc.rect(MARGIN, currentY, CONTENT_W, dynamicRowH, 'FD');
 
-        const val = allValues[init.id] || {};
-        const docCount = [
-            val.business_value,
-            val.operational_efficiency,
-            val.fte_detail,
-            val.qualitative_benefit,
-            val.users_reached_detail,
-            val.estimated_savings_detail
-        ].filter(v => isPillarFilled(v)).length;
-
-        // Synthesis of primary impacts
-        const impactParts: string[] = [];
-        const cleanBiz = stripHtml(val.business_value);
-        if (cleanBiz && !isNAPillar(cleanBiz)) {
-            impactParts.push(cleanBiz.split('.')[0] || cleanBiz.slice(0, 45));
+        // Subtle vertical column dividers
+        let divX = MARGIN;
+        for (let c = 0; c < colWidths.length - 1; c++) {
+            divX += colWidths[c];
+            doc.line(divX, currentY, divX, currentY + dynamicRowH);
         }
-        const cleanEff = stripHtml(val.operational_efficiency);
-        if (cleanEff && !isNAPillar(cleanEff)) {
-            impactParts.push(cleanEff.split('.')[0] || cleanEff.slice(0, 45));
-        }
-        const cleanSav = stripHtml(val.estimated_savings_detail);
-        if (cleanSav && !isNAPillar(cleanSav)) {
-            impactParts.push(`Ahorro: ${cleanSav.slice(0, 30)}`);
-        }
-        const synthesisText = impactParts.join(' | ') || '(Sin pilares documentados)';
 
         let tx = MARGIN;
+        const textStartY = currentY + 3.8;
 
-        // 1. Iniciativa
-        doc.setFontSize(7);
+        // 1. Iniciativa (full wrapped name)
+        doc.setFontSize(6.6);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(30, 41, 59);
-        const nameText = init.name.length > 34 ? init.name.slice(0, 32) + '…' : init.name;
-        doc.text(nameText, tx + 2.5, currentY + 6);
+        nameLines.forEach((l, i) => doc.text(l, tx + 2, textStartY + i * lineH));
 
-        // 2. Área
+        // 2. Área (full wrapped area)
         tx += colWidths[0];
-        doc.setFontSize(6.5);
+        doc.setFontSize(6.2);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(71, 85, 105);
-        const areaText = (init.area || '—').length > 20 ? (init.area || '').slice(0, 18) + '…' : (init.area || '—');
-        doc.text(areaText, tx + 2.5, currentY + 6);
+        areaLines.forEach((l, i) => doc.text(l, tx + 2, textStartY + i * lineH));
 
-        // 3. Responsable
+        // 3. Responsable (full wrapped lead/champion)
         tx += colWidths[1];
-        const lead = init.transformation_lead || init.champion || '—';
-        const leadText = lead.length > 22 ? lead.slice(0, 20) + '…' : lead;
-        doc.text(leadText, tx + 2.5, currentY + 6);
+        leadLines.forEach((l, i) => doc.text(l, tx + 2, textStartY + i * lineH));
 
-        // 4. Estatus
+        // 4. Estatus (full wrapped status — never cuts "Entregado con atraso" or "Entregado con redefinición")
         tx += colWidths[2];
-        const st = init.status || 'Sin Estatus';
-        doc.text(st.length > 15 ? st.slice(0, 14) + '…' : st, tx + 2.5, currentY + 6);
-
-        // 5. Avance
-        tx += colWidths[3];
-        doc.text(`${init.progress ?? 0}%`, tx + 2.5, currentY + 6);
-
-        // 6. Pilares (X/6)
-        tx += colWidths[4];
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(docCount === 6 ? 16 : (docCount > 0 ? 217 : 156), docCount === 6 ? 185 : (docCount > 0 ? 119 : 163), docCount === 6 ? 129 : (docCount > 0 ? 6 : 175));
-        doc.text(`${docCount}/6`, tx + 2.5, currentY + 6);
+        const stLower = statusStr.toLowerCase();
+        if (stLower.includes('atraso') || stLower.includes('retrasado')) {
+            doc.setTextColor(185, 28, 28);
+        } else if (stLower.includes('redefinición')) {
+            doc.setTextColor(194, 65, 12);
+        } else if (stLower.includes('entregado')) {
+            doc.setTextColor(29, 78, 216);
+        } else if (stLower.includes('en curso') || stLower.includes('avance')) {
+            doc.setTextColor(4, 120, 87);
+        } else {
+            doc.setTextColor(71, 85, 105);
+        }
+        statusLines.forEach((l, i) => doc.text(l, tx + 2, textStartY + i * lineH));
 
-        // 7. Síntesis
-        tx += colWidths[5];
+        // 5. Avance (%) + Pilares (X/6)
+        tx += colWidths[3];
+        doc.setFontSize(6.4);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text(`${init.progress ?? 0}%`, tx + 2, textStartY);
+
+        if (hasPendingMgmt && completedCount === 0) {
+            doc.setFontSize(5.6);
+            doc.setTextColor(217, 119, 6);
+            doc.text('Pend. Ger.', tx + 2, textStartY + lineH + 0.4);
+        } else {
+            doc.setFontSize(6);
+            doc.setTextColor(
+                completedCount === 6 ? 16 : completedCount > 0 ? 217 : 148,
+                completedCount === 6 ? 185 : completedCount > 0 ? 119 : 163,
+                completedCount === 6 ? 129 : completedCount > 0 ? 6 : 184
+            );
+            doc.text(`${completedCount}/6 pil.`, tx + 2, textStartY + lineH + 0.4);
+        }
+
+        // 6. Detalle Integral de los 6 Pilares (full wrapped text)
+        tx += colWidths[4];
+        doc.setFontSize(5.9);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(71, 85, 105);
-        const synthLines = doc.splitTextToSize(synthesisText, colWidths[6] - 5);
-        doc.text(synthLines.slice(0, 2), tx + 2.5, currentY + 4.5);
+        doc.setTextColor(51, 65, 85);
+        synthLines.forEach((l, i) => doc.text(l, tx + 2, textStartY + i * lineH));
 
-        currentY += rowH;
+        currentY += dynamicRowH;
     });
 
     // ─── Dynamic Footers on All Pages ───────────────────────────────────────────────
@@ -1526,14 +1693,14 @@ export function exportConsolidatedToPDF(
         doc.setPage(p);
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.3);
-        doc.line(MARGIN, 203, W - MARGIN, 203);
+        doc.line(MARGIN, 202, W - MARGIN, 202);
 
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(148, 163, 184);
-        doc.text('TFBE Roadmap — Consolidado Ejecutivo de Impacto & Valor', MARGIN, 207);
-        doc.text(`Exportado el ${exportDate}`, W / 2, 207, { align: 'center' });
-        doc.text(`Página ${p} de ${totalPages}`, W - MARGIN, 207, { align: 'right' });
+        doc.text('TFBE Roadmap — Consolidado Ejecutivo de Impacto & Valor', MARGIN, 206);
+        doc.text(`Exportado el ${exportDate}`, W / 2, 206, { align: 'center' });
+        doc.text(`Página ${p} de ${totalPages}`, W - MARGIN, 206, { align: 'right' });
     }
 
     doc.save(`Consolidado_Impacto_Valor_${new Date().toISOString().slice(0, 10)}.pdf`);
