@@ -898,12 +898,24 @@ export const InitiativeValuePage = () => {
                             <HelpCircle size={22} />
                         </button>
 
-                        {/* Preview Button */}
-                        {selectedInitiativeId && (
+                        {/* Preview Button (Always available: opens selected initiative or first documented initiative) */}
+                        {filteredInitiatives.length > 0 && (
                             <button
-                                onClick={() => setShowPresentation(true)}
-                                className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200 dark:border-indigo-900/50 shadow-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all font-bold text-xs"
-                                title="Vista Previa de Presentación"
+                                onClick={() => {
+                                    if (!selectedInitiativeId && filteredInitiatives.length > 0) {
+                                        const firstDocInit =
+                                            filteredInitiatives.find(i => {
+                                                const v = allValues[i.id];
+                                                return v && PILLARS.some(p => isPillarCompleted(v[p.key]));
+                                            }) || filteredInitiatives[0];
+                                        if (firstDocInit) {
+                                            handleSelectInitiative(firstDocInit.id, firstDocInit.name);
+                                        }
+                                    }
+                                    setShowPresentation(true);
+                                }}
+                                className="flex items-center space-x-2 px-4 py-2.5 bg-white dark:bg-[#1E2630] text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200 dark:border-indigo-900/50 shadow-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all font-bold text-xs whitespace-nowrap active:scale-95 cursor-pointer"
+                                title="Abrir Presentación Ejecutiva de Impacto & Valor"
                             >
                                 <Presentation size={18} />
                                 <span>Vista Previa</span>
@@ -930,13 +942,26 @@ export const InitiativeValuePage = () => {
                         isOpen={showPresentation}
                         onClose={() => setShowPresentation(false)}
                         initiative={{
+                            id: selectedInitiative.id,
                             name: selectedInitiative.name,
                             area: selectedInitiative.area,
                             champion: selectedInitiative.champion,
-                            status: selectedInitiative.status
+                            transformation_lead: selectedInitiative.transformation_lead,
+                            status: selectedInitiative.status,
+                            progress: selectedInitiative.progress,
+                            technologies: selectedInitiative.technologies,
                         }}
-                        data={valueData}
+                        data={
+                            PILLARS.some(p => valueData[p.key])
+                                ? valueData
+                                : (allValues[selectedInitiative.id] || valueData)
+                        }
                         pillars={PILLARS}
+                        allInitiatives={filteredInitiatives}
+                        allValues={allValues}
+                        onSelectInitiative={handleSelectInitiative}
+                        onExportPDF={handleExportIndividualPDF}
+                        onExportExcel={handleExportIndividualExcel}
                     />
                 )}
 
