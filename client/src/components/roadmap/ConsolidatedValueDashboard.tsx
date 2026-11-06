@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-    TrendingUp, Zap, Users, Sparkles, UserCheck, DollarSign,
+    TrendingUp, Zap, Sparkles, UserCheck, DollarSign,
     ExternalLink, CheckCircle2, Clock, FileQuestion,
     ShieldCheck, Database, Scale, Cpu, Eye, Gauge, ChevronsUpDown
 } from 'lucide-react';
@@ -12,6 +12,7 @@ import {
     isSubstantivePillar,
     isUnquantifiedPillarText,
     analyzePortfolioValue,
+    getMergedOperationalEfficiencyText,
     stripHtml
 } from '../../utils/exportValue';
 
@@ -89,7 +90,11 @@ const extractAllPillarItems = (
     const items: ExtractedBullet[] = [];
 
     for (const init of initiatives) {
-        const val = allValues[init.id]?.[pillarKey];
+        const record = allValues[init.id];
+        const val =
+            pillarKey === 'operational_efficiency'
+                ? getMergedOperationalEfficiencyText(record as Record<string, string> | undefined)
+                : record?.[pillarKey];
         if (!isSubstantivePillar(val)) continue;
 
         const clean = stripHtml(val);
@@ -322,17 +327,13 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
         [initiatives, allValues]
     );
 
-    // Listas completas desplazables para cada uno de los 6 pilares
+    // Listas completas desplazables para cada uno de los 5 pilares
     const businessBullets = useMemo(
         () => extractAllPillarItems(initiatives, allValues, 'business_value'),
         [initiatives, allValues]
     );
     const operationalBullets = useMemo(
         () => extractAllPillarItems(initiatives, allValues, 'operational_efficiency'),
-        [initiatives, allValues]
-    );
-    const fteBullets = useMemo(
-        () => extractAllPillarItems(initiatives, allValues, 'fte_detail'),
         [initiatives, allValues]
     );
     const qualitativeBullets = useMemo(
@@ -359,13 +360,12 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
             if (!v) return false;
             const vals = [
                 v.business_value,
-                v.operational_efficiency,
-                v.fte_detail,
+                getMergedOperationalEfficiencyText(v as Record<string, string>),
                 v.qualitative_benefit,
                 v.users_reached_detail,
                 v.estimated_savings_detail
             ];
-            return vals.some(p => isPendingDocumentation(p)) && vals.filter(p => isPillarCompleted(p)).length < 6;
+            return vals.some(p => isPendingDocumentation(p)) && vals.filter(p => isPillarCompleted(p)).length < 5;
         });
     }, [initiatives, allValues]);
 
@@ -381,7 +381,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                         </h3>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Consolidado analítico de los 6 pilares estratégicos en{' '}
+                        Consolidado analítico de los 5 pilares estratégicos en{' '}
                         <span className="font-semibold text-gray-700 dark:text-gray-200">
                             {stats.totalInits} iniciativas
                         </span>
@@ -394,7 +394,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                     {/* Completas */}
                     <div
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40"
-                        title="Iniciativas con los 6 pilares sustantivamente documentados (o N/A justificado)"
+                        title="Iniciativas con los 5 pilares sustantivamente documentados (o N/A justificado)"
                     >
                         <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                         <div>
@@ -458,11 +458,11 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                 </div>
             </div>
 
-            {/* ─── 2. Grid Consolidado (2 filas × 3 columnas con Scroll en cada Pilar) ──── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {/* ─── 2. Grid Consolidado de 5 Pilares (3 superiores + 2 inferiores amplios) ──── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
 
                 {/* PILAR 1: VALOR DE NEGOCIO (Violeta) */}
-                <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-violet-100 dark:border-violet-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
+                <div className="xl:col-span-2 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-violet-100 dark:border-violet-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
                     <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
@@ -511,8 +511,8 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                     </div>
                 </div>
 
-                {/* PILAR 2: EFICIENCIA OPERATIVA (Ámbar) */}
-                <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-amber-100 dark:border-amber-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
+                {/* PILAR 2: EFICIENCIA OPERATIVA + HORAS LIBERADAS (Ámbar) */}
+                <div className="xl:col-span-2 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-amber-100 dark:border-amber-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
                     <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
@@ -528,18 +528,28 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             </span>
                         </div>
 
-                        {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-3.5 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-100/60 dark:border-amber-900/30">
+                        {/* Top KPI row: Procesos Optimizados + Horas Liberadas / Mes + Áreas Impactadas */}
+                        <div className="grid grid-cols-3 gap-2 mb-3.5 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-100/60 dark:border-amber-900/30">
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
-                                    Procesos Optimizados
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 block truncate" title="Procesos Optimizados">
+                                    Procesos Opt.
                                 </span>
                                 <p className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono tabular-nums">
                                     {stats.hasOperational}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 block truncate" title="Horas Liberadas por Mes">
+                                    Hrs Liberadas/Mes
+                                </span>
+                                <p className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono tabular-nums leading-7">
+                                    {stats.totalHoursPerMonth > 0
+                                        ? `+${stats.totalHoursPerMonth.toLocaleString()} hrs`
+                                        : `${stats.hoursImpactedCount} inits`}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 block truncate" title="Áreas Impactadas">
                                     Áreas Impactadas
                                 </span>
                                 <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
@@ -548,9 +558,9 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             </div>
                         </div>
 
-                        {/* Scrollable List of ALL Operational Efficiency Initiatives */}
+                        {/* Scrollable List of ALL Operational Efficiency & Liberated Hours Initiatives */}
                         <PillarScrollList
-                            title="Optimizaciones Operativas"
+                            title="Optimizaciones y Horas Liberadas"
                             items={operationalBullets}
                             emptyText="Sin datos de optimización operativa aún."
                             accentDotClass="bg-amber-500"
@@ -561,60 +571,8 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                     </div>
                 </div>
 
-                {/* PILAR 3: IMPACTO EN FTE Y HORAS LIBERADAS (Cian) */}
-                <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-cyan-100 dark:border-cyan-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div className="flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2.5">
-                                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg text-cyan-600 dark:text-cyan-400">
-                                    <Users size={18} />
-                                </div>
-                                <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                                    Impacto en FTE
-                                </h4>
-                            </div>
-                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/40 font-mono tabular-nums">
-                                {stats.fteImpactedCount} activas · {stats.ftePendingCount} en cuantif.
-                            </span>
-                        </div>
-
-                        {/* Top KPI row */}
-                        <div className="grid grid-cols-2 gap-2 mb-3.5 p-3 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-xl border border-cyan-100/60 dark:border-cyan-900/30">
-                            <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
-                                    FTEs de Referencia
-                                </span>
-                                <p className="text-xl font-black text-cyan-700 dark:text-cyan-300 font-mono tabular-nums">
-                                    {stats.totalFte > 0 ? `${stats.totalFte} FTEs` : `${stats.fteImpactedCount} inits`}
-                                </p>
-                            </div>
-                            <div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
-                                    Horas Liberadas / Mes
-                                </span>
-                                <p className="text-xl font-black text-gray-800 dark:text-gray-200 font-mono tabular-nums">
-                                    {stats.totalHoursPerMonth > 0
-                                        ? `+${stats.totalHoursPerMonth.toLocaleString()} hrs`
-                                        : `${stats.pctFte}%`}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Scrollable List of ALL FTE & Capacity Initiatives */}
-                        <PillarScrollList
-                            title="Capacidad Reasignada o Liberada"
-                            items={fteBullets}
-                            emptyText="Sin registro de FTEs liberados aún."
-                            accentDotClass="bg-cyan-500"
-                            accentBadgeClass="bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"
-                            maxHeightClass="max-h-[240px]"
-                            onSelectInitiative={onSelectInitiative}
-                        />
-                    </div>
-                </div>
-
-                {/* PILAR 4: BENEFICIO CUALITATIVO (Rosa) */}
-                <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-rose-100 dark:border-rose-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
+                {/* PILAR 3: BENEFICIO CUALITATIVO (Rosa) */}
+                <div className="xl:col-span-2 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-rose-100 dark:border-rose-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
                     <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
@@ -674,8 +632,8 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                     </div>
                 </div>
 
-                {/* PILAR 5: USUARIOS ALCANZADOS (Esmeralda) */}
-                <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
+                {/* PILAR 4: USUARIOS ALCANZADOS (Esmeralda — 3 columnas en XL) */}
+                <div className="xl:col-span-3 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
                     <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
@@ -714,7 +672,7 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                         {/* Tags de áreas operativas alcanzadas con opción de expandir todas */}
                         {stats.usersAreas.length > 0 && (
                             <div className="mb-3 flex flex-wrap items-center gap-1">
-                                {(showAllAreas ? stats.usersAreas : stats.usersAreas.slice(0, 4)).map((area, i) => (
+                                {(showAllAreas ? stats.usersAreas : stats.usersAreas.slice(0, 6)).map((area, i) => (
                                     <span
                                         key={i}
                                         className="text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md"
@@ -722,12 +680,12 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                                         {area}
                                     </span>
                                 ))}
-                                {stats.usersAreas.length > 4 && (
+                                {stats.usersAreas.length > 6 && (
                                     <button
                                         onClick={() => setShowAllAreas(prev => !prev)}
                                         className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline px-1.5 py-0.5 cursor-pointer"
                                     >
-                                        {showAllAreas ? 'Ver menos' : `+${stats.usersAreas.length - 4} más`}
+                                        {showAllAreas ? 'Ver menos' : `+${stats.usersAreas.length - 6} más`}
                                     </button>
                                 )}
                             </div>
@@ -740,14 +698,14 @@ export const ConsolidatedValueDashboard: React.FC<ConsolidatedValueDashboardProp
                             emptyText="Sin datos de usuarios alcanzados aún."
                             accentDotClass="bg-emerald-500"
                             accentBadgeClass="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300"
-                            maxHeightClass="max-h-[205px]"
+                            maxHeightClass="max-h-[210px]"
                             onSelectInitiative={onSelectInitiative}
                         />
                     </div>
                 </div>
 
-                {/* PILAR 6: AHORRO ESTIMADO (Verde) */}
-                <div className="bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-green-100 dark:border-green-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
+                {/* PILAR 5: AHORRO ESTIMADO (Verde — 3 columnas en XL) */}
+                <div className="md:col-span-2 xl:col-span-3 bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-green-100 dark:border-green-900/40 p-5 flex flex-col justify-between hover:shadow-md transition-all">
                     <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">

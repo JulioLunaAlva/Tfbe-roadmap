@@ -13,7 +13,8 @@ import {
     isPillarFilled,
     isPillarCompleted,
     isPendingDocumentation,
-    isUnquantifiedPillarText
+    isUnquantifiedPillarText,
+    getMergedOperationalEfficiencyText
 } from '../../utils/exportValue';
 
 export interface ValueData {
@@ -225,7 +226,7 @@ const ExecutiveRadialProgressSVG: React.FC<{ progress: number; completedPillars:
                     Avance
                 </span>
                 <span className="mt-1 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">
-                    {completedPillars}/6 Pilares
+                    {completedPillars}/5 Pilares
                 </span>
             </div>
         </div>
@@ -316,8 +317,8 @@ const PILLAR_THEME: Record<
         code: '02',
         roman: 'II',
         shortName: 'Eficiencia',
-        dimension: 'Optimización de Procesos & Tiempos de Ciclo',
-        description: 'Reducción de tiempos de ejecución, eliminación de tareas manuales y estandarización operativa.',
+        dimension: 'Optimización de Procesos, Horas Liberadas & Tiempos de Ciclo',
+        description: 'Reducción de tiempos de ejecución, horas liberadas al mes, eliminación de tareas manuales y estandarización operativa.',
         accentText: 'text-amber-400',
         accentBg: 'bg-amber-500/10',
         accentBorder: 'border-amber-500/25',
@@ -329,9 +330,9 @@ const PILLAR_THEME: Record<
         lightBarColor: 'bg-amber-600',
     },
     fte_detail: {
-        code: '03',
-        roman: 'III',
-        shortName: 'Impacto FTE',
+        code: '02',
+        roman: 'II',
+        shortName: 'Capacidad',
         dimension: 'Capacidad Operativa & Horas-Hombre',
         description: 'Liberación o reasignación de talento y tiempo operativo hacia actividades analíticas de valor.',
         accentText: 'text-cyan-400',
@@ -345,8 +346,8 @@ const PILLAR_THEME: Record<
         lightBarColor: 'bg-cyan-700',
     },
     qualitative_benefit: {
-        code: '04',
-        roman: 'IV',
+        code: '03',
+        roman: 'III',
         shortName: 'Cualitativo',
         dimension: 'Gobernanza, Mitigación de Riesgo & Calidad',
         description: 'Beneficios intangibles en control interno, cumplimiento normativo/SOX, trazabilidad y certidumbre.',
@@ -361,8 +362,8 @@ const PILLAR_THEME: Record<
         lightBarColor: 'bg-rose-700',
     },
     users_reached_detail: {
-        code: '05',
-        roman: 'V',
+        code: '04',
+        roman: 'IV',
         shortName: 'Usuarios',
         dimension: 'Alcance Organizacional & Adopción',
         description: 'Equipos, especialistas, áreas financieras y geografías beneficiadas por la iniciativa.',
@@ -377,8 +378,8 @@ const PILLAR_THEME: Record<
         lightBarColor: 'bg-emerald-700',
     },
     estimated_savings_detail: {
-        code: '06',
-        roman: 'VI',
+        code: '05',
+        roman: 'V',
         shortName: 'Ahorro',
         dimension: 'Impacto Económico & Optimización de Costos',
         description: 'Ahorro financiero directo, recuperación en aclaraciones comerciales y eficiencia en recursos.',
@@ -519,8 +520,8 @@ export const ValuePresentationModal = ({
 }: PresentationModalProps) => {
     // Steps:
     // 0 = Portada Ejecutiva
-    // 1 = Panorama 360° (One-Pager de los 6 Pilares)
-    // 2..7 = Deep-Dive into Pillar 1..6
+    // 1 = Panorama 360° (One-Pager de los 5 Pilares)
+    // 2..6 = Deep-Dive into Pillar 1..5
     const [step, setStep] = useState(0);
     const [designMode, setDesignMode] = useState<PresentationDesignMode>(() => {
         const saved = localStorage.getItem('tfbe_presentation_design_mode');
@@ -528,14 +529,14 @@ export const ValuePresentationModal = ({
     });
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
     const [switcherQuery, setSwitcherQuery] = useState('');
-    const totalSlides = pillars.length + 2; // 8 slides (0..7)
+    const totalSlides = pillars.length + 2; // 7 slides (0..6)
 
     const handleChangeMode = (mode: PresentationDesignMode) => {
         setDesignMode(mode);
         localStorage.setItem('tfbe_presentation_design_mode', mode);
     };
 
-    // Keyboard navigation (<-, ->, 1..8, Esc)
+    // Keyboard navigation (<-, ->, 1..7, Esc)
     useEffect(() => {
         if (!isOpen) return;
 
@@ -554,7 +555,7 @@ export const ValuePresentationModal = ({
             } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
                 e.preventDefault();
                 setStep(s => Math.max(s - 1, 0));
-            } else if (/^[1-8]$/.test(e.key)) {
+            } else if (/^[1-7]$/.test(e.key)) {
                 const idx = parseInt(e.key, 10) - 1;
                 if (idx >= 0 && idx < totalSlides) {
                     e.preventDefault();
@@ -569,7 +570,10 @@ export const ValuePresentationModal = ({
 
     const pillarAnalytics = useMemo(() => {
         return pillars.map((p, idx) => {
-            const raw = data[p.key] || '';
+            const raw =
+                p.key === 'operational_efficiency'
+                    ? getMergedOperationalEfficiencyText(data as unknown as Record<string, string>)
+                    : data[p.key] || '';
             const bullets = extractPillarBullets(raw);
             const metric = extractKeyMetricFromText(raw);
             const statusInfo = getPillarStatusInfo(raw);
@@ -578,7 +582,7 @@ export const ValuePresentationModal = ({
             return {
                 pillar: p,
                 index: idx,
-                slideIndex: idx + 2, // Slides 2..7
+                slideIndex: idx + 2, // Slides 2..6
                 raw,
                 bullets,
                 metric,
@@ -590,7 +594,14 @@ export const ValuePresentationModal = ({
     }, [pillars, data]);
 
     const completedPillarsCount = useMemo(
-        () => pillars.filter(p => isPillarCompleted(data[p.key])).length,
+        () =>
+            pillars.filter(p => {
+                const raw =
+                    p.key === 'operational_efficiency'
+                        ? getMergedOperationalEfficiencyText(data as unknown as Record<string, string>)
+                        : data[p.key];
+                return isPillarCompleted(raw);
+            }).length,
         [pillars, data]
     );
 
@@ -851,7 +862,13 @@ export const ValuePresentationModal = ({
                                         {filteredSwitcherInits.map(item => {
                                             const v = allValues[item.id];
                                             const itemCompleted = v
-                                                ? pillars.filter(p => isPillarCompleted(v[p.key])).length
+                                                ? pillars.filter(p => {
+                                                      const raw =
+                                                          p.key === 'operational_efficiency'
+                                                              ? getMergedOperationalEfficiencyText(v as unknown as Record<string, string>)
+                                                              : v[p.key];
+                                                      return isPillarCompleted(raw);
+                                                  }).length
                                                 : 0;
                                             const isCurrent = item.id === initiative.id;
                                             return (
@@ -886,7 +903,7 @@ export const ValuePresentationModal = ({
                                                     <span
                                                         className={clsx(
                                                             'px-1.5 py-0.5 rounded text-[10px] font-bold tabular-nums shrink-0',
-                                                            itemCompleted === 6
+                                                            itemCompleted === pillars.length
                                                                 ? isExecutiveLight
                                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                                                     : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
@@ -899,7 +916,7 @@ export const ValuePresentationModal = ({
                                                                 : 'bg-zinc-800 text-zinc-500'
                                                         )}
                                                     >
-                                                        {itemCompleted}/6
+                                                        {itemCompleted}/{pillars.length}
                                                     </span>
                                                 </button>
                                             );
@@ -1093,7 +1110,7 @@ export const ValuePresentationModal = ({
                                         </span>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                                         {pillarAnalytics.map(pa => {
                                             const Icon = pa.pillar.icon;
                                             return (
@@ -1157,7 +1174,7 @@ export const ValuePresentationModal = ({
                                 <div className="bg-white rounded-2xl px-6 py-4 border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
                                     <div>
                                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C8102E] block mb-0.5">
-                                            Vista Integral de Consejo · 6 Dimensiones de Valor
+                                            Vista Integral de Consejo · 5 Dimensiones de Valor
                                         </span>
                                         <h2
                                             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
@@ -1182,14 +1199,23 @@ export const ValuePresentationModal = ({
                                     </div>
                                 </div>
 
-                                {/* 3x2 Executive Matrix Cards with Independent Scroll */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 min-h-0">
-                                    {pillarAnalytics.map(pa => {
+                                {/* 5-Card Executive Matrix (3 top + 2 bottom) with Independent Scroll */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 flex-1 min-h-0">
+                                    {pillarAnalytics.map((pa, idx) => {
                                         const Icon = pa.pillar.icon;
+                                        const spanClass =
+                                            idx < 3
+                                                ? 'lg:col-span-2'
+                                                : idx === 4
+                                                ? 'md:col-span-2 lg:col-span-3'
+                                                : 'lg:col-span-3';
                                         return (
                                             <div
                                                 key={pa.pillar.key}
-                                                className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_8px_30px_rgba(15,23,42,0.04)] p-5 flex flex-col justify-between min-h-[210px] max-h-[275px] relative overflow-hidden"
+                                                className={clsx(
+                                                    spanClass,
+                                                    'bg-white rounded-2xl border border-slate-200/90 shadow-[0_8px_30px_rgba(15,23,42,0.04)] p-5 flex flex-col justify-between min-h-[210px] max-h-[275px] relative overflow-hidden'
+                                                )}
                                             >
                                                 {/* Top subtle color bar */}
                                                 <div className={clsx('absolute top-0 left-0 right-0 h-1', pa.theme.lightBarColor)} />
@@ -1316,7 +1342,7 @@ export const ValuePresentationModal = ({
                                             <div className="flex items-start justify-between gap-3 mb-4">
                                                 <div>
                                                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 block">
-                                                        Dimensión Estratégica {activePillarAnalysis.theme.roman} de VI
+                                                        Dimensión Estratégica {activePillarAnalysis.theme.roman} de V
                                                     </span>
                                                     <h2
                                                         style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
@@ -1577,7 +1603,7 @@ export const ValuePresentationModal = ({
                                             <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-1">
                                                 <span>Madurez Documental</span>
                                                 <span className="text-emerald-400 font-bold tabular-nums">
-                                                    {completedPillarsCount}/6 Pilares
+                                                    {completedPillarsCount}/5 Pilares
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1.5 mt-1.5">
@@ -1626,11 +1652,11 @@ export const ValuePresentationModal = ({
                                             SÍNTESIS EJECUTIVA POR PILAR — CLIC EN CUALQUIER TARJETA PARA PROFUNDIZAR
                                         </span>
                                         <span className="text-[11px] font-mono text-zinc-500 tabular-nums">
-                                            {substantivePillarsCount} con impacto activo · {6 - completedPillarsCount} pendientes
+                                            {substantivePillarsCount} con impacto activo · {5 - completedPillarsCount} pendientes
                                         </span>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                                         {pillarAnalytics.map(pa => {
                                             const Icon = pa.pillar.icon;
                                             const firstBullet = pa.bullets[0] || 'Sin información registrada para este pilar.';
@@ -1715,19 +1741,28 @@ export const ValuePresentationModal = ({
                                         </div>
                                         <div className="px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-white/[0.08] text-xs font-mono tabular-nums">
                                             <span className="text-zinc-500 mr-1.5">PILARES:</span>
-                                            <span className="text-zinc-100 font-bold">{completedPillarsCount}/6</span>
+                                            <span className="text-zinc-100 font-bold">{completedPillarsCount}/5</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 min-h-0">
-                                    {pillarAnalytics.map(pa => {
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 flex-1 min-h-0">
+                                    {pillarAnalytics.map((pa, idx) => {
                                         const Icon = pa.pillar.icon;
+                                        const spanClass =
+                                            idx < 3
+                                                ? 'lg:col-span-2'
+                                                : idx === 4
+                                                ? 'md:col-span-2 lg:col-span-3'
+                                                : 'lg:col-span-3';
                                         return (
                                             <SpotlightCard
                                                 key={pa.pillar.key}
                                                 glowColor={pa.theme.glowRgba}
-                                                className="p-5 flex flex-col justify-between min-h-[210px] max-h-[275px]"
+                                                className={clsx(
+                                                    spanClass,
+                                                    'p-5 flex flex-col justify-between min-h-[210px] max-h-[275px]'
+                                                )}
                                             >
                                                 <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-white/[0.06] shrink-0">
                                                     <div className="flex items-center gap-2.5 min-w-0">
@@ -1844,7 +1879,7 @@ export const ValuePresentationModal = ({
                                         <div>
                                             <div className="flex items-center justify-between gap-2 mb-4">
                                                 <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">
-                                                    PILAR {activePillarAnalysis.theme.code} DE 06
+                                                    PILAR {activePillarAnalysis.theme.code} DE 05
                                                 </span>
                                                 <span
                                                     className={clsx(

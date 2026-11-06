@@ -6,7 +6,7 @@ import { useYear } from '../context/YearContext';
 import { useArea } from '../context/AreaContext';
 import API_URL from '../config/api';
 import {
-    Save, TrendingUp, Zap, Users, Sparkles, UserCheck,
+    Save, TrendingUp, Zap, Sparkles, UserCheck,
     DollarSign, HelpCircle, Award, Presentation, Search, ChevronDown, X as XIcon,
     FileDown, FileSpreadsheet, FileText, ArrowLeft, ChevronLeft, ChevronRight, LayoutGrid
 } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
     exportConsolidatedToExcel,
     exportConsolidatedToPDF,
     EXPORT_PILLARS,
+    getMergedOperationalEfficiencyText,
     isNAPillar,
     isPillarCompleted,
     isPendingDocumentation
@@ -56,7 +57,7 @@ const EMPTY_VALUE: ValueData = {
     estimated_savings_detail: '',
 };
 
-// Pillar configuration in display order
+// Pillar configuration in display order (5 Strategic Pillars)
 const PILLARS = [
     {
         key: 'business_value' as keyof ValueData,
@@ -78,18 +79,7 @@ const PILLARS = [
         iconBg: 'bg-amber-100 dark:bg-amber-900/50',
         iconColor: 'text-amber-600 dark:text-amber-400',
         accentRing: 'ring-amber-50 dark:ring-amber-900/20',
-        placeholder: '• Procesos automatizados o eliminados...\n• Reducción de tiempos de ciclo...\n• Mejora en SLAs...',
-    },
-    {
-        key: 'fte_detail' as keyof ValueData,
-        label: 'FTE',
-        icon: Users,
-        gradient: 'from-cyan-50 to-white dark:from-cyan-950/40 dark:to-[#1E2630]',
-        borderColor: 'border-cyan-100 dark:border-cyan-900/50',
-        iconBg: 'bg-cyan-100 dark:bg-cyan-900/50',
-        iconColor: 'text-cyan-600 dark:text-cyan-400',
-        accentRing: 'ring-cyan-50 dark:ring-cyan-900/20',
-        placeholder: '• FTEs liberados o reasignados...\n• Horas-hombre ahorradas por semana...\n• Equipos beneficiados...',
+        placeholder: '• Procesos automatizados o eliminados...\n• Horas liberadas por semana o mes...\n• Reducción de tiempos de ciclo y mejora en SLAs...',
     },
     {
         key: 'qualitative_benefit' as keyof ValueData,
@@ -326,7 +316,7 @@ export const InitiativeValuePage = () => {
                 if (data) {
                     setValueData({
                         business_value: data.business_value || '',
-                        operational_efficiency: data.operational_efficiency || '',
+                        operational_efficiency: getMergedOperationalEfficiencyText(data),
                         fte_detail: data.fte_detail || '',
                         qualitative_benefit: data.qualitative_benefit || '',
                         users_reached_detail: data.users_reached_detail || '',
@@ -697,8 +687,7 @@ export const InitiativeValuePage = () => {
                                                 const v = allValues[i.id];
                                                 const pillarVals = v ? [
                                                     v.business_value,
-                                                    v.operational_efficiency,
-                                                    v.fte_detail,
+                                                    getMergedOperationalEfficiencyText(v as unknown as Record<string, string>),
                                                     v.qualitative_benefit,
                                                     v.users_reached_detail,
                                                     v.estimated_savings_detail
@@ -763,7 +752,7 @@ export const InitiativeValuePage = () => {
                             <button
                                 onClick={handleClearInitiative}
                                 className="flex items-center gap-1.5 px-3.5 py-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-200 dark:border-indigo-800/60 shadow-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all font-bold text-xs whitespace-nowrap active:scale-95 cursor-pointer"
-                                title="Regresar al Dashboard Consolidado de los 6 Pilares"
+                                title="Regresar al Dashboard Consolidado de los 5 Pilares"
                             >
                                 <ArrowLeft size={16} />
                                 <span>Inicio / Consolidado</span>
@@ -974,7 +963,7 @@ export const InitiativeValuePage = () => {
                                 <button
                                     onClick={handleClearInitiative}
                                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-gray-100 hover:bg-indigo-50 dark:bg-gray-800 dark:hover:bg-indigo-900/40 text-gray-700 hover:text-indigo-600 dark:text-gray-200 dark:hover:text-indigo-300 transition-colors cursor-pointer"
-                                    title="Volver a la vista general de los 6 pilares"
+                                    title="Volver a la vista general de los 5 pilares"
                                 >
                                     <LayoutGrid size={13} />
                                     <span>Volver al Consolidado</span>

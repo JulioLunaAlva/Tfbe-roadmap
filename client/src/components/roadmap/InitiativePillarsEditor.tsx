@@ -36,13 +36,19 @@ export const InitiativePillarsEditor: React.FC<InitiativePillarsEditorProps> = (
     pillars
 }) => {
     return (
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 min-h-0 tour-iv-pillars">
-            {pillars.map((pillar) => {
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 min-h-0 tour-iv-pillars">
+            {pillars.map((pillar, index) => {
                 const Icon = pillar.icon;
+                const spanClass =
+                    index < 3
+                        ? 'xl:col-span-2'
+                        : index === 4
+                        ? 'md:col-span-2 xl:col-span-3'
+                        : 'xl:col-span-3';
                 return (
                     <div
                         key={pillar.key}
-                        className={`bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 
+                        className={`${spanClass} bg-white dark:bg-[#1E2630] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 
                             flex flex-col overflow-hidden transition-all hover:shadow-md ring-1 ${pillar.accentRing}
                             min-h-[280px] max-h-[400px]`}
                     >

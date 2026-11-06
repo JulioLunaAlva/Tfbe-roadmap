@@ -19,7 +19,7 @@ const upsertSchema = z.object({
     estimated_savings_detail: z.string().max(50_000).optional().default(''),
 });
 
-// GET /api/initiative-value/summary — Returns pillar completion count per initiative
+// GET /api/initiative-value/summary — Returns 5-pillar completion count per initiative
 router.get('/summary', authenticateToken, async (req: any, res) => {
     try {
         const allowedAreas = await getAccessibleAreaIds(req.user);
@@ -37,7 +37,6 @@ router.get('/summary', authenticateToken, async (req: any, res) => {
                 (
                     CASE WHEN iv.business_value IS NOT NULL AND iv.business_value != '' AND iv.business_value != '<p></p>' THEN 1 ELSE 0 END +
                     CASE WHEN iv.operational_efficiency IS NOT NULL AND iv.operational_efficiency != '' AND iv.operational_efficiency != '<p></p>' THEN 1 ELSE 0 END +
-                    CASE WHEN iv.fte_detail IS NOT NULL AND iv.fte_detail != '' AND iv.fte_detail != '<p></p>' THEN 1 ELSE 0 END +
                     CASE WHEN iv.qualitative_benefit IS NOT NULL AND iv.qualitative_benefit != '' AND iv.qualitative_benefit != '<p></p>' THEN 1 ELSE 0 END +
                     CASE WHEN iv.users_reached_detail IS NOT NULL AND iv.users_reached_detail != '' AND iv.users_reached_detail != '<p></p>' THEN 1 ELSE 0 END +
                     CASE WHEN iv.estimated_savings_detail IS NOT NULL AND iv.estimated_savings_detail != '' AND iv.estimated_savings_detail != '<p></p>' THEN 1 ELSE 0 END
@@ -48,7 +47,6 @@ router.get('/summary', authenticateToken, async (req: any, res) => {
             params
         );
 
-        // Return as a map { initiative_id: filledCount }
         const summary: Record<string, number> = {};
         for (const row of result.rows) {
             summary[row.initiative_id] = Number(row.filled_pillars);
@@ -180,7 +178,7 @@ router.post('/', authenticateToken, requireRole('editor'), async (req: any, res)
             DO UPDATE SET
                 business_value = EXCLUDED.business_value,
                 operational_efficiency = EXCLUDED.operational_efficiency,
-                fte_detail = EXCLUDED.fte_detail,
+                fte_detail = COALESCE(NULLIF(EXCLUDED.fte_detail, ''), initiative_value.fte_detail),
                 qualitative_benefit = EXCLUDED.qualitative_benefit,
                 users_reached_detail = EXCLUDED.users_reached_detail,
                 estimated_savings_detail = EXCLUDED.estimated_savings_detail,
